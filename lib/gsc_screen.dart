@@ -2,18 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:side_navigation/side_navigation.dart';
 
 void main() {
-  runApp(MaterialApp(home: GradStudentscreen()),
+  runApp(MaterialApp(home: Gscscreen()),
    );
 }
 
-class GradStudentscreen extends StatefulWidget {
-  const GradStudentscreen({Key? key}) : super(key: key);
+class Gscscreen extends StatefulWidget {
+  const Gscscreen({Key? key}) : super(key: key);
 
   @override
   _MainViewState createState() => _MainViewState();
 }
 
-class _MainViewState extends State<GradStudentscreen> {
+class _MainViewState extends State<Gscscreen> {
   /// Views to display
   List<Widget> views = const [
     Center(
@@ -24,9 +24,14 @@ class _MainViewState extends State<GradStudentscreen> {
       
     ),
     Center(
-      child: Text('Courses',
+      child: Text('Program Management',
       textDirection:TextDirection.ltr,
       style: TextStyle(fontFamily: 'Inter', ),),
+    ),
+    Center(
+      child: Text('Student Management',
+      textDirection: TextDirection.ltr,
+      style: TextStyle(fontFamily: 'Inter', fontSize: 100),),
     ),
     Center(
       child: Text('Calendar',
@@ -38,11 +43,7 @@ class _MainViewState extends State<GradStudentscreen> {
       textDirection: TextDirection.ltr,
       style: TextStyle(fontFamily: 'Inter', fontSize: 100),),
     ),
-    Center(
-      child: Text('Student Hub',
-      textDirection: TextDirection.ltr,
-      style: TextStyle(fontFamily: 'Inter', fontSize: 100),),
-    ),
+    
   ];
 
   /// The currently selected index of the bar
@@ -61,7 +62,7 @@ class _MainViewState extends State<GradStudentscreen> {
             
             header: SideNavigationBarHeader( 
             image: CircleAvatar(),
-            title: Text('Graduate students', style: TextStyle(color: Colors.white, fontSize: 16),),
+            title: Text('Graduate school coordinator', style: TextStyle(color: Colors.white, fontSize: 16),),
             subtitle: Text('marion_paguia@dlsu.edu.ph',style: TextStyle(color: Color(0xFF747475), fontSize: 12,),)),
 
             
@@ -75,21 +76,20 @@ class _MainViewState extends State<GradStudentscreen> {
               ),
               SideNavigationBarItem(
                 icon: Icons.book,
-                label: 'Courses',
+                label: 'Program Management',
+              ),
+              SideNavigationBarItem(
+                icon: Icons.school,
+                label: 'Student Management',
               ),
               SideNavigationBarItem(
                 icon: Icons.event,
                 label: 'Calendar',
               ),
-              SideNavigationBarItem(
-                icon: Icons.message,
-                label: 'Inbox',
-              ),
     
               SideNavigationBarItem(
-              
-                icon: Icons.school,
-                label: 'Student Hub',
+                icon: Icons.inbox,
+                label: 'Inbox',
               ),
             ],
             onTap: (index) {
