@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "703443900752",
+    "project_id": "gstrackingsys",
+    "storage_bucket": "gstrackingsys.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:703443900752:android:82e9634eed833ae18b3455",
+        "android_client_info": {
+          "package_name": "com.example.sysadmindb"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB40NJsrUqxUP0vuW5va8QGnrC279q6P1Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
