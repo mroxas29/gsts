@@ -1,12 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:sysadmindb/gradstudent_screen.dart';
 import 'package:sysadmindb/gsc_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
-void main() {
+
+void main() async{
+
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+  options: DefaultFirebaseOptions.currentPlatform,
+);
   runApp(const MaterialApp(
     title: 'Navigation Basics',
     home: FirstRoute(),
   ));
+
+  
 }
 
 class FirstRoute extends StatelessWidget {
@@ -57,6 +67,8 @@ class FirstRoute extends StatelessWidget {
                 border: OutlineInputBorder(),
                 labelText: 'ID Number',
                 hintText: 'Enter ID number here',
+                floatingLabelAlignment: FloatingLabelAlignment.start,
+                floatingLabelStyle: TextStyle(fontSize: 25,),
                 filled: true,
                 fillColor: Colors.white,
               ),
@@ -67,6 +79,7 @@ class FirstRoute extends StatelessWidget {
          Padding(padding: EdgeInsets.symmetric(horizontal: 15, vertical: 20),
 
             child: TextField(
+              obscureText: true,
               decoration: InputDecoration(
                 border: OutlineInputBorder(),
                 labelText: 'Password',
