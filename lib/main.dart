@@ -12,7 +12,7 @@ void main() async{
   options: DefaultFirebaseOptions.currentPlatform,
 );
   runApp(const MaterialApp(
-    title: 'Navigation Basics',
+    title: 'Login Screen',
     home: FirstRoute(),
   ));
 
@@ -24,7 +24,13 @@ class FirstRoute extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+   
+   
+    return WillPopScope(
+    onWillPop: () async => false,
+    child:  
+    
+    Scaffold(
  
       appBar: AppBar(
         title: const Text('Graduate student tracking system'),
@@ -127,6 +133,7 @@ class FirstRoute extends StatelessWidget {
       ) ,
       )
       )
-    );
+    )
+    ,);
   }
 }
