@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:side_navigation/side_navigation.dart';
+import 'package:sysadmindb/main.dart';
 
 void main() {
   runApp(MaterialApp(home: Gscscreen()),
@@ -14,6 +15,8 @@ class Gscscreen extends StatefulWidget {
 }
 
 class _MainViewState extends State<Gscscreen> {
+  
+  
   /// Views to display
   List<Widget> views = const [
     Center(
@@ -51,8 +54,14 @@ class _MainViewState extends State<Gscscreen> {
 
   @override
   Widget build(BuildContext context) {
-
-    return Scaffold(
+    
+    return WillPopScope( 
+      onWillPop: () async => false,
+      child: 
+      
+       
+    
+    Scaffold(
       // The row is needed to display the current view
 
       body: Row( 
@@ -61,9 +70,38 @@ class _MainViewState extends State<Gscscreen> {
           SideNavigationBar(
             
             header: SideNavigationBarHeader( 
-            image: CircleAvatar(),
-            title: Text('Graduate school coordinator', style: TextStyle(color: Colors.white, fontSize: 16),),
-            subtitle: Text('marion_paguia@dlsu.edu.ph',style: TextStyle(color: Color(0xFF747475), fontSize: 12,),)),
+              image: CircleAvatar(),
+              title: Text('Graduate school coordinator', style: TextStyle(color: Colors.white, fontSize: 16),),
+              subtitle: Text('marion_paguia@dlsu.edu.ph',style: TextStyle(color: Color(0xFF747475), fontSize: 12,),)
+            ),
+            
+            
+            
+            footer: SideNavigationBarFooter(
+            label: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                
+              ElevatedButton.icon(
+                 icon: Icon(Icons.logout, color:Color(0xFF747475) ,), 
+                label: Text('Log Out', style: TextStyle(color:Color(0xFF747475) ),),
+                style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+ 
+                
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const FirstRoute()),
+                );
+              },
+
+
+            ),
+
+            ],)
+            ),
 
             
             
@@ -128,6 +166,7 @@ class _MainViewState extends State<Gscscreen> {
         
         
       ),
-    );
+    )
+    ,) ;
   }
 }
