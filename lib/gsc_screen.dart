@@ -74,11 +74,11 @@ class _MainViewState extends State<Gscscreen> {
               header: SideNavigationBarHeader(
                   image: CircleAvatar(),
                   title: Text(
-                    'Graduate school coordinator',
+                    displayname!['firstname']! + " " + displayname!['lastname']!,
                     style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
                   subtitle: Text(
-                    'marion_paguia@dlsu.edu.ph',
+                    emailTextController.text,
                     style: TextStyle(
                       color: Color(0xFF747475),
                       fontSize: 12,
@@ -104,7 +104,7 @@ class _MainViewState extends State<Gscscreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => const FirstRoute()),
+                            builder: (context) =>  LoginPage()),
                       );
                     },
                   ),
