@@ -550,7 +550,6 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
             .update({
           'pastCourses': FieldValue.arrayRemove([pastCourse.toJson()]),
         });
-
         // Display a success message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
