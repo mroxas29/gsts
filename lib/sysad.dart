@@ -57,6 +57,184 @@ class _MainViewState extends State<Sysad> {
     );
   }
 
+  void showAddUserForm(BuildContext context, GlobalKey<FormState> formKey) {
+    List<String> roles = ['Coordinator', 'Graduate Student', 'Admin'];
+    final UserData _userData = UserData();
+
+    String selectedRole = roles[0];
+    TextEditingController emailController = TextEditingController();
+    TextEditingController passwordController = TextEditingController();
+    TextEditingController confirmPasswordController = TextEditingController();
+    print("Add user form executed");
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Add New User'),
+          content: Form(
+            key: formKey,
+            autovalidateMode: AutovalidateMode.always,
+            child: Column(
+              children: [
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'First Name'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter first name';
+                    }
+                    return null;
+                  },
+                  onSaved: (value) {
+                    _userData.displayname['firstname'] = value ?? '';
+                  },
+                ),
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'Last Name'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter last name';
+                    }
+                    return null;
+                  },
+                  onSaved: (value) {
+                    _userData.displayname['lastname'] = value ?? '';
+                  },
+                ),
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'Email'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter an email';
+                    }
+                    // Add email validation if needed
+                    return null;
+                  },
+                  onSaved: (value) {
+                    _userData.email = value ?? '';
+                  },
+                ),
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'ID Number'),
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter ID number';
+                    }
+                    // Add ID number validation if needed
+                    return null;
+                  },
+                  onSaved: (value) {
+                    _userData.idnumber = int.parse(value ?? '0');
+                  },
+                ),
+                DropdownButtonFormField<String>(
+                  value: selectedRole,
+                  items: roles.map((role) {
+                    return DropdownMenuItem<String>(
+                      value: role,
+                      child: Text(role),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    selectedRole = value!;
+                  },
+                  onSaved: (value) {
+                    _userData.role = value ?? '';
+                  },
+                  decoration: InputDecoration(labelText: 'Role'),
+                ),
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'Password'),
+                  obscureText: true,
+                  controller: passwordController,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a password';
+                    }
+                    return null;
+                  },
+                  onSaved: (value) {
+                    _userData.password = value ?? '';
+                  },
+                ),
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'Confirm Password'),
+                  obscureText: true,
+                  controller: confirmPasswordController,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please confirm the password';
+                    } else if (value != passwordController.text) {
+                      return 'Passwords do not match';
+                    }
+                    return null;
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                if (formKey.currentState!.validate()) {
+                  formKey.currentState!.save();
+
+                  try {
+                    UserCredential userCredential = await FirebaseAuth.instance
+                        .createUserWithEmailAndPassword(
+                      email: _userData.email,
+                      password: _userData.password,
+                    );
+                    String userID = userCredential.user!.uid;
+
+                    await FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(userID)
+                        .set({
+                      'displayname': {
+                        'firstname': _userData.displayname['firstname']!,
+                        'lastname': _userData.displayname['lastname']!,
+                      },
+                      'role': _userData.role,
+                      'email': _userData.email,
+                      'idnumber': _userData.idnumber,
+                    });
+                    Navigator.pop(context);
+                    users.clear();
+
+                    addUserFromFirestore();
+
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('User created'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  } catch (e) {
+                    print('Error creating user: $e');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error creating user: $e'),
+                      ),
+                    );
+                  }
+                }
+              },
+              child: Text('Submit'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _editUserData(BuildContext context, user user) {
     List<String> roles = ['Coordinator', 'Graduate Student', 'Admin'];
     String selectedRole = user.role;
@@ -70,7 +248,7 @@ class _MainViewState extends State<Sysad> {
 
     TextEditingController idNumberController =
         TextEditingController(text: user.idnumber.toString());
- 
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -226,7 +404,7 @@ class _MainViewState extends State<Sysad> {
   void _editCourseData(BuildContext context, Course course) {
     List<String> status = ['true', 'false'];
     String selectedstatus = course.isactive.toString();
-final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+    final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
     TextEditingController coursecodeController =
         TextEditingController(text: course.coursecode);
     TextEditingController coursenameController =
@@ -237,7 +415,7 @@ final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
         TextEditingController(text: course.units.toString());
     TextEditingController numstudentsController =
         TextEditingController(text: course.numstudents.toString());
- 
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -664,7 +842,7 @@ final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
               header: SideNavigationBarHeader(
                   image: CircleAvatar(),
                   title: Text(
-                    "${currentUser!.displayname['firstname']!} ${currentUser!.displayname['lastname']!}",
+                    "${currentUser.displayname['firstname']!} ${currentUser.displayname['lastname']!}",
                     style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
                   subtitle: Text(
@@ -693,6 +871,7 @@ final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
                     onPressed: () {
                       users.clear();
                       courses.clear();
+                      activecourses.clear();
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => LoginPage()),

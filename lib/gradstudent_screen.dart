@@ -896,6 +896,11 @@ class _MainViewState extends State<GradStudentscreen>
                       backgroundColor: Colors.transparent,
                     ),
                     onPressed: () {
+                      courses.clear();
+                      activecourses.clear();
+                      currentStudent.enrolledCourses.clear();
+                      currentStudent.pastCourses.clear();
+                      
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => LoginPage()),

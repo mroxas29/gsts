@@ -55,8 +55,10 @@ Future<void> addUserFromFirestore() async {
         email: userData['email'],
         idnumber: userData['idnumber'],
       );
+      
       users.add(newUser);
     }
+    
 
     // Optional: Print the users to the console
     users.forEach((user) {
