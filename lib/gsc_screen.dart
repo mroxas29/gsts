@@ -15,9 +15,18 @@ class Gscscreen extends StatefulWidget {
   _MainViewState createState() => _MainViewState();
 }
 
+
 class _MainViewState extends State<Gscscreen> {
+  void changeScreen(int index) {
+    setState(() {
+      selectedIndex = index;
+    });
+  }
+
+  @override
+
   /// Views to display
-  List<Widget> views = const [
+  List<Widget> views = [
     Center(
       child: Text(
         'Dashboard',
@@ -34,13 +43,7 @@ class _MainViewState extends State<Gscscreen> {
         ),
       ),
     ),
-    Center(
-      child: Text(
-        'Student Management',
-        textDirection: TextDirection.ltr,
-        style: TextStyle(fontFamily: 'Inter', fontSize: 100),
-      ),
-    ),
+
     Center(
       child: Text(
         'Calendar',
@@ -74,7 +77,7 @@ class _MainViewState extends State<Gscscreen> {
               header: SideNavigationBarHeader(
                   image: CircleAvatar(),
                   title: Text(
-                    displayname!['firstname']! + " " + displayname!['lastname']!,
+                    "${currentUser!.displayname['firstname']!} ${currentUser!.displayname['lastname']!}",
                     style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
                   subtitle: Text(
@@ -103,8 +106,7 @@ class _MainViewState extends State<Gscscreen> {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                            builder: (context) =>  LoginPage()),
+                        MaterialPageRoute(builder: (context) => LoginPage()),
                       );
                     },
                   ),
@@ -135,7 +137,7 @@ class _MainViewState extends State<Gscscreen> {
               ],
               onTap: (index) {
                 setState(() {
-                  selectedIndex = index;
+                  changeScreen(index);
                 });
               },
               toggler: SideBarToggler(

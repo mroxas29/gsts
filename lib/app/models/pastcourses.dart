@@ -1,0 +1,58 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:sysadmindb/app/models/courses.dart';
+
+class PastCourse extends Course {
+  final double grade;
+
+  PastCourse({
+    required String uid,
+    required String coursecode,
+    required String coursename,
+    required bool isactive,
+    required String facultyassigned,
+    required int numstudents,
+    required int units,
+    required this.grade,
+  }) : super(
+          uid: uid,
+          coursecode: coursecode,
+          coursename: coursename,
+          isactive: isactive,
+          facultyassigned: facultyassigned,
+          numstudents: numstudents,
+          units: units,
+        );
+
+  factory PastCourse.fromJson(Map<String, dynamic> json) {
+    return PastCourse(
+      uid: json['uid'],
+      coursecode: json['coursecode'],
+      coursename: json['coursename'],
+      isactive: json['isactive'],
+      facultyassigned: json['facultyassigned'],
+      numstudents: json['numstudents'],
+      units: json['units'],
+      grade: json['grade'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'uid': uid,
+      'coursecode': coursecode,
+      'coursename': coursename,
+      'isactive': isactive,
+      'facultyassigned': facultyassigned,
+      'numstudents': numstudents,
+      'units': units,
+      'grade': grade,
+    };
+  }
+}
+
+
+List<Map<String, dynamic>> pastCoursesData = [];
+
+List<PastCourse> pastCourses = pastCoursesData
+    .map((courseData) => PastCourse.fromJson(courseData))
+    .toList();

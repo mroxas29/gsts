@@ -1,12 +1,14 @@
-// ignore_for_file: unused_element, unused_label
-
-import 'dart:js_util';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:sysadmindb/app/models/courses.dart';
+import 'package:sysadmindb/app/models/enrolledcourses.dart';
+import 'package:sysadmindb/app/models/pastcourses.dart';
+import 'package:sysadmindb/app/models/student_user.dart';
+import 'package:sysadmindb/app/models/user.dart';
 import 'package:sysadmindb/gradstudent_screen.dart';
 import 'package:sysadmindb/gsc_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:sysadmindb/sysad.dart';
 import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sysadmindb/ui/reusable_widgets.dart';
@@ -34,7 +36,8 @@ class LoginPage extends StatefulWidget {
 
 TextEditingController passwordTextController = TextEditingController();
 TextEditingController emailTextController = TextEditingController();
-Map<String, dynamic>? displayname;
+late user currentUser;
+late Student currentStudent;
 
 class _LoginPageState extends State<LoginPage> {
   bool isPressed = false;
@@ -140,12 +143,12 @@ class _LoginPageState extends State<LoginPage> {
                                   setState(() {
                                     isPressed = true;
                                   });
-
+/*
                                   signUp(
                                       emailTextController.text,
                                       passwordTextController.text,
                                       "Coordinator");
-                                  /*
+                                  
                                   FirebaseAuth.instance
                                       .createUserWithEmailAndPassword(
                                           email: emailTextController.text,
@@ -174,15 +177,20 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  void route() {
-    User? user = FirebaseAuth.instance.currentUser;
-    var kk = FirebaseFirestore.instance
+  void route() async {
+    User? authuser = FirebaseAuth.instance.currentUser;
+    await addUserFromFirestore();
+    await getCoursesFromFirestore();
+
+    var kk = await FirebaseFirestore.instance
         .collection('users')
-        .doc(user!.uid)
+        .doc(authuser!.uid)
         .get()
-        .then((DocumentSnapshot documentSnapshot) {
+        .then((DocumentSnapshot documentSnapshot) async {
       if (documentSnapshot.exists) {
-        displayname = documentSnapshot.get('displayname');
+        String targetemail = emailTextController.text;
+        currentUser = users.firstWhere((users) => users.email == targetemail);
+        print('Found user: ${currentUser.displayname['firstname']}');
         if (documentSnapshot.get('role') == "Coordinator") {
           Navigator.pushReplacement(
             context,
@@ -190,7 +198,32 @@ class _LoginPageState extends State<LoginPage> {
               builder: (context) => Gscscreen(),
             ),
           );
+        } else if (documentSnapshot.get('role') == "Admin") {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => Sysad(),
+            ),
+          );
         } else {
+          List<EnrolledCourseData> enrolledCourses =
+              await getEnrolledCoursesForStudent(currentUser.uid);
+          List<PastCourse> pastCourses =
+              await getPastCoursesForStudent(currentUser.uid);
+          // Assuming enrolledCourses is a list of EnrolledCourseData
+          Student convertToStudent(user currentUser) {
+            return Student(
+              uid: currentUser.uid,
+              displayname: currentUser.displayname,
+              role: currentUser.role,
+              email: currentUser.email,
+              idnumber: currentUser.idnumber,
+              enrolledCourses: enrolledCourses,
+              pastCourses: pastCourses,
+            );
+          }
+
+          currentStudent = convertToStudent(currentUser);
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
@@ -215,8 +248,14 @@ class _LoginPageState extends State<LoginPage> {
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') {
         print('No user found for that email.');
+        setState(() {
+          isPressed = false;
+        });
       } else if (e.code == 'wrong-password') {
         print('Wrong password provided for that user.');
+        setState(() {
+          isPressed = false;
+        });
       }
     }
   }
