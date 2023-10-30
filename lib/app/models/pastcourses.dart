@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'package:sysadmindb/app/models/courses.dart';
 
 class PastCourse extends Course {
@@ -13,6 +13,7 @@ class PastCourse extends Course {
     required int numstudents,
     required int units,
     required this.grade,
+    required String type
   }) : super(
           uid: uid,
           coursecode: coursecode,
@@ -21,6 +22,7 @@ class PastCourse extends Course {
           facultyassigned: facultyassigned,
           numstudents: numstudents,
           units: units,
+          type: type
         );
 
   factory PastCourse.fromJson(Map<String, dynamic> json) {
@@ -33,6 +35,7 @@ class PastCourse extends Course {
       numstudents: json['numstudents'],
       units: json['units'],
       grade: json['grade'],
+      type: json['type'],
     );
   }
 

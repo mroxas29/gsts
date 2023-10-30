@@ -8,6 +8,7 @@ class Course {
   String facultyassigned;
   int numstudents;
   int units;
+  String type;
 
   Course(
       {required this.uid,
@@ -16,7 +17,8 @@ class Course {
       required this.isactive,
       required this.facultyassigned,
       required this.numstudents,
-      required this.units});
+      required this.units,
+      required this.type});
 
   toJson() {
     return {
@@ -25,8 +27,9 @@ class Course {
       "coursename": coursename,
       "isactive": isactive,
       "facultyassigned": facultyassigned,
-      "numstudents": numstudents + 1,
+      "numstudents": numstudents,
       "units": units,
+      "type": type,
     };
   }
 
@@ -38,7 +41,8 @@ class Course {
         isactive = map['isactive'],
         facultyassigned = map['facultyassigned'],
         numstudents = map['numstudents'],
-        units = map['units'];
+        units = map['units'],
+        type = map['type'];
 
   Map<String, dynamic> toMap() {
     return {
@@ -48,14 +52,38 @@ class Course {
       'facultyassigned': facultyassigned,
       'numstudents': numstudents,
       'units': units,
+      'type': type,
     };
   }
 }
 
 List<Course> courses = [];
-List<Course> activecourses =
-    courses.where((course) => course.isactive).toList();
+List<Course> activecourses = [];
+List<Course> inactivecourses = [];
+List<Course> remedialcourses = [];
+List<Course> foundationcourses = [];
+List<Course> electivecourses = [];
+List<Course> capstonecourses = [];
+List<Course> examcourses = [];
+final blankCourse = Course(
+    uid: 'blank',
+    coursecode: 'Select a course',
+    coursename: '',
+    facultyassigned: '',
+    units: 0,
+    numstudents: 0,
+    isactive: false,
+    type: '');
 Future<List<Course>> getCoursesFromFirestore() async {
+  courses.clear();
+  activecourses.clear();
+  inactivecourses.clear();
+  remedialcourses.clear();
+  foundationcourses.clear();
+  electivecourses.clear();
+  capstonecourses.clear();
+  examcourses.clear();
+
   print("Add course from FS executed");
   try {
     FirebaseFirestore firestore = FirebaseFirestore.instance;
@@ -68,16 +96,46 @@ Future<List<Course>> getCoursesFromFirestore() async {
       Map<String, dynamic> courseData = document.data();
 
       Course newCourse = Course(
-        uid: document.id,
-        coursecode: courseData['coursecode'],
-        coursename: courseData['coursename'],
-        facultyassigned: courseData['facultyassigned'],
-        isactive: courseData['isactive'],
-        numstudents: courseData['numstudents'],
-        units: courseData['units'],
-      );
+          uid: document.id,
+          coursecode: courseData['coursecode'],
+          coursename: courseData['coursename'],
+          facultyassigned: courseData['facultyassigned'],
+          isactive: courseData['isactive'],
+          numstudents: courseData['numstudents'],
+          units: courseData['units'],
+          type: courseData['type']);
 
       courses.add(newCourse);
+      if (newCourse.isactive == true) {
+        activecourses.add(newCourse);
+      } else {
+        inactivecourses.add(newCourse);
+      }
+
+      if (newCourse.type.toLowerCase().contains('foundation')) {
+        foundationcourses.add(newCourse);
+        print("Foundation Course ${foundationcourses.toList()}");
+      }
+
+      if (newCourse.type.toLowerCase().contains('remedial')) {
+        remedialcourses.add(newCourse);
+        print(" Remedial Course: ${remedialcourses.toList()}");
+      }
+
+      if (newCourse.type.toLowerCase().contains('elective')) {
+        electivecourses.add(newCourse);
+        print("elective course ${electivecourses.toList()}");
+      }
+
+      if (newCourse.type.toLowerCase().contains('capstone')) {
+        capstonecourses.add(newCourse);
+        print("Capstone course ${capstonecourses.toList()}");
+      }
+
+      if (newCourse.type.toLowerCase().contains('exam')) {
+        examcourses.add(newCourse);
+        print("Exam Course ${examcourses.toList()}");
+      }
     }
     courses.forEach((user) {
       print(user.toJson());
@@ -86,5 +144,6 @@ Future<List<Course>> getCoursesFromFirestore() async {
     print("Error fetching courses from Firestore: $e");
   }
 
+  courses.sort((a, b) => a.coursecode.compareTo(b.coursecode));
   return courses;
 }

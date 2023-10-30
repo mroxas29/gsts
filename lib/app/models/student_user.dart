@@ -1,15 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/enrolledcourses.dart';
 import 'package:sysadmindb/app/models/pastcourses.dart';
 import 'package:sysadmindb/app/models/user.dart';
-import 'package:sysadmindb/main.dart';
 
 class Student extends user {
   List<EnrolledCourseData> enrolledCourses;
   List<PastCourse> pastCourses;
   List<Map<String, dynamic>> coursesJson = [];
-
   Student({
     required String uid,
     required Map<String, String> displayname,
@@ -62,12 +59,14 @@ class Student extends user {
       idnumber: json['idnumber'],
       enrolledCourses: enrolledCourses,
       pastCourses: pastCourses,
+    
     );
   }
 }
 
 Future<List<EnrolledCourseData>> getEnrolledCoursesForStudent(
     String studentUid) async {
+      
   try {
     print('Fetching enrolled courses for student: $studentUid');
     final DocumentSnapshot studentSnapshot = await FirebaseFirestore.instance
@@ -76,12 +75,20 @@ Future<List<EnrolledCourseData>> getEnrolledCoursesForStudent(
         .get();
 
     if (studentSnapshot.exists) {
-      final List<dynamic> coursesJson = studentSnapshot['enrolledCourses'];
-      print('Fetched enrolled courses: $coursesJson');
-      print('Student Data: ${studentSnapshot.data()}');
-      return coursesJson
-          .map((courseJson) => EnrolledCourseData.fromJson(courseJson))
-          .toList();
+      final Map<String, dynamic>? userData =
+          studentSnapshot.data() as Map<String, dynamic>?;
+
+      if (userData != null && userData.containsKey('enrolledCourses')) {
+        final List<dynamic> coursesJson = userData['enrolledCourses'];
+        print('Fetched enrolled courses: $coursesJson');
+
+        return coursesJson
+            .map((courseJson) => EnrolledCourseData.fromJson(courseJson))
+            .toList();
+      } else {
+        print('Field "enrolledCourses" not found in document');
+        return [];
+      }
     } else {
       print('Student not found with uid: $studentUid');
       return [];
@@ -91,7 +98,9 @@ Future<List<EnrolledCourseData>> getEnrolledCoursesForStudent(
     return [];
   }
 }
+
 Future<List<PastCourse>> getPastCoursesForStudent(String studentUid) async {
+  
   try {
     print('Fetching past courses for student: $studentUid');
     final DocumentSnapshot studentSnapshot = await FirebaseFirestore.instance
@@ -116,13 +125,9 @@ Future<List<PastCourse>> getPastCoursesForStudent(String studentUid) async {
   }
 }
 
-
-
-
-
+List<Student> studentList = [];
 Future<List<Student>> convertToStudentList(List<user> users) async {
-  List<Student> studentList = [];
-
+  studentList.clear();
   int i = 0;
   for (var user in users) {
     if (user.role == 'Graduate Student') {
@@ -130,7 +135,6 @@ Future<List<Student>> convertToStudentList(List<user> users) async {
           await getEnrolledCoursesForStudent(user.uid);
       List<PastCourse> pastCourses =
           []; // You need to fetch past courses here, update accordingly
-
       studentList.add(Student(
         uid: user.uid,
         displayname: user.displayname,

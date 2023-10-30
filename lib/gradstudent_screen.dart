@@ -1,12 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import 'package:side_navigation/side_navigation.dart';
+import 'package:sysadmindb/app/models/coursedemand.dart';
 import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/enrolledcourses.dart';
 import 'package:sysadmindb/app/models/pastcourses.dart';
-import 'package:sysadmindb/app/models/student_user.dart';
+import 'package:sysadmindb/app/models/schoolYear.dart';
 import 'package:sysadmindb/main.dart';
 import 'package:sysadmindb/ui/form.dart';
 
@@ -118,8 +120,6 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   }
 
   void updateUserProfile() async {
-    User? user = FirebaseAuth.instance.currentUser;
-
     try {
       FirebaseFirestore.instance
           .collection('users')
@@ -183,6 +183,12 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
         );
       },
     );
+    String coursetoDeleteuid = '';
+    for (var course in courses) {
+      if (course.coursecode == enrolledCourse.coursecode) {
+        coursetoDeleteuid = course.uid;
+      }
+    }
 
     if (confirmDelete == true) {
       try {
@@ -200,6 +206,11 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
               .map((course) => course.toJson())
               .toList(),
         });
+
+        await FirebaseFirestore.instance
+            .collection('courses')
+            .doc(coursetoDeleteuid)
+            .update({'numstudents': FieldValue.increment(-1)});
 
         // Display a success message
         ScaffoldMessenger.of(context).showSnackBar(
@@ -226,8 +237,9 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
     GlobalKey<FormState> formKey,
     List<Course> course,
     Function(EnrolledCourseData) onAddEnrolledCourse,
+    
   ) {
-    Course? selectedCourse = activecourses.isNotEmpty ? activecourses[0] : null;
+    Course? selectedCourse = blankCourse;
     int? selectedCourseIndex;
     bool courseAlreadyExists = false;
     print(currentStudent.enrolledCourses);
@@ -245,7 +257,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                   children: [
                     DropdownButtonFormField<Course>(
                       value: selectedCourse,
-                      items: activecourses.map((course) {
+                      items: [blankCourse, ...activecourses].map((course) {
                         return DropdownMenuItem<Course>(
                           value: course,
                           child: Text(course.coursecode),
@@ -254,9 +266,22 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                       onChanged: (value) {
                         setState(() {
                           selectedCourse = value;
-                          selectedCourseIndex =
-                              activecourses.indexOf(selectedCourse!);
-                          courseAlreadyExists = false;
+                          // Handle the selection of the blank option here
+                          if (value == blankCourse) {
+                            // Close the popup and show a message
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('No course chosen.'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          } else {
+                            // Handle the selection of a valid course
+                            selectedCourseIndex =
+                                activecourses.indexOf(selectedCourse!);
+                            courseAlreadyExists = false;
+                          }
                         });
                       },
                       onSaved: (value) {},
@@ -293,61 +318,75 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                     // Validate and save form data
                     if (formKey.currentState!.validate()) {
                       formKey.currentState!.save();
-                      if (currentStudent.enrolledCourses.any((course) =>
-                          course.coursecode == selectedCourse?.coursecode)) {
-                        // Check if the course is already in enrolledCourses
-                        setState(() {
-                          courseAlreadyExists = true;
-                        });
-                      } else {
-                        final enrolledCourse = EnrolledCourseData(
-                          uid: generateUID(),
-                          coursecode: selectedCourse!.coursecode,
-                          coursename: selectedCourse!.coursename,
-                          isactive: selectedCourse!.isactive,
-                          facultyassigned: selectedCourse!.facultyassigned,
-                          numstudents: selectedCourse!.numstudents,
-                          units: selectedCourse!.units,
-                        );
 
-                        onAddEnrolledCourse(enrolledCourse);
-
-                        // Close the popup
-                        Navigator.pop(context);
-
-                        try {
-                          // Get the current user ID (replace with your method to get the user ID)
-                          String userId = currentUser.uid;
-
-                          // Update user data in Firestore
-                          await FirebaseFirestore.instance
-                              .collection('users')
-                              .doc(userId)
-                              .update({
-                            'enrolledCourses': FieldValue.arrayUnion(
-                                [enrolledCourse.toJson()]),
+                      if (selectedCourse != blankCourse) {
+                        if (currentStudent.enrolledCourses.any((course) =>
+                            course.coursecode == selectedCourse?.coursecode)) {
+                          // Check if the course is already in enrolledCourses
+                          setState(() {
+                            courseAlreadyExists = true;
                           });
+                        } else {
+                          late EnrolledCourseData enrolledCourse;
 
-                          // Update numstudents in the Courses collection
-                          if (selectedCourseIndex != null) {
+                          enrolledCourse = EnrolledCourseData(
+                            uid: generateUID(),
+                            coursecode: selectedCourse!.coursecode,
+                            coursename: selectedCourse!.coursename,
+                            isactive: selectedCourse!.isactive,
+                            facultyassigned: selectedCourse!.facultyassigned,
+                            numstudents: selectedCourse!.numstudents,
+                            units: selectedCourse!.units,
+                            type: selectedCourse!.type,
+                          );
+                          onAddEnrolledCourse(enrolledCourse);
+
+                          // Close the popup
+                          Navigator.pop(context);
+                          try {
+                            // Get the current user ID (replace with your method to get the user ID)
+                            String userId = currentUser.uid;
+
+                            // Update user data in Firestore
+                            await FirebaseFirestore.instance
+                                .collection('users')
+                                .doc(userId)
+                                .update({
+                              'enrolledCourses': FieldValue.arrayUnion(
+                                  [enrolledCourse.toJson()]),
+                            });
+
+                            // Update numstudents in the Courses collection
+                            print(activecourses[selectedCourseIndex!].uid);
                             await FirebaseFirestore.instance
                                 .collection('courses')
                                 .doc(activecourses[selectedCourseIndex!].uid)
                                 .update(
                                     {'numstudents': FieldValue.increment(1)});
-                          }
 
-                          // Display a success message
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Enrolled in course successfully'),
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
-                        } catch (e) {
-                          print('Error enrolling in course: $e');
-                          // Handle the error and display a relevant message
+                            getCoursesFromFirestore();
+
+                            // Display a success message
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content:
+                                    Text('Enrolled in course successfully'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          } catch (e) {
+                            print('Error enrolling in course: $e');
+                            // Handle the error and display a relevant message
+                          }
                         }
+                      } else {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('No course selected'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
                       }
                     }
                   },
@@ -359,6 +398,99 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
         );
       },
     );
+  }
+
+  // Declare a variable to hold the selected course
+
+  void showCourseDemandForm(
+    BuildContext context,
+    int studentIdNumber,
+    List<Course> inactiveCourses,
+    List<CourseDemand> courseDemands,
+  ) {
+    Course? selectedCourse;
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Demand a Course'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Select a course to demand:'),
+              SizedBox(height: 10),
+              DropdownButtonFormField<Course>(
+                value: selectedCourse,
+                items: [...inactiveCourses].map((course) {
+                  return DropdownMenuItem<Course>(
+                    value: course,
+                    child: Text(course.coursecode),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    selectedCourse = value;
+                  });
+                },
+              )
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                if (selectedCourse != null && selectedCourse != blankCourse) {
+                  if (courseDemands.any((demand) =>
+                      demand.coursecode == selectedCourse?.coursecode &&
+                      demand.studentidnumber == studentIdNumber)) {
+                    // Course demand already exists
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text('You have already demanded this course.'),
+                      duration: Duration(seconds: 2),
+                    ));
+                  } else {
+                    // Submit the course demand to Firestore
+                    submitDemandToFirestore(selectedCourse, studentIdNumber);
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text('Course demand submitted successfully'),
+                      duration: Duration(seconds: 2),
+                    ));
+                  }
+                }
+              },
+              child: Text('Submit'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void submitDemandToFirestore(
+      Course? selectedCourse, int studentIdNumber) async {
+    // Get the current date and time
+    DateTime currentDate = DateTime.now();
+    // Format the current date as a string (MM/dd/yyyy)
+    String formattedDate =
+        "${currentDate.month}/${currentDate.day}/${currentDate.year}/${currentDate.millisecond}";
+
+    // Create a Firestore document for the course demand with the current date
+    await FirebaseFirestore.instance.collection('offerings').add({
+      'coursecode': selectedCourse!.coursecode,
+      'studentIdNumber': studentIdNumber,
+      'date': formattedDate, // Store the current date as a Firestore Timestamp
+      // Add other fields as needed
+    });
+
+    // You can also display a success message or perform other actions here
+    getCourseDemandsFromFirestore();
+    updateCourseData();
   }
 
   void showAddPastCourse(
@@ -462,7 +594,9 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                           units: selectedCourse!.units,
                           numstudents: selectedCourse!.numstudents,
                           isactive: selectedCourse!.isactive,
-                          grade: enteredGrade!, // Assign the entered grade
+                          grade: enteredGrade!,
+                          type:
+                              selectedCourse!.type, // Assign the entered grade
                         );
 
                         onAddPastCourse(pastCourse);
@@ -561,6 +695,9 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
         print('Error deleting past course: $e');
         // Handle the error and display a relevant message
       }
+      setState(() {
+        getCoursesFromFirestore();
+      });
     }
   }
 
@@ -641,12 +778,14 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
             ),
             Center(
               child: InkWell(
-                onTap: () {
+                onTap: () async {
+                  await getCoursesFromFirestore();
                   showAddEnrolledCoursePopup(context, _formKey, activecourses,
                       (enrolledCourse) {
                     setState(() {
                       currentStudent.enrolledCourses.add(enrolledCourse);
                     });
+
                     // Handle the added enrolled course
                   });
                 },
@@ -752,6 +891,39 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                 )
               ],
             )),
+            Align(
+              alignment: Alignment.bottomLeft,
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text.rich(
+                  TextSpan(
+                    text:
+                        "Wish to demand for a course that isn't offered? Click ",
+                    style: TextStyle(fontSize: 13, color: Colors.grey),
+                    children: [
+                      TextSpan(
+                        text: "here",
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.blue, // You can customize the color
+                          decoration: TextDecoration.underline,
+                        ),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () {
+                            // Handle the click action, e.g., navigate to a new screen or show a dialog
+                            // You can replace this with your desired behavior
+                            showCourseDemandForm(
+                                context,
+                                currentStudent.idnumber,
+                                inactivecourses,
+                                courseDemands);
+                          },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            )
           ],
         ),
       ),
@@ -772,13 +944,14 @@ class _MainViewState extends State<GradStudentscreen>
     with SingleTickerProviderStateMixin {
   /// Views to display
   late TabController _tabController;
-  int selectedIndex = 0;
+
   void changeScreen(int index) {
     setState(() {
       selectedIndex = index;
     });
   }
 
+  int selectedIndex = 0;
   @override
   void initState() {
     super.initState();
@@ -787,7 +960,7 @@ class _MainViewState extends State<GradStudentscreen>
 
   @override
   Widget build(BuildContext context) {
-    print(currentStudent.pastCourses[1]);
+    // print(currentStudent.pastCourses[1]);
     List<Widget> views = [
       Center(
         child: Text(
@@ -797,14 +970,115 @@ class _MainViewState extends State<GradStudentscreen>
         ),
       ),
       Center(
-        child: Text(
-          'Courses',
-          textDirection: TextDirection.ltr,
-          style: TextStyle(
-            fontFamily: 'Inter',
+          child: Column(
+        children: [
+          Text(
+            'Program of Study',
+            textDirection: TextDirection.ltr,
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
-      ),
+          SizedBox(
+            height: 20,
+          ),
+          Container(
+            height: 800,
+            width: 1200,
+            child: Table(
+              border: TableBorder.all(),
+              children: schoolyears.map((schoolYear) {
+                return TableRow(
+                  decoration: BoxDecoration(
+                    color: Color.fromARGB(255, 221, 221, 221),
+                  ),
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: const Color.fromARGB(255, 104, 177, 106),
+                                border: Border.all(),
+                                borderRadius: BorderRadius.only(
+                                  bottomLeft: Radius.zero,
+                                  bottomRight: Radius.zero,
+                                  topLeft: Radius.circular(10),
+                                  topRight: Radius.circular(10),
+                                ),
+                              ),
+                              child: Padding(
+                                padding: EdgeInsets.all(10),
+                                child: Text(
+                                  schoolYear.name,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 20,
+                                  ),
+                                ),
+                              )),
+                          Row(
+                            children: schoolYear.terms.map((term) {
+                              return Expanded(
+                                child: Container(
+                                  padding: EdgeInsets.all(8.0),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(),
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.only(
+                                      bottomLeft: Radius.circular(10),
+                                      bottomRight: Radius.circular(10),
+                                      topLeft: Radius.zero,
+                                      topRight: Radius.zero,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        alignment: Alignment.center,
+                                        child: Text(
+                                          term.name,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 17,
+                                          ),
+                                        ),
+                                      ),
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children:
+                                            term.termcourses.map((termcourse) {
+                                          return Container(
+                                            padding: EdgeInsets.all(8.0),
+                                            child: Text(
+                                                "${termcourse.coursecode}: ${termcourse.coursename}"),
+                                          );
+                                        }).toList(),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              }).toList(),
+            ),
+          )
+        ],
+      )),
       Center(
         child: Text(
           'Calendar',
@@ -897,10 +1171,10 @@ class _MainViewState extends State<GradStudentscreen>
                     ),
                     onPressed: () {
                       courses.clear();
-                      activecourses.clear();
+
                       currentStudent.enrolledCourses.clear();
                       currentStudent.pastCourses.clear();
-                      
+
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => LoginPage()),
@@ -917,7 +1191,7 @@ class _MainViewState extends State<GradStudentscreen>
                 ),
                 SideNavigationBarItem(
                   icon: Icons.book,
-                  label: 'Courses',
+                  label: 'Program of Study',
                 ),
                 SideNavigationBarItem(
                   icon: Icons.event,
@@ -959,7 +1233,11 @@ class _MainViewState extends State<GradStudentscreen>
             ),
 
             Expanded(
-              child: views.elementAt(selectedIndex),
+              child: views.length > selectedIndex
+                  ? views.elementAt(selectedIndex)
+                  : Center(
+                      child: Text('Invalid view index: $selectedIndex'),
+                    ),
             )
           ],
         ),

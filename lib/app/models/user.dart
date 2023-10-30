@@ -1,6 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 
 class user {
   String uid;
@@ -26,6 +24,12 @@ class user {
       "idnumber": idnumber
     };
   }
+
+
+
+
+
+
 }
 
 List<user> users = [];
@@ -34,7 +38,9 @@ String formatMapToString(Map<String, String> map) {
   return map.entries.map((entry) => entry.value).join(' ');
 }
 
+
 Future<void> addUserFromFirestore() async {
+  users.clear();
     print("Add user from FS executed");
   try {
     // Access the Firestore instance
@@ -59,7 +65,8 @@ Future<void> addUserFromFirestore() async {
       users.add(newUser);
     }
     
-
+users.sort((a, b) => a.email.compareTo(b.email));
+  
     // Optional: Print the users to the console
     users.forEach((user) {
       print(user.toJson());
@@ -69,5 +76,7 @@ Future<void> addUserFromFirestore() async {
     print('Error fetching users from Firestore: $e');
   }
 }
+
+
 
 

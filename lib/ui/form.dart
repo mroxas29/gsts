@@ -5,7 +5,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:sysadmindb/app/models/courses.dart';
+import 'package:sysadmindb/app/models/faculty.dart';
 import 'package:sysadmindb/app/models/user.dart';
+import 'package:sysadmindb/gsc_screen.dart';
 import 'package:sysadmindb/sysad.dart';
 
 class UserData {
@@ -14,8 +16,8 @@ class UserData {
   int idnumber = 0;
   String role = '';
   String password = '';
+  String type = '';
 }
-
 
 class CourseData {
   String coursecode = '';
@@ -24,14 +26,41 @@ class CourseData {
   String facultyassigned = '';
   int numstudents = 0;
   int units = 0;
+  String type = '';
+}
+
+class FacultyData {
+  String uid = generateUID();
+  String email = '';
+  String fullName = '';
+}
+
+Future<bool> doesCourseCodeExist(String courseCode) async {
+  final QuerySnapshot snapshot = await FirebaseFirestore.instance
+      .collection('courses')
+      .where('coursecode', isEqualTo: courseCode)
+      .get();
+
+  return snapshot.docs.isNotEmpty;
 }
 
 void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
   List<String> status = ['true', 'false'];
+  List<String> type = [
+    'Bridging/Remedial Courses',
+    'Foundation Courses',
+    'Elective Courses',
+    'Capstone',
+    'Exam Course'
+  ];
+
   final CourseData _courseData = CourseData();
 
-  String selectedstatus = status[0];
-  print("Add user form executed");
+  String selectedStatus = status[0];
+  String selectedType = type[0];
+  String selectedFaculty =
+      facultyList.isNotEmpty ? facultyList[0].fullName : '';
+
   showDialog(
     context: context,
     builder: (BuildContext context) {
@@ -66,18 +95,21 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                   _courseData.coursename = value ?? '';
                 },
               ),
-              TextFormField(
-                decoration: InputDecoration(labelText: 'Assign to'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter the faculty name';
-                  }
-                  // Add email validation if needed
-                  return null;
+              DropdownButtonFormField<String>(
+                value: selectedFaculty,
+                items: facultyList.map((faculty) {
+                  return DropdownMenuItem<String>(
+                    value: faculty.fullName,
+                    child: Text(faculty.fullName),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  selectedFaculty = value!;
                 },
                 onSaved: (value) {
                   _courseData.facultyassigned = value ?? '';
                 },
+                decoration: InputDecoration(labelText: 'Assign to'),
               ),
               TextFormField(
                 decoration: InputDecoration(labelText: 'Course units'),
@@ -93,7 +125,7 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                 },
               ),
               DropdownButtonFormField<String>(
-                value: selectedstatus,
+                value: selectedStatus,
                 items: status.map((role) {
                   return DropdownMenuItem<String>(
                     value: role,
@@ -101,12 +133,135 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                   );
                 }).toList(),
                 onChanged: (value) {
-                  selectedstatus = value!;
+                  selectedStatus = value!;
                 },
                 onSaved: (value) {
                   _courseData.isactive = bool.parse(value ?? '');
                 },
                 decoration: InputDecoration(labelText: 'Is active?'),
+              ),
+              DropdownButtonFormField<String>(
+                value: selectedType,
+                items: type.map((type) {
+                  return DropdownMenuItem<String>(
+                    value: type,
+                    child: Text(type),
+                  );
+                }).toList(),
+                onChanged: (type) {
+                  selectedType = type!;
+                },
+                onSaved: (type) {
+                  _courseData.type = type!;
+                },
+                decoration: InputDecoration(labelText: 'Course Type'),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (formKey.currentState!.validate()) {
+                formKey.currentState!.save();
+
+                final courseCodeExists =
+                    await doesCourseCodeExist(_courseData.coursecode);
+
+                if (courseCodeExists) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                          'Course with the same course code already exists.'),
+                    ),
+                  );
+                } else {
+                  var uid = generateUID();
+                  try {
+                    await FirebaseFirestore.instance
+                        .collection('courses')
+                        .doc(uid)
+                        .set({
+                      'coursecode': _courseData.coursecode,
+                      'coursename': _courseData.coursename,
+                      'facultyassigned': selectedFaculty,
+                      'units': _courseData.units,
+                      'isactive': _courseData.isactive,
+                      'numstudents': 0,
+                      'type': selectedType,
+                    });
+                    Navigator.pop(context);
+
+                    getCoursesFromFirestore();
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Course created'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  } catch (e) {
+                    print('Error creating course: $e');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error creating course: $e'),
+                      ),
+                    );
+                  }
+                }
+              }
+            },
+            child: Text('Submit'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+void showAddFacultyForm(BuildContext context, GlobalKey<FormState> formKey) {
+  final FacultyData _facultyData = FacultyData();
+
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Add New Faculty'),
+        content: Form(
+          key: formKey,
+          autovalidateMode: AutovalidateMode.always,
+          child: Column(
+            children: [
+              TextFormField(
+                decoration: InputDecoration(labelText: 'Full Name'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter the full name';
+                  }
+                  return null;
+                },
+                onSaved: (value) {
+                  _facultyData.fullName = value ?? '';
+                },
+              ),
+              TextFormField(
+                decoration: InputDecoration(labelText: 'Email'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter the email address';
+                  }
+                  // Add email validation if needed
+                  return null;
+                },
+                onSaved: (value) {
+                  _facultyData.email = value ?? '';
+                },
               ),
             ],
           ),
@@ -123,34 +278,35 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
               if (formKey.currentState!.validate()) {
                 formKey.currentState!.save();
                 var uid = generateUID();
-
                 try {
-                  await FirebaseFirestore.instance
-                      .collection('courses')
-                      .doc(uid)
-                      .set({
-                    'coursecode': _courseData.coursecode,
-                    'coursename': _courseData.coursename,
-                    'facultyassigned': _courseData.facultyassigned,
-                    'units': _courseData.units,
-                    'isactive': _courseData.isactive,
-                    'numstudents': 0,
+                  await FirebaseFirestore.instance.collection('faculty').add({
+                    'fullName': _facultyData.fullName,
+                    'email': _facultyData.email,
+                    'uid': uid
+                  }).then((value) {
+                    // Get the newly generated document ID (UID)
+
+                    // Use the UID as needed (if necessary)
+                    print('New faculty member UID: $uid');
                   });
+
                   Navigator.pop(context);
-                  courses.clear();
-                  getCoursesFromFirestore();
+
+                  // If you want to refresh the faculty list after adding a new member
+
+                  getFacultyList();
 
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Course created'),
+                      content: Text('Faculty member added'),
                       duration: Duration(seconds: 2),
                     ),
                   );
                 } catch (e) {
-                  print('Error creating course: $e');
+                  print('Error adding faculty member: $e');
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Error creating course: $e'),
+                      content: Text('Error adding faculty member: $e'),
                     ),
                   );
                 }

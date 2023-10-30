@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:side_navigation/side_navigation.dart';
 import 'package:sysadmindb/app/models/courses.dart';
+import 'package:sysadmindb/app/models/faculty.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/main.dart';
 import 'package:sysadmindb/app/models/user.dart';
@@ -210,7 +211,6 @@ class _MainViewState extends State<Sysad> {
 
                     addUserFromFirestore();
 
-
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('User created'),
@@ -323,6 +323,10 @@ class _MainViewState extends State<Sysad> {
                         .doc(user.uid)
                         .delete();
 
+                    users.clear();
+
+                    addUserFromFirestore().then((value) => {foundUser = users});
+
                     // Delete the user from Firebase Authentication
                     await FirebaseAuth.instance.currentUser!.uid;
 
@@ -401,20 +405,71 @@ class _MainViewState extends State<Sysad> {
     );
   }
 
+  Widget _buildFacultyDropdown(
+    String labelText,
+    List<Faculty> facultyList,
+    String selectedFaculty,
+    void Function(String?)? onChangedCallback,
+  ) {
+    // Check if the selectedValue is in the facultyList
+    bool isCurrentFacultyInList =
+        facultyList.any((faculty) => faculty.email == selectedFaculty);
+
+    // If it's not in the list, add it to the list
+    if (!isCurrentFacultyInList) {
+      facultyList.add(Faculty(
+          fullName: selectedFaculty,
+          email: selectedFaculty,
+          uid: generateUID()));
+    }
+
+    return DropdownButtonFormField<String>(
+      value: selectedFaculty,
+      items: facultyList.map((faculty) {
+        return DropdownMenuItem<String>(
+          value: faculty.email,
+          child: Text(faculty.fullName),
+        );
+      }).toList(),
+      onChanged: onChangedCallback,
+      decoration: InputDecoration(labelText: labelText),
+    );
+  }
+
   void _editCourseData(BuildContext context, Course course) {
     List<String> status = ['true', 'false'];
-    String selectedstatus = course.isactive.toString();
+    List<String> type = [
+      'Bridging/Remedial Courses',
+      'Foundation Courses',
+      'Elective Courses',
+      'Capstone',
+      'Exam Course'
+    ];
+    String selectedStatus = course.isactive.toString();
+    String selectedType = course.type.toString();
+    String selectedFaculty = course.facultyassigned.toString();
+
     final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
     TextEditingController coursecodeController =
         TextEditingController(text: course.coursecode);
     TextEditingController coursenameController =
         TextEditingController(text: course.coursename);
-    TextEditingController facultyassignedController =
-        TextEditingController(text: course.facultyassigned);
     TextEditingController unitsController =
         TextEditingController(text: course.units.toString());
-    TextEditingController numstudentsController =
-        TextEditingController(text: course.numstudents.toString());
+
+    graduateStudents.then((List<Student> graduateStudentList) {
+      graduateStudentList.forEach((student) {
+        student.enrolledCourses.forEach((enrolledCourse) {
+          if (enrolledCourse.coursecode == course.coursecode) {
+            enrolledStudentNames.add(
+                "${student.displayname['firstname']!} ${student.displayname['lastname']!}");
+            enrolledStudentEmails.add(student.email);
+            print(
+                "${student.displayname['firstname']!} ${student.displayname['lastname']!}");
+          }
+        });
+      });
+    });
 
     showDialog(
       context: context,
@@ -422,38 +477,96 @@ class _MainViewState extends State<Sysad> {
         return AlertDialog(
           title: Text('Edit Course'),
           content: SingleChildScrollView(
-            child: Column(
-              children: [
-                _buildEditableField('Course code', coursecodeController),
-                _buildEditableField('Course Name', coursenameController),
-                _buildEditableField(
-                    'Faculty Assigned', facultyassignedController),
-                Row(children: [
-                  Text(
-                    "Students Enrolled: ",
-                    style: TextStyle(fontWeight: FontWeight.bold),
+            child: Form(
+              key: _formKey,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 1,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildEditableField(
+                            'Course code', coursecodeController),
+                        _buildEditableField(
+                            'Course Name', coursenameController),
+                        DropdownButtonFormField<String>(
+                          value: selectedFaculty,
+                          items: facultyList.map((faculty) {
+                            return DropdownMenuItem<String>(
+                              value: faculty.fullName,
+                              child: Text(faculty.fullName),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              selectedFaculty = value!;
+                              print(selectedFaculty);
+                            });
+                          },
+                          decoration:
+                              InputDecoration(labelText: 'Faculty Assigned'),
+                        ),
+                        DropdownButtonFormField<String>(
+                          value: selectedType,
+                          items: type.map((type) {
+                            return DropdownMenuItem<String>(
+                              value: type,
+                              child: Text(type),
+                            );
+                          }).toList(),
+                          onChanged: (type) {
+                            setState(() {
+                              selectedType = type!;
+                            });
+                          },
+                          decoration: InputDecoration(labelText: 'Course Type'),
+                        ),
+                        _buildEditableField('Units', unitsController),
+                        DropdownButtonFormField<String>(
+                          value: selectedStatus,
+                          items: status.map((role) {
+                            return DropdownMenuItem<String>(
+                              value: role,
+                              child: Text(role),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              selectedStatus = value!;
+                            });
+                          },
+                          decoration: InputDecoration(labelText: 'Is active?'),
+                        ),
+                      ],
+                    ),
                   ),
-                  Text(
-                    numstudentsController.text,
-                    style:
-                        TextStyle(color: const Color.fromARGB(255, 78, 78, 78)),
+                  SizedBox(
+                    width: 20,
                   ),
-                ]),
-                _buildEditableField('Units', unitsController),
-                DropdownButtonFormField<String>(
-                  value: selectedstatus,
-                  items: status.map((role) {
-                    return DropdownMenuItem<String>(
-                      value: role,
-                      child: Text(role),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    selectedstatus = value!;
-                  },
-                  decoration: InputDecoration(labelText: 'is active?'),
-                ),
-              ],
+                  Expanded(
+                    flex: 1,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Enrolled Students',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        for (int i = 0; i < enrolledStudentNames.length; i++)
+                          ListTile(
+                            title: Text(
+                              enrolledStudentNames[i],
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            subtitle: Text(enrolledStudentEmails[i]),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [
@@ -491,7 +604,10 @@ class _MainViewState extends State<Sysad> {
                         .collection('courses')
                         .doc(course.uid)
                         .delete();
+                    courses.clear();
 
+                    getCoursesFromFirestore()
+                        .then((value) => {foundCourse = courses});
                     // Show a SnackBar
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -503,15 +619,12 @@ class _MainViewState extends State<Sysad> {
                     // Close the dialog
                     Navigator.pop(context);
                   } catch (e) {
-                    print('Error deleting user: $e');
+                    print('Error deleting course: $e');
                     // Handle the error
                   }
                 }
               },
-              child: Text(
-                'Delete',
-                style: TextStyle(color: Colors.red),
-              ),
+              child: Text('Delete', style: TextStyle(color: Colors.red)),
             ),
             TextButton(
               onPressed: () {
@@ -521,42 +634,42 @@ class _MainViewState extends State<Sysad> {
             ),
             TextButton(
               onPressed: () async {
-                // Save the edited data locally
-                setState(() {
-                  course.coursecode = coursecodeController.text;
-                  course.coursename = coursenameController.text;
-                  course.numstudents = int.parse(numstudentsController.text);
-                  course.isactive = bool.parse(selectedstatus);
-                  course.numstudents = int.parse(numstudentsController.text);
-                  course.units = int.parse(unitsController.text);
-                });
-
-                // Update the data in Firestore
-                try {
-                  await FirebaseFirestore.instance
-                      .collection('courses')
-                      .doc(course
-                          .uid) // Assuming you have a 'uid' field in your User class
-                      .update({
-                    'coursecode': coursecodeController.text,
-                    'coursename': coursenameController.text,
-                    'facultyassigned': facultyassignedController.text,
-                    'isactive': bool.parse(selectedstatus),
-                    'numstudents': int.parse(numstudentsController.text),
-                    'units': int.parse(unitsController.text)
+                if (_formKey.currentState!.validate()) {
+                  // Save the edited data locally
+                  setState(() {
+                    course.coursecode = coursecodeController.text;
+                    course.coursename = coursenameController.text;
+                    course.facultyassigned = selectedFaculty;
+                    course.units = int.parse(unitsController.text);
+                    course.isactive = bool.parse(selectedStatus);
+                    course.type = selectedType;
                   });
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('User updated'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
 
-                  // Trigger a rebuild
-                  Navigator.pop(context);
-                } catch (e) {
-                  print('Error updating user data: $e');
-                  // Handle the error
+                  // Update the data in Firestore
+                  try {
+                    await FirebaseFirestore.instance
+                        .collection('courses')
+                        .doc(course.uid)
+                        .update({
+                      'coursecode': course.coursecode,
+                      'coursename': course.coursename,
+                      'facultyassigned': course.facultyassigned,
+                      'units': course.units,
+                      'isactive': course.isactive,
+                      'type': course.type,
+                    });
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Course updated'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+
+                    Navigator.pop(context);
+                  } catch (e) {
+                    print('Error updating course data: $e');
+                  }
                 }
               },
               child: Text('Save'),
@@ -588,6 +701,7 @@ class _MainViewState extends State<Sysad> {
     }
     setState(() {
       foundUser = results;
+      foundUser.sort((a, b) => a.email.compareTo(b.email));
     });
   }
 
@@ -610,11 +724,14 @@ class _MainViewState extends State<Sysad> {
               courses.facultyassigned
                   .toString()
                   .toLowerCase()
-                  .contains(query.toLowerCase()))
+                  .contains(query.toLowerCase()) ||
+              (query.toLowerCase() == "active" && courses.isactive ||
+                  query.toLowerCase() == "inactive" && !courses.isactive))
           .toList();
     }
     setState(() {
       foundCourse = results;
+      foundCourse.sort((a, b) => a.coursecode.compareTo(b.coursecode));
     });
   }
 
@@ -695,7 +812,7 @@ class _MainViewState extends State<Sysad> {
                   itemCount: foundUser.length,
                   itemBuilder: (context, index) => InkWell(
                         onTap: () {
-                          _editUserData(context, users[index]);
+                          _editUserData(context, foundUser[index]);
                         },
                         child: Card(
                           key: ValueKey(foundUser[index]),
@@ -787,7 +904,9 @@ class _MainViewState extends State<Sysad> {
                   itemCount: foundCourse.length,
                   itemBuilder: (context, index) => InkWell(
                         onTap: () {
-                          _editCourseData(context, courses[index]);
+                          enrolledStudentEmails.clear();
+                          enrolledStudentNames.clear();
+                          _editCourseData(context, foundCourse[index]);
                         },
                         child: Card(
                           key: ValueKey(foundCourse[index]),

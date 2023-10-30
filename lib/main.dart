@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:sysadmindb/app/models/coursedemand.dart';
 import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/enrolledcourses.dart';
+import 'package:sysadmindb/app/models/faculty.dart';
 import 'package:sysadmindb/app/models/pastcourses.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/app/models/user.dart';
@@ -38,6 +40,9 @@ TextEditingController passwordTextController = TextEditingController();
 TextEditingController emailTextController = TextEditingController();
 late user currentUser;
 late Student currentStudent;
+// Display students enrolled in the specific course
+List<String> enrolledStudentNames = [];
+List<String> enrolledStudentEmails = [];
 
 class _LoginPageState extends State<LoginPage> {
   bool isPressed = false;
@@ -48,8 +53,6 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     //  final GlobalKey<State> _LoaderDialog = GlobalKey<State>();
 
-    debugShowCheckedModeBanner:
-    false;
     return WillPopScope(
       onWillPop: () async => false,
       child: Scaffold(
@@ -179,10 +182,8 @@ class _LoginPageState extends State<LoginPage> {
 
   void route() async {
     User? authuser = FirebaseAuth.instance.currentUser;
-    await addUserFromFirestore();
-    await getCoursesFromFirestore();
 
-    var kk = await FirebaseFirestore.instance
+    await FirebaseFirestore.instance
         .collection('users')
         .doc(authuser!.uid)
         .get()
@@ -224,6 +225,7 @@ class _LoginPageState extends State<LoginPage> {
           }
 
           currentStudent = convertToStudent(currentUser);
+          // ignore: use_build_context_synchronously
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
@@ -244,6 +246,11 @@ class _LoginPageState extends State<LoginPage> {
         email: email,
         password: password,
       );
+
+      await addUserFromFirestore();
+      await getCoursesFromFirestore();
+      await getFacultyList();
+      await getCourseDemandsFromFirestore();
       route();
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') {
