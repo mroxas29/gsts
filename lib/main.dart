@@ -45,6 +45,55 @@ List<String> enrolledStudentNames = [];
 List<String> enrolledStudentEmails = [];
 
 class _LoginPageState extends State<LoginPage> {
+  Future<void> resetPassword(String email) async {
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+    } catch (e) {
+      print("Error sending password reset email: $e");
+      // Handle any errors, e.g., show an error message to the user
+    }
+  }
+
+  void showPasswordResetDialog(BuildContext context) {
+    String email = '';
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Reset Password'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              TextFormField(
+                decoration: InputDecoration(labelText: 'Email'),
+                onChanged: (value) {
+                  email = value;
+                },
+              ),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('Send password recovery'),
+              onPressed: () async {
+                await resetPassword(email);
+                // Optionally, show a success message or navigate to another screen
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   bool isPressed = false;
 
   final db = FirebaseFirestore.instance;
@@ -68,7 +117,7 @@ class _LoginPageState extends State<LoginPage> {
               child: Center(
                 child: SizedBox(
                   width: 400,
-                  height: 900,
+                  height: 450,
                   child: contain.Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(10),
@@ -76,7 +125,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       child: Column(
                         children: [
-                          SizedBox(height: 40),
+                          SizedBox(height: 25),
                           Padding(
                             padding: EdgeInsets.symmetric(horizontal: 1),
                             child: Text(
@@ -114,65 +163,25 @@ class _LoginPageState extends State<LoginPage> {
 
                                   signIn(emailTextController.text,
                                       passwordTextController.text);
-                                  /*
-                                  FirebaseAuth.instance
-                                      .createUserWithEmailAndPassword(
-                                          email: emailTextController.text,
-                                          password: passwordTextController.text)
-                                      .then((value) {
-                                    Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (context) => Gscscreen()));
-                                  }).onError((error, stackTrace) {
-                                    print("Error ${error.toString()}");
-                                  });
-                                  Map<String, String> data = {
-                                    "email": emailTextController.text,
-                                    "password": passwordTextController.text
-                                  };
-                                  db.collection('users').add(data);
-                                }*/
                                 },
                                 isPressed,
                               )),
-                          Padding(
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 15, vertical: 20),
-                              child: signInSignUpButton(
-                                context,
-                                false,
-                                () {
-                                  setState(() {
-                                    isPressed = true;
-                                  });
-/*
-                                  signUp(
-                                      emailTextController.text,
-                                      passwordTextController.text,
-                                      "Coordinator");
-                                  
-                                  FirebaseAuth.instance
-                                      .createUserWithEmailAndPassword(
-                                          email: emailTextController.text,
-                                          password: passwordTextController.text)
-                                      .then((value) {
-                                    Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (context) => Gscscreen()));
-                                  }).onError((error, stackTrace) {
-                                    print("Error ${error.toString()}");
-                                  });
-                                  Map<String, String> data = {
-                                    "email": emailTextController.text,
-                                    "password": passwordTextController.text
-                                  };
-                                  db.collection('users').add(data);
-                                }*/
-                                },
-                                isPressed,
-                              )),
+                          GestureDetector(
+                            child: Text(
+                              "Forgot your password? Click here",
+                              style: TextStyle(
+                                color: Colors
+                                    .white, // You can choose the color you prefer
+                                decoration: TextDecoration
+                                    .underline, // Add an underline style
+                              ),
+                            ),
+                            onTap: () {
+                              showPasswordResetDialog(context);
+                              print("Forgor Password");
+                              // Handle the click action, e.g., navigate to the password reset screen.
+                            },
+                          )
                         ],
                       )),
                 ),
