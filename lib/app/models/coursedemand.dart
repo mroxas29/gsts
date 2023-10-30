@@ -26,8 +26,6 @@ List<CourseDemand> courseDemands = [];
 Map<String, int> courseDemandCountMap = {};
 Map<String, Set<String>> courseDemandDatesMap = {};
 Map<String, List<int>> demandByMonth = getDemandByMonth(uniqueCourses);
-
-// Convert the maps to a list of unique course codes, their demand counts, and unique dates
 List<Map<String, dynamic>> uniqueCourses = courseDemandCountMap.entries
     .map((entry) => {
           'coursecode': entry.key,
@@ -35,6 +33,17 @@ List<Map<String, dynamic>> uniqueCourses = courseDemandCountMap.entries
           'uniqueDates': courseDemandDatesMap[entry.key]?.toList(),
         })
     .toList();
+// Convert the maps to a list of unique course codes, their demand counts, and unique dates
+void getUniqueCourses() {
+  uniqueCourses.clear();
+  uniqueCourses = courseDemandCountMap.entries
+      .map((entry) => {
+            'coursecode': entry.key,
+            'demandCount': entry.value,
+            'uniqueDates': courseDemandDatesMap[entry.key]?.toList(),
+          })
+      .toList();
+}
 
 Future<List<CourseDemand>> getCourseDemandsFromFirestore() async {
   courseDemands.clear();
@@ -74,7 +83,7 @@ Future<List<CourseDemand>> getCourseDemandsFromFirestore() async {
   }
 
   // Convert the maps to a list of unique course codes, their demand counts, and unique dates
-  List<Map<String, dynamic>> uniqueCourses = courseDemandCountMap.entries
+  uniqueCourses = courseDemandCountMap.entries
       .map((entry) => {
             'coursecode': entry.key,
             'demandCount': entry.value,
