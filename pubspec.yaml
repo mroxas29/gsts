@@ -1,34 +1,36 @@
 name: sysadmindb
-description: This is the page for the dashboard of the system administrator. 
+description: This is the page for the dashboard of the system administrator.
 
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
 version: 0.0.1+1
 
 environment:
-  sdk: '>=2.19.4 <4.0.0'
+  sdk: ">=2.19.4 <4.0.0"
 
 dependencies:
+  cloud_firestore: ^4.9.3
+  english_words: ^4.0.0
+  firebase_auth: ^4.10.1
+  firebase_core: ^2.16.0
+  fl_chart: ^0.64.0
   flutter:
     sdk: flutter
-
-  english_words: ^4.0.0
-  provider: ^6.0.0
-
-  side_navigation: ^1.0.4
-  firebase_core: ^2.16.0
+  flutter_charts: ^0.5.2
+  flutter_form_builder: ^9.1.1
   google_sign_in: ^6.1.5
-  firebase_auth: ^4.10.0
-
+  intl: ^0.18.1
+  provider: ^6.0.0
+  shared_preferences: ^2.1.1
+  side_navigation: ^1.0.4
 
 dev_dependencies:
+  flutter_lints: ^2.0.0
   flutter_test:
     sdk: flutter
-
-  flutter_lints: ^2.0.0
 
 flutter:
   uses-material-design: true
   assets:
     - assets/images/bg.png
-
+    - assets/images/loaderOld.gif
