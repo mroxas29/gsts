@@ -30,7 +30,7 @@ List<SchoolYear> schoolyears = List.generate(3, (index) {
   final currentYear = DateTime.now().year;
   final schoolYearName = '${currentYear + index} - ${currentYear + index + 1}';
   final terms = List<Term>.generate(3, (termIndex) {
-    return Term('Term ${termIndex + 1}', [courses[1], courses[2]]);
+    return Term('Term ${termIndex + 1}', []);
   });
   return SchoolYear(schoolYearName, terms);
 });

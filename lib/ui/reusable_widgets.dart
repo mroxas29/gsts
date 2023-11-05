@@ -4,23 +4,21 @@ import 'package:sysadmindb/app/models/User.dart';
 Container signInSignUpButton(
     BuildContext context, bool isLogin, Function onTap, bool isPressed) {
   return Container(
-    width: MediaQuery.of(context).size.width,
+    width: 150,
     height: 50,
     margin: const EdgeInsets.fromLTRB(0, 10, 0, 20),
-    decoration: BoxDecoration(borderRadius: BorderRadius.circular(90)),
     child: ElevatedButton.icon(
       onPressed: () {
         onTap();
       },
       style: ButtonStyle(
-          backgroundColor: MaterialStateProperty.resolveWith((states) {
-            if (states.contains(MaterialState.pressed)) {
-              return Colors.black26;
-            }
-            return Color.fromARGB(68, 45, 107, 45);
-          }),
-          shape: MaterialStateProperty.all<RoundedRectangleBorder>(
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)))),
+        backgroundColor: MaterialStateProperty.resolveWith((states) {
+          if (states.contains(MaterialState.pressed)) {
+            return Colors.black26;
+          }
+          return Color.fromARGB(255, 20, 94, 5);
+        }),
+      ),
       icon: isPressed
           ? Container(
               width: 24,
@@ -46,17 +44,19 @@ TextField resusableTextField(String text, IconData icon, bool isPasswordType,
     obscureText: isPasswordType,
     enableSuggestions: !isPasswordType,
     autocorrect: !isPasswordType,
-    cursorColor: Colors.white,
-    style: TextStyle(color: Colors.white.withOpacity(0.9)),
+    cursorColor: const Color.fromARGB(255, 61, 61, 61),
+    style:
+        TextStyle(color: const Color.fromARGB(255, 0, 0, 0).withOpacity(0.9)),
     decoration: InputDecoration(
-        prefixIcon: Icon(icon, color: Colors.white70),
+        prefixIcon: Icon(icon,
+            color: const Color.fromARGB(255, 82, 82, 82).withOpacity(0.9)),
         labelText: text,
-        labelStyle: TextStyle(color: Colors.white.withOpacity(0.9)),
+        labelStyle: TextStyle(
+            color: Color.fromARGB(255, 145, 145, 145).withOpacity(0.9)),
         filled: true,
         floatingLabelBehavior: FloatingLabelBehavior.never,
-        fillColor: Colors.white.withOpacity(0.3),
+        fillColor: Color.fromARGB(255, 182, 181, 181).withOpacity(0.3),
         border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(30.0),
             borderSide: const BorderSide(width: 0, style: BorderStyle.none))),
     keyboardType: isPasswordType
         ? TextInputType.visiblePassword
@@ -91,12 +91,3 @@ class LoaderDialog {
     );
   }
 }
-
-
-
-
-
-
- 
-
-

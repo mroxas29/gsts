@@ -1,8 +1,8 @@
 import 'package:sysadmindb/app/models/courses.dart';
 
 class Term {
-  final String name;
-  final List<Course> termcourses;
+  late final String name;
+  late List<Course> termcourses;
 
   Term(this.name, this.termcourses);
 

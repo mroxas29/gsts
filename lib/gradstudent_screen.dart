@@ -9,6 +9,8 @@ import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/enrolledcourses.dart';
 import 'package:sysadmindb/app/models/pastcourses.dart';
 import 'package:sysadmindb/app/models/schoolYear.dart';
+import 'package:sysadmindb/app/models/student_user.dart';
+import 'package:sysadmindb/app/models/term.dart';
 import 'package:sysadmindb/main.dart';
 import 'package:sysadmindb/ui/form.dart';
 
@@ -159,7 +161,10 @@ class CurriculumAuditScreen extends StatefulWidget {
 }
 
 class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
-  void _deleteEnrolledCourse(EnrolledCourseData enrolledCourse) async {
+  void _deleteEnrolledCourse(
+    EnrolledCourseData enrolledCourse,
+  ) async {
+    int indextodelete = currentStudent.enrolledCourses.indexOf(enrolledCourse);
     bool confirmDelete = await showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -206,6 +211,41 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
               .map((course) => course.toJson())
               .toList(),
         });
+        for (Student student in studentList) {
+          if (student.enrolledCourses.any((course) =>
+              course.coursecode == activecourses[indextodelete].coursecode)) {
+            print("Student with the same course: ${student.displayname}");
+
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(student.uid)
+                .get()
+                .then((userDoc) {
+              if (userDoc.exists) {
+                List<dynamic> enrolledCoursesData =
+                    userDoc['enrolledCourses'] as List<dynamic>;
+
+                // Update the numstudents field for the course to decrement by 1
+                enrolledCoursesData.forEach((enrolledCourseData) {
+                  if (enrolledCourseData is Map<String, dynamic> &&
+                      enrolledCourseData['coursecode'] ==
+                          activecourses[indextodelete].coursecode) {
+                    if (enrolledCourseData['numstudents'] is int) {
+                      enrolledCourseData['numstudents'] =
+                          (enrolledCourseData['numstudents'] as int) - 1;
+                    }
+                  }
+                });
+
+                // Update the user's enrolledCourses field
+                FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(student.uid)
+                    .update({'enrolledCourses': enrolledCoursesData});
+              }
+            });
+          }
+        }
 
         await FirebaseFirestore.instance
             .collection('courses')
@@ -237,7 +277,6 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
     GlobalKey<FormState> formKey,
     List<Course> course,
     Function(EnrolledCourseData) onAddEnrolledCourse,
-    
   ) {
     Course? selectedCourse = blankCourse;
     int? selectedCourseIndex;
@@ -335,17 +374,87 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                             coursename: selectedCourse!.coursename,
                             isactive: selectedCourse!.isactive,
                             facultyassigned: selectedCourse!.facultyassigned,
-                            numstudents: selectedCourse!.numstudents,
+                            numstudents: selectedCourse!.numstudents + 1,
                             units: selectedCourse!.units,
                             type: selectedCourse!.type,
                           );
                           onAddEnrolledCourse(enrolledCourse);
 
-                          // Close the popup
-                          Navigator.pop(context);
                           try {
                             // Get the current user ID (replace with your method to get the user ID)
                             String userId = currentUser.uid;
+
+                            // Update numstudents in the Courses collection
+                            print(
+                                " NUM STUDENTS 1 ${activecourses[selectedCourseIndex!].numstudents}");
+                            await FirebaseFirestore.instance
+                                .collection('courses')
+                                .doc(activecourses[selectedCourseIndex!].uid)
+                                .update(
+                                    {'numstudents': FieldValue.increment(1)});
+
+                            // Update user data in Firestore
+                            print(studentList.toList());
+                            for (Student student in studentList) {
+                              print("Checking student: ${student.idnumber}");
+                              if (student.enrolledCourses.any((course) =>
+                                  course.coursecode ==
+                                  activecourses[selectedCourseIndex!]
+                                      .coursecode)) {
+                                print(
+                                    "Student with the same course: ${student.displayname}");
+
+                                // Get the student's document reference
+                                final DocumentReference studentDocRef =
+                                    FirebaseFirestore.instance
+                                        .collection('users')
+                                        .doc(student.uid);
+
+                                // Retrieve the student's data
+                                final DocumentSnapshot studentDoc =
+                                    await studentDocRef.get();
+
+                                if (studentDoc.exists) {
+                                  final Map<String, dynamic>? studentData =
+                                      studentDoc.data()
+                                          as Map<String, dynamic>?;
+
+                                  if (studentData != null) {
+                                    final List<dynamic>? enrolledCoursesData =
+                                        studentData['enrolledCourses']
+                                            as List<dynamic>?;
+
+                                    if (enrolledCoursesData != null) {
+                                      // Update the numstudents field within enrolledCourses
+                                      enrolledCoursesData
+                                          .forEach((enrolledCourseData) {
+                                        if (enrolledCourseData
+                                                is Map<String, dynamic> &&
+                                            enrolledCourseData['coursecode'] ==
+                                                activecourses[
+                                                        selectedCourseIndex!]
+                                                    .coursecode) {
+                                          if (enrolledCourseData['numstudents']
+                                              is int) {
+                                            enrolledCourseData['numstudents'] =
+                                                (enrolledCourseData[
+                                                        'numstudents'] as int) +
+                                                    1;
+                                          }
+                                        }
+                                      });
+
+                                      // Update the enrolledCourses field in the Firestore document
+                                      await studentDocRef.update({
+                                        'enrolledCourses': enrolledCoursesData
+                                      });
+                                    }
+                                  }
+                                }
+                              }
+                            }
+
+                            getCoursesFromFirestore();
 
                             // Update user data in Firestore
                             await FirebaseFirestore.instance
@@ -355,17 +464,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                               'enrolledCourses': FieldValue.arrayUnion(
                                   [enrolledCourse.toJson()]),
                             });
-
-                            // Update numstudents in the Courses collection
-                            print(activecourses[selectedCourseIndex!].uid);
-                            await FirebaseFirestore.instance
-                                .collection('courses')
-                                .doc(activecourses[selectedCourseIndex!].uid)
-                                .update(
-                                    {'numstudents': FieldValue.increment(1)});
-
-                            getCoursesFromFirestore();
-
+                            Navigator.pop(context);
                             // Display a success message
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
@@ -951,6 +1050,47 @@ class _MainViewState extends State<GradStudentscreen>
     });
   }
 
+  void addSelectedCourseToTermAndCloseDialog(
+    Course? selectedCourse,
+    Term term,
+    List<SchoolYear> schoolyears,
+    BuildContext context,
+  ) {
+    if (selectedCourse != null) {
+      // Check if the course exists in other terms within the same school year
+      bool courseExistsInSameSchoolYear =
+          term.termcourses.contains(selectedCourse);
+
+      // Check if the course exists in other school years
+      bool courseExistsInOtherSchoolYears = schoolyears.any((otherSchoolYear) =>
+          otherSchoolYear != schoolyears &&
+          otherSchoolYear.terms.any((otherTerm) =>
+              otherTerm != term &&
+              otherTerm.termcourses.contains(selectedCourse)));
+
+      if (!courseExistsInSameSchoolYear && !courseExistsInOtherSchoolYears) {
+        setState(() {
+          term.termcourses.add(selectedCourse);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Course added'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Course already exists in another term or school year. Courses cannot be taken more than once.'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+      Navigator.pop(context);
+    }
+  }
+
   int selectedIndex = 0;
   @override
   void initState() {
@@ -984,9 +1124,7 @@ class _MainViewState extends State<GradStudentscreen>
           SizedBox(
             height: 20,
           ),
-          Container(
-            height: 800,
-            width: 1200,
+          SingleChildScrollView(
             child: Table(
               border: TableBorder.all(),
               children: schoolyears.map((schoolYear) {
@@ -997,77 +1135,292 @@ class _MainViewState extends State<GradStudentscreen>
                   children: [
                     Padding(
                       padding: EdgeInsets.all(8.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Row(
                         children: [
-                          Container(
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: const Color.fromARGB(255, 104, 177, 106),
-                                border: Border.all(),
-                                borderRadius: BorderRadius.only(
-                                  bottomLeft: Radius.zero,
-                                  bottomRight: Radius.zero,
-                                  topLeft: Radius.circular(10),
-                                  topRight: Radius.circular(10),
-                                ),
-                              ),
-                              child: Padding(
-                                padding: EdgeInsets.all(10),
-                                child: Text(
-                                  schoolYear.name,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 20,
-                                  ),
-                                ),
-                              )),
-                          Row(
-                            children: schoolYear.terms.map((term) {
-                              return Expanded(
-                                child: Container(
-                                  padding: EdgeInsets.all(8.0),
-                                  decoration: BoxDecoration(
-                                    border: Border.all(),
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.only(
-                                      bottomLeft: Radius.circular(10),
-                                      bottomRight: Radius.circular(10),
-                                      topLeft: Radius.zero,
-                                      topRight: Radius.zero,
+                          // School Year Info
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      color: const Color.fromARGB(
+                                          255, 104, 177, 106),
+                                      border: Border.all(),
+                                      borderRadius: BorderRadius.only(
+                                        bottomLeft: Radius.zero,
+                                        bottomRight: Radius.zero,
+                                        topLeft: Radius.circular(10),
+                                        topRight: Radius.circular(10),
+                                      ),
                                     ),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Container(
-                                        alignment: Alignment.center,
-                                        child: Text(
-                                          term.name,
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 17,
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Padding(
+                                          padding: EdgeInsets.all(10),
+                                          child: Text(
+                                            schoolYear.name,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 20,
+                                            ),
                                           ),
                                         ),
+                                      ],
+                                    )),
+                                // School Year's Terms and Courses
+                                Row(
+                                  children: schoolYear.terms.map((term) {
+                                    return Expanded(
+                                      child: Container(
+                                        padding: EdgeInsets.all(8.0),
+                                        decoration: BoxDecoration(
+                                          border: Border.all(),
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.only(
+                                            bottomLeft: Radius.circular(10),
+                                            bottomRight: Radius.circular(10),
+                                            topLeft: Radius.zero,
+                                            topRight: Radius.zero,
+                                          ),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Container(
+                                              alignment: Alignment.center,
+                                              child: Text(
+                                                term.name,
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 17,
+                                                ),
+                                              ),
+                                            ),
+                                            Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: term.termcourses
+                                                  .map((termcourse) {
+                                                return Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .spaceBetween,
+                                                  children: [
+                                                    Column(
+                                                      children: [
+                                                        Container(
+                                                          padding:
+                                                              EdgeInsets.all(
+                                                                  8.0),
+                                                          child: Text(
+                                                              "${termcourse.coursecode}: ${termcourse.coursename}"),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    IconButton(
+                                                      icon: Icon(Icons.delete,
+                                                          color: Colors.red),
+                                                      onPressed: () {
+                                                        // Display a confirmation dialog before deleting
+                                                        showDialog(
+                                                          context: context,
+                                                          builder: (BuildContext
+                                                              context) {
+                                                            return AlertDialog(
+                                                              title: Text(
+                                                                  "Delete Course"),
+                                                              content: Text(
+                                                                  "Are you sure you want to delete the course: ${termcourse.coursecode}?"),
+                                                              actions: [
+                                                                TextButton(
+                                                                  child: Text(
+                                                                      "Cancel"),
+                                                                  onPressed:
+                                                                      () {
+                                                                    Navigator.of(
+                                                                            context)
+                                                                        .pop();
+                                                                  },
+                                                                ),
+                                                                TextButton(
+                                                                  child: Text(
+                                                                      "Delete"),
+                                                                  onPressed:
+                                                                      () {
+                                                                    // Identify the course you want to delete
+                                                                    Course
+                                                                        courseToDelete =
+                                                                        termcourse;
+
+                                                                    // Find the index of the course in the term's course list
+                                                                    int courseIndex = term
+                                                                        .termcourses
+                                                                        .indexOf(
+                                                                            courseToDelete);
+
+                                                                    if (courseIndex !=
+                                                                        -1) {
+                                                                      // Remove the course from the term's course list
+                                                                      setState(
+                                                                          () {
+                                                                        term.termcourses
+                                                                            .removeAt(courseIndex);
+                                                                      });
+
+                                                                      // Print a message or perform any additional actions
+                                                                      print(
+                                                                          "Deleted course: ${courseToDelete.coursecode}");
+                                                                    } else {
+                                                                      // Handle the case where the course was not found
+                                                                      print(
+                                                                          "Course not found: ${courseToDelete.coursecode}");
+                                                                    }
+                                                                    // Close the confirmation dialog
+                                                                    print(
+                                                                        "Delete ${schoolYear.name} ${term.name} ${termcourse.coursecode} ${termcourse.coursename}");
+                                                                    Navigator.of(
+                                                                            context)
+                                                                        .pop();
+                                                                  },
+                                                                ),
+                                                              ],
+                                                            );
+                                                          },
+                                                        );
+                                                      },
+                                                    )
+                                                  ],
+                                                );
+                                              }).toList(),
+                                            ),
+                                            TextButton(
+                                              onPressed: () {
+                                                // Handle the click event
+                                                showDialog(
+                                                  context: context,
+                                                  builder: (context) {
+                                                    Course?
+                                                        selectedCourse; // Initialize as nullable
+
+                                                    return StatefulBuilder(
+                                                      builder:
+                                                          (context, setState) {
+                                                        return SimpleDialog(
+                                                          title: Text(
+                                                              'Select a Course to add for ${term.name} AY ${schoolYear.name}'),
+                                                          children: <Widget>[
+                                                            DropdownButton<
+                                                                Course>(
+                                                              items: courses
+                                                                  .map(
+                                                                      (course) {
+                                                                return DropdownMenuItem<
+                                                                    Course>(
+                                                                  value: course,
+                                                                  child: Text(
+                                                                      "${course.coursecode}: ${course.coursename}"), // Replace with the course name attribute
+                                                                );
+                                                              }).toList(),
+                                                              onChanged:
+                                                                  (Course?
+                                                                      course) {
+                                                                setState(() {
+                                                                  selectedCourse =
+                                                                      course;
+                                                                });
+                                                              },
+                                                              value:
+                                                                  selectedCourse,
+                                                            ),
+                                                            if (selectedCourse !=
+                                                                null)
+                                                              Column(
+                                                                mainAxisAlignment:
+                                                                    MainAxisAlignment
+                                                                        .start,
+                                                                children: [
+                                                                  SizedBox(
+                                                                    height: 5,
+                                                                  ),
+                                                                  Text(
+                                                                    'Course Details:',
+                                                                    style: TextStyle(
+                                                                        fontSize:
+                                                                            15),
+                                                                  ),
+                                                                  SizedBox(
+                                                                    height: 5,
+                                                                  ),
+                                                                  Text(
+                                                                    'Course Code: ${selectedCourse!.coursecode}',
+                                                                    style: TextStyle(
+                                                                        fontSize:
+                                                                            15),
+                                                                  ),
+                                                                  SizedBox(
+                                                                    height: 5,
+                                                                  ),
+                                                                  Text(
+                                                                    'Course Name: ${selectedCourse!.coursename}',
+                                                                    style: TextStyle(
+                                                                        fontSize:
+                                                                            15),
+                                                                  ),
+                                                                  SizedBox(
+                                                                    height: 5,
+                                                                  ),
+                                                                  Text(
+                                                                    'Course Type: ${selectedCourse!.type}',
+                                                                    style: TextStyle(
+                                                                        fontSize:
+                                                                            15),
+                                                                  ),
+                                                                  SizedBox(
+                                                                    height: 5,
+                                                                  ),
+                                                                  // Add more course details here
+                                                                ],
+                                                              ),
+                                                            ElevatedButton(
+                                                              onPressed: () {
+                                                                addSelectedCourseToTermAndCloseDialog(
+                                                                    selectedCourse,
+                                                                    term,
+                                                                    schoolyears,
+                                                                    context);
+                                                              },
+                                                              child: Text('OK'),
+                                                            ),
+                                                          ],
+                                                        );
+                                                      },
+                                                    );
+                                                  },
+                                                );
+                                              },
+                                              child: Text(
+                                                'add course for ${term.name} A.Y. ${schoolYear.name}',
+                                                style: TextStyle(
+                                                  decoration:
+                                                      TextDecoration.underline,
+                                                  color: Colors
+                                                      .blue, // You can choose the color you prefer
+                                                ),
+                                              ),
+                                            )
+                                          ],
+                                        ),
                                       ),
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children:
-                                            term.termcourses.map((termcourse) {
-                                          return Container(
-                                            padding: EdgeInsets.all(8.0),
-                                            child: Text(
-                                                "${termcourse.coursecode}: ${termcourse.coursename}"),
-                                          );
-                                        }).toList(),
-                                      ),
-                                    ],
-                                  ),
+                                    );
+                                  }).toList(),
                                 ),
-                              );
-                            }).toList(),
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -1171,10 +1524,13 @@ class _MainViewState extends State<GradStudentscreen>
                     ),
                     onPressed: () {
                       courses.clear();
-
+                      studentList.clear();
+                      activecourses.clear();
                       currentStudent.enrolledCourses.clear();
                       currentStudent.pastCourses.clear();
+                      wrongCreds = false;
 
+                      correctCreds = false;
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => LoginPage()),

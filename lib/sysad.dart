@@ -991,6 +991,9 @@ class _MainViewState extends State<Sysad> {
                       users.clear();
                       courses.clear();
                       activecourses.clear();
+                      studentList.clear();
+                      wrongCreds = false;
+                      correctCreds = false;
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => LoginPage()),

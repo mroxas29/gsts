@@ -114,27 +114,22 @@ Future<List<Course>> getCoursesFromFirestore() async {
 
       if (newCourse.type.toLowerCase().contains('foundation')) {
         foundationcourses.add(newCourse);
-        print("Foundation Course ${foundationcourses.toList()}");
       }
 
       if (newCourse.type.toLowerCase().contains('remedial')) {
         remedialcourses.add(newCourse);
-        print(" Remedial Course: ${remedialcourses.toList()}");
       }
 
       if (newCourse.type.toLowerCase().contains('elective')) {
         electivecourses.add(newCourse);
-        print("elective course ${electivecourses.toList()}");
       }
 
       if (newCourse.type.toLowerCase().contains('capstone')) {
         capstonecourses.add(newCourse);
-        print("Capstone course ${capstonecourses.toList()}");
       }
 
       if (newCourse.type.toLowerCase().contains('exam')) {
         examcourses.add(newCourse);
-        print("Exam Course ${examcourses.toList()}");
       }
     }
     courses.forEach((user) {

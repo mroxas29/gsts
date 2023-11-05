@@ -43,6 +43,8 @@ late Student currentStudent;
 // Display students enrolled in the specific course
 List<String> enrolledStudentNames = [];
 List<String> enrolledStudentEmails = [];
+bool wrongCreds = false;
+bool correctCreds = false;
 
 class _LoginPageState extends State<LoginPage> {
   Future<void> resetPassword(String email) async {
@@ -105,41 +107,56 @@ class _LoginPageState extends State<LoginPage> {
     return WillPopScope(
       onWillPop: () async => false,
       child: Scaffold(
-          appBar: AppBar(
-            title: const Text('Graduate student tracking system'),
-            backgroundColor: Color.fromRGBO(18, 128, 86, 100),
-          ),
           body: contain.Container(
-              decoration: BoxDecoration(
-                  image: DecorationImage(
-                      image: AssetImage("assets/images/bg.png"),
-                      fit: BoxFit.cover)),
+              color: const Color.fromARGB(255, 231, 231, 231),
               child: Center(
                 child: SizedBox(
                   width: 400,
-                  height: 450,
+                  height: 350,
                   child: contain.Container(
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(10),
-                        color: Color.fromRGBO(31, 47, 41, 0.711),
-                      ),
+                          color: Color.fromRGBO(255, 255, 255, 0.71),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Color.fromARGB(255, 134, 134, 134),
+                              offset: Offset(15, 9),
+                              blurRadius: 20.0,
+                              spreadRadius: 10.0,
+                            )
+                          ]),
                       child: Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SizedBox(height: 25),
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 1),
-                            child: Text(
-                              'Login',
-                              style: TextStyle(
-                                  fontSize: 40,
-                                  fontFamily: 'inter',
-                                  color: Colors.white),
-                              textAlign: TextAlign.justify,
-                            ),
-                          ),
                           Padding(
                               padding: EdgeInsets.symmetric(
-                                  horizontal: 15, vertical: 20),
+                                horizontal: 1,
+                              ),
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 20, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: Color.fromARGB(255, 7, 68,
+                                      1), // Set your desired background color
+                                ),
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      'Graduate Student Tracking System',
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        fontFamily: 'inter',
+                                        color:
+                                            Color.fromARGB(255, 206, 206, 206),
+                                      ),
+                                      textAlign: TextAlign.left,
+                                    ),
+                                  ],
+                                ),
+                              )),
+                          Padding(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 20, vertical: 20),
                               child: resusableTextField(
                                   "Enter email",
                                   Icons.person_outline,
@@ -150,38 +167,71 @@ class _LoginPageState extends State<LoginPage> {
                                   horizontal: 15, vertical: 20),
                               child: resusableTextField("Enter Password",
                                   Icons.lock, true, passwordTextController)),
-                          Padding(
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 5, vertical: 10),
-                              child: signInSignUpButton(
-                                context,
-                                true,
-                                () {
-                                  setState(() {
-                                    isPressed = true;
-                                  });
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Padding(
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 5, vertical: 10),
+                                  child: signInSignUpButton(
+                                    context,
+                                    true,
+                                    () {
+                                      setState(() {
+                                        isPressed = true;
+                                      });
 
-                                  signIn(emailTextController.text,
-                                      passwordTextController.text);
-                                },
-                                isPressed,
-                              )),
-                          GestureDetector(
-                            child: Text(
-                              "Forgot your password? Click here",
-                              style: TextStyle(
-                                color: Colors
-                                    .white, // You can choose the color you prefer
-                                decoration: TextDecoration
-                                    .underline, // Add an underline style
+                                      signIn(emailTextController.text,
+                                          passwordTextController.text);
+                                    },
+                                    isPressed,
+                                  )),
+                              SizedBox(
+                                width: 20,
                               ),
-                            ),
-                            onTap: () {
-                              showPasswordResetDialog(context);
-                              print("Forgor Password");
-                              // Handle the click action, e.g., navigate to the password reset screen.
-                            },
-                          )
+                              GestureDetector(
+                                child: MouseRegion(
+                                  cursor: SystemMouseCursors.click,
+                                  child: Text(
+                                    "Forgot your password?\nClick here",
+                                    style: TextStyle(
+                                      color: Color.fromARGB(255, 9, 63,
+                                          2), // You can choose the color you prefer
+                                      decoration: TextDecoration
+                                          .underline, // Add an underline style
+                                    ),
+                                  ),
+                                ),
+                                onTap: () {
+                                  showPasswordResetDialog(context);
+                                  print("Forgor Password");
+                                  // Handle the click action, e.g., navigate to the password reset screen.
+                                },
+                              )
+                            ],
+                          ),
+                          Center(
+                              child: Column(
+                            children: [
+                              wrongCreds
+                                  ? Text(
+                                      "Incorrect email or password",
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(color: Colors.red),
+                                    )
+                                  : SizedBox(),
+                              correctCreds
+                                  ? Text(
+                                      "Login Success",
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                          color:
+                                              Color.fromARGB(255, 4, 87, 11)),
+                                    )
+                                  : SizedBox()
+                            ],
+                          ))
                         ],
                       )),
                 ),
@@ -255,24 +305,31 @@ class _LoginPageState extends State<LoginPage> {
         email: email,
         password: password,
       );
+      // Reset the wrongCreds variable to false upon successful login
+      setState(() {
+        wrongCreds = false;
+        correctCreds = true;
+      });
 
       await addUserFromFirestore();
       await getCoursesFromFirestore();
       await getFacultyList();
       await getCourseDemandsFromFirestore();
+      await convertToStudentList(users);
       route();
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') {
         print('No user found for that email.');
-        setState(() {
-          isPressed = false;
-        });
       } else if (e.code == 'wrong-password') {
-        print('Wrong password provided for that user.');
-        setState(() {
-          isPressed = false;
-        });
+        print('Incorrect email or password');
       }
+      setState(() {
+        wrongCreds = true;
+      });
+    } finally {
+      setState(() {
+        isPressed = false;
+      });
     }
   }
 

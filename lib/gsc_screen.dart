@@ -1,4 +1,3 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -1007,8 +1006,11 @@ class _MainViewState extends State<Gscscreen> {
                       users.clear();
                       courses.clear();
                       activecourses.clear();
+studentList.clear();
 
+                      correctCreds = false;
                       foundCourse.clear();
+                       wrongCreds = false;
                       setState(() {
                         enrolledStudentNames.clear();
                         enrolledStudentEmails.clear();

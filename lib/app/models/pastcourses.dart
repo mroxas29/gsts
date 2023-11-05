@@ -49,6 +49,7 @@ class PastCourse extends Course {
       'numstudents': numstudents,
       'units': units,
       'grade': grade,
+      'type': type,
     };
   }
 }

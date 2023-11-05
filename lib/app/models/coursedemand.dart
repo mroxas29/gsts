@@ -58,8 +58,7 @@ Future<List<CourseDemand>> getCourseDemandsFromFirestore() async {
       final Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
       final CourseDemand courseDemand = CourseDemand.fromFirestore(data);
       courseDemands.add(courseDemand);
-      print(
-          "Courses DEMANDED: ${courseDemand.coursecode} ${courseDemand.studentidnumber}");
+      
     });
   } catch (e) {
     print('Error fetching course demands: $e');
