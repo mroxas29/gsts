@@ -107,6 +107,11 @@ class _MainViewState extends State<Sysad> {
                     if (value == null || value.isEmpty) {
                       return 'Please enter an email';
                     }
+
+                    if (users.any((users) =>
+                        users.email.toLowerCase() == value.toLowerCase())) {
+                      return "User with email $value already exists";
+                    }
                     // Add email validation if needed
                     return null;
                   },
@@ -120,6 +125,11 @@ class _MainViewState extends State<Sysad> {
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter ID number';
+                    }
+
+                    if (users
+                        .any((users) => users.idnumber.toString() == value)) {
+                      return "User with id number: $value already exists";
                     }
                     // Add ID number validation if needed
                     return null;
@@ -203,7 +213,7 @@ class _MainViewState extends State<Sysad> {
                         'lastname': _userData.displayname['lastname']!,
                       },
                       'role': _userData.role,
-                      'email': _userData.email,
+                      'email': _userData.email.toLowerCase(),
                       'idnumber': _userData.idnumber,
                     });
                     Navigator.pop(context);

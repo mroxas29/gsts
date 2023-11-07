@@ -77,6 +77,11 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter the course code';
                   }
+                  if (courses.any((course) =>
+                      course.coursecode.toString().toUpperCase() ==
+                      value.toUpperCase())) {
+                    return "Course with course code: $value already exists";
+                  }
                   return null;
                 },
                 onSaved: (value) {
@@ -188,7 +193,7 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                         .collection('courses')
                         .doc(uid)
                         .set({
-                      'coursecode': _courseData.coursecode,
+                      'coursecode': _courseData.coursecode.toUpperCase(),
                       'coursename': _courseData.coursename,
                       'facultyassigned': selectedFaculty,
                       'units': _courseData.units,
@@ -255,6 +260,9 @@ void showAddFacultyForm(BuildContext context, GlobalKey<FormState> formKey) {
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter the email address';
+                  }
+                  if (facultyList.any((faculty) => faculty.email == value)) {
+                    return "Faculty with email $value already exists";
                   }
                   // Add email validation if needed
                   return null;

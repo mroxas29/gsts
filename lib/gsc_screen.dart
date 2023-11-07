@@ -34,6 +34,7 @@ class _MainViewState extends State<Gscscreen> {
   Future<List<Student>> graduateStudents = convertToStudentList(users);
   List<Course> foundCourse = [];
   String? selectedCourseDemand;
+  String? selectedCourseState;
 
   /// The currently selected index of the bar
   int selectedIndex = 0;
@@ -183,6 +184,7 @@ class _MainViewState extends State<Gscscreen> {
                       duration: Duration(seconds: 2),
                     ),
                   );
+                  getCoursesFromFirestore();
 
                   // Trigger a rebuild
                   Navigator.pop(context);
@@ -567,15 +569,272 @@ class _MainViewState extends State<Gscscreen> {
 
     /// Views to display
     List<Widget> views = [
-      Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [Text("Dashboard")]),
+      Scaffold(
+        appBar: AppBar(
+          title: Text("Dashboard"),
+          backgroundColor: const Color.fromARGB(255, 23, 71, 25),
+        ),
+        body: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              height: 25,
+            ),
+            Padding(
+              padding: const EdgeInsets.only(left: 20),
+              child: Container(
+                decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.5),
+                        spreadRadius: 5,
+                        blurRadius: 7,
+                        offset: Offset(0, 3),
+                      )
+                    ]),
+                constraints: BoxConstraints(maxWidth: 600, maxHeight: 500),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        height: 10,
+                      ),
+                      Row(
+                        children: [
+                          SizedBox(
+                            width: 20,
+                          ),
+                          Text(
+                            'Course Demands: ',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 20),
+                          ),
+                          SizedBox(
+                              child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: DropdownButton<String>(
+                              value: selectedCourseDemand,
+                              style: TextStyle(fontSize: 20),
+                              onChanged: (String? uniqueCourses) {
+                                setState(() {
+                                  selectedCourseDemand = uniqueCourses!;
+                                });
+                              },
+                              items: uniqueCourses.map((course) {
+                                final courseCode = course['coursecode'];
+                                return DropdownMenuItem<String>(
+                                  value: courseCode,
+                                  child: Text(courseCode),
+                                );
+                              }).toList(),
+                            ),
+                          )),
+                        ],
+                      ),
+                      SizedBox(
+                        height: 50,
+                      ),
+                      SizedBox(
+                          width: 600,
+                          height: 300,
+                          child: BarChart(BarChartData(
+                              borderData: FlBorderData(
+                                  border: const Border(
+                                      top: BorderSide.none,
+                                      right: BorderSide.none,
+                                      left: BorderSide(width: 1),
+                                      bottom: BorderSide(width: 1))),
+                              titlesData: FlTitlesData(
+                                  topTitles: AxisTitles(
+                                      sideTitles: SideTitles(
+                                    showTitles: false,
+                                  )),
+                                  rightTitles: AxisTitles(
+                                      sideTitles: SideTitles(
+                                    showTitles: false,
+                                  )),
+                                  bottomTitles: AxisTitles(
+                                      sideTitles: SideTitles(
+                                    showTitles: true,
+                                    getTitlesWidget: (value, meta) {
+                                      switch (value.toInt()) {
+                                        case 1:
+                                          return SideTitleWidget(
+                                              axisSide: AxisSide.left,
+                                              child: Text('Jan'));
+                                        case 2:
+                                          return SideTitleWidget(
+                                              axisSide: AxisSide.left,
+                                              child: Text('Feb'));
+                                        case 3:
+                                          return SideTitleWidget(
+                                              axisSide: AxisSide.left,
+                                              child: Text('Mar'));
+
+                                        case 4:
+                                          return SideTitleWidget(
+                                              axisSide: AxisSide.left,
+                                              child: Text('Apr'));
+
+                                        case 5:
+                                          return SideTitleWidget(
+                                              axisSide: AxisSide.left,
+                                              child: Text('May'));
+
+                                        case 6:
+                                          return SideTitleWidget(
+                                              axisSide: AxisSide.left,
+                                              child: Text('Jun'));
+
+                                        case 7:
+                                          return SideTitleWidget(
+                                              axisSide: AxisSide.left,
+                                              child: Text('Jul'));
+
+                                        case 8:
+                                          return SideTitleWidget(
+                                              axisSide: AxisSide.left,
+                                              child: Text('Aug'));
+
+                                        case 9:
+                                          return SideTitleWidget(
+                                              axisSide: AxisSide.left,
+                                              child: Text('Sep'));
+
+                                        case 10:
+                                          return SideTitleWidget(
+                                              axisSide: AxisSide.left,
+                                              child: Text('Oct'));
+
+                                        case 11:
+                                          return SideTitleWidget(
+                                              axisSide: AxisSide.left,
+                                              child: Text('Nov'));
+
+                                        case 12:
+                                          return SideTitleWidget(
+                                              axisSide: AxisSide.left,
+                                              child: Text('Dec'));
+                                        default:
+                                          return SideTitleWidget(
+                                              axisSide: AxisSide.left,
+                                              child: Text(''));
+                                      }
+                                    },
+                                  ))),
+                              groupsSpace: 10,
+                              barGroups: trendData)))
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(left: 20),
+              child: Container(
+                height: 500, // Adjust the height as needed
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.5),
+                      spreadRadius: 5,
+                      blurRadius: 7,
+                      offset: Offset(0, 3),
+                    )
+                  ],
+                ),
+                constraints: BoxConstraints(
+                  maxWidth: 650,
+                ),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: 10),
+                      Row(
+                        children: [
+                          SizedBox(width: 20),
+                          Text(
+                            'Courses: ',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 20,
+                            ),
+                          ),
+                          SizedBox(
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: DropdownButton<String>(
+                                value: selectedCourseState,
+                                style: TextStyle(fontSize: 20),
+                                onChanged: (String? status) {
+                                  setState(() {
+                                    selectedCourseState = status!;
+                                  });
+                                },
+                                items: <DropdownMenuItem<String>>[
+                                  DropdownMenuItem<String>(
+                                    value: 'Active',
+                                    child: Text('Active Courses'),
+                                  ),
+                                  DropdownMenuItem<String>(
+                                    value: 'Inactive',
+                                    child: Text('Inactive Courses'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 20),
+                      Expanded(
+                        child: ListView.builder(
+                          itemCount: selectedCourseState == 'Active'
+                              ? activecourses.length
+                              : inactivecourses.length,
+                          itemBuilder: (context, index) {
+                            final course = selectedCourseState == 'Inactive'
+                                ? inactivecourses[index]
+                                : activecourses[index];
+
+                            return GestureDetector(
+                              onTap: () {
+                                // Handle the course click here, e.g., navigate to a course details page
+                                // You can access the 'course' object to get details about the clicked course
+                                _editCourseData(context, course);
+                              },
+                              child: ListTile(
+                                title: Text(course.coursecode),
+                                subtitle: Text(course.coursename),
+                              ),
+                            );
+                          },
+                        ),
+                      )
+                    ],
+                  ),
+                ),
+              ),
+            )
+            // Other widgets can be added here
+          ],
+        ),
+      ),
 
       //COURSES SCREEN
       MaterialApp(
         home: DefaultTabController(
-            length: 3,
+            length: 2,
             child: Scaffold(
               appBar: AppBar(
                 title: Text('Program Management'),
@@ -585,7 +844,6 @@ class _MainViewState extends State<Gscscreen> {
                       text: 'Courses',
                     ),
                     Tab(text: 'Faculty'),
-                    Tab(text: 'Course Offerings'),
                   ],
                   indicator: BoxDecoration(
                       color: Color.fromARGB(255, 15, 136, 31),
@@ -820,135 +1078,6 @@ class _MainViewState extends State<Gscscreen> {
                                   )),
                         ))
                       ]),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            'Select course to view demand',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 15),
-                          ),
-                        ],
-                      ),
-
-                      Container(
-                        height: 60,
-                        child: DropdownButton<String>(
-                          value: selectedCourseDemand,
-                          style: TextStyle(fontSize: 20),
-                          onChanged: (String? uniqueCourses) {
-                            setState(() {
-                              selectedCourseDemand = uniqueCourses!;
-                            });
-                          },
-                          items: uniqueCourses.map((course) {
-                            final courseCode = course['coursecode'];
-                            return DropdownMenuItem<String>(
-                              value: courseCode,
-                              child: Text(courseCode),
-                            );
-                          }).toList(),
-                        ),
-                      ),
-
-                      SizedBox(
-                        height: 50,
-                      ),
-                      Container(
-                          width: 300,
-                          height: 500,
-                          child: BarChart(BarChartData(
-                              borderData: FlBorderData(
-                                  border: const Border(
-                                      top: BorderSide.none,
-                                      right: BorderSide.none,
-                                      left: BorderSide(width: 1),
-                                      bottom: BorderSide(width: 1))),
-                              titlesData: FlTitlesData(
-                                  topTitles: AxisTitles(
-                                      sideTitles: SideTitles(
-                                    showTitles: false,
-                                  )),
-                                  rightTitles: AxisTitles(
-                                      sideTitles: SideTitles(
-                                    showTitles: false,
-                                  )),
-                                  bottomTitles: AxisTitles(
-                                      sideTitles: SideTitles(
-                                    showTitles: true,
-                                    getTitlesWidget: (value, meta) {
-                                      switch (value.toInt()) {
-                                        case 1:
-                                          return SideTitleWidget(
-                                              axisSide: AxisSide.left,
-                                              child: Text('Jan'));
-                                        case 2:
-                                          return SideTitleWidget(
-                                              axisSide: AxisSide.left,
-                                              child: Text('Feb'));
-                                        case 3:
-                                          return SideTitleWidget(
-                                              axisSide: AxisSide.left,
-                                              child: Text('Mar'));
-
-                                        case 4:
-                                          return SideTitleWidget(
-                                              axisSide: AxisSide.left,
-                                              child: Text('Apr'));
-
-                                        case 5:
-                                          return SideTitleWidget(
-                                              axisSide: AxisSide.left,
-                                              child: Text('May'));
-
-                                        case 6:
-                                          return SideTitleWidget(
-                                              axisSide: AxisSide.left,
-                                              child: Text('Jun'));
-
-                                        case 7:
-                                          return SideTitleWidget(
-                                              axisSide: AxisSide.left,
-                                              child: Text('Jul'));
-
-                                        case 8:
-                                          return SideTitleWidget(
-                                              axisSide: AxisSide.left,
-                                              child: Text('Aug'));
-
-                                        case 9:
-                                          return SideTitleWidget(
-                                              axisSide: AxisSide.left,
-                                              child: Text('Sep'));
-
-                                        case 10:
-                                          return SideTitleWidget(
-                                              axisSide: AxisSide.left,
-                                              child: Text('Oct'));
-
-                                        case 11:
-                                          return SideTitleWidget(
-                                              axisSide: AxisSide.left,
-                                              child: Text('Nov'));
-
-                                        case 12:
-                                          return SideTitleWidget(
-                                              axisSide: AxisSide.left,
-                                              child: Text('Dec'));
-                                        default:
-                                          return SideTitleWidget(
-                                              axisSide: AxisSide.left,
-                                              child: Text(''));
-                                      }
-                                    },
-                                  ))),
-                              groupsSpace: 10,
-                              barGroups: trendData)))
-                      // Other widgets can be added here
-                    ],
-                  )
                 ],
               ),
             )),
@@ -1006,11 +1135,11 @@ class _MainViewState extends State<Gscscreen> {
                       users.clear();
                       courses.clear();
                       activecourses.clear();
-studentList.clear();
+                      studentList.clear();
 
                       correctCreds = false;
                       foundCourse.clear();
-                       wrongCreds = false;
+                      wrongCreds = false;
                       setState(() {
                         enrolledStudentNames.clear();
                         enrolledStudentEmails.clear();
