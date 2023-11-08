@@ -1,5 +1,7 @@
 import 'package:sysadmindb/app/models/courses.dart';
+import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/term.dart';
+import 'package:sysadmindb/main.dart';
 
 class SchoolYear {
   final String name;
@@ -26,11 +28,4 @@ class SchoolYear {
   }
 }
 
-List<SchoolYear> schoolyears = List.generate(3, (index) {
-  final currentYear = DateTime.now().year;
-  final schoolYearName = '${currentYear + index} - ${currentYear + index + 1}';
-  final terms = List<Term>.generate(3, (termIndex) {
-    return Term('Term ${termIndex + 1}', []);
-  });
-  return SchoolYear(schoolYearName, terms);
-});
+List<SchoolYear> schoolyears = studentPOS.schoolYears;

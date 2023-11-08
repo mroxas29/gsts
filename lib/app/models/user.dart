@@ -8,8 +8,7 @@ class user {
   String role;
 
   user(
-      {
-      required this.uid,
+      {required this.uid,
       required this.displayname,
       required this.role,
       required this.email,
@@ -24,12 +23,6 @@ class user {
       "idnumber": idnumber
     };
   }
-
-
-
-
-
-
 }
 
 List<user> users = [];
@@ -38,10 +31,9 @@ String formatMapToString(Map<String, String> map) {
   return map.entries.map((entry) => entry.value).join(' ');
 }
 
-
 Future<void> addUserFromFirestore() async {
   users.clear();
-    print("Add user from FS executed");
+  print("Add user from FS executed");
   try {
     // Access the Firestore instance
     FirebaseFirestore firestore = FirebaseFirestore.instance;
@@ -61,22 +53,12 @@ Future<void> addUserFromFirestore() async {
         email: userData['email'],
         idnumber: userData['idnumber'],
       );
-      
+
       users.add(newUser);
     }
-    
-users.sort((a, b) => a.email.compareTo(b.email));
-  
-    // Optional: Print the users to the console
-    users.forEach((user) {
-      print(user.toJson());
-    });
-    
+
+    users.sort((a, b) => a.email.compareTo(b.email));
   } catch (e) {
     print('Error fetching users from Firestore: $e');
   }
 }
-
-
-
-

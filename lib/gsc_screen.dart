@@ -34,7 +34,7 @@ class _MainViewState extends State<Gscscreen> {
   Future<List<Student>> graduateStudents = convertToStudentList(users);
   List<Course> foundCourse = [];
   String? selectedCourseDemand;
-  String? selectedCourseState;
+  String? selectedCourseState = 'Active';
 
   /// The currently selected index of the bar
   int selectedIndex = 0;
@@ -229,8 +229,6 @@ class _MainViewState extends State<Gscscreen> {
             enrolledStudentNames.add(
                 "${student.displayname['firstname']!} ${student.displayname['lastname']!}");
             enrolledStudentEmails.add(student.email);
-            print(
-                "${student.displayname['firstname']!} ${student.displayname['lastname']!}");
           }
         });
       });
@@ -267,7 +265,6 @@ class _MainViewState extends State<Gscscreen> {
                           onChanged: (value) {
                             setState(() {
                               selectedFaculty = value!;
-                              print(selectedFaculty);
                             });
                           },
                           decoration:
@@ -526,7 +523,6 @@ class _MainViewState extends State<Gscscreen> {
     // Prepare data for the BarChart
     final trendData = <BarChartGroupData>[];
     int demandCount = selectedDemandData['demandCount'];
-    print("demandcount: $demandCount");
     for (int i = 0; i < uniqueDates.length; i++) {
       final date = uniqueDates[i];
       final parts = date.split('/');
@@ -537,8 +533,6 @@ class _MainViewState extends State<Gscscreen> {
       final monthCount = uniqueDates
           .where((date) => date.toString().startsWith("$month/"))
           .length;
-      print("$month: $monthCount");
-
       final existingDataIndex = trendData.indexWhere((data) => data.x == month);
 
       // Add demandCount to trendData and then subtract 1
@@ -816,6 +810,14 @@ class _MainViewState extends State<Gscscreen> {
                               child: ListTile(
                                 title: Text(course.coursecode),
                                 subtitle: Text(course.coursename),
+                                trailing: Icon(
+                                  course.isactive
+                                      ? Icons.check_circle
+                                      : Icons.cancel,
+                                  color: course.isactive
+                                      ? Colors.green
+                                      : Colors.red,
+                                ),
                               ),
                             );
                           },

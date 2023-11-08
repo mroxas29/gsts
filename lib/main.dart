@@ -5,6 +5,7 @@ import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/enrolledcourses.dart';
 import 'package:sysadmindb/app/models/faculty.dart';
 import 'package:sysadmindb/app/models/pastcourses.dart';
+import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/app/models/user.dart';
 import 'package:sysadmindb/gradstudent_screen.dart';
@@ -205,7 +206,6 @@ class _LoginPageState extends State<LoginPage> {
                                 ),
                                 onTap: () {
                                   showPasswordResetDialog(context);
-                                  print("Forgor Password");
                                   // Handle the click action, e.g., navigate to the password reset screen.
                                 },
                               )
@@ -250,7 +250,6 @@ class _LoginPageState extends State<LoginPage> {
       if (documentSnapshot.exists) {
         String targetemail = emailTextController.text;
         currentUser = users.firstWhere((users) => users.email == targetemail);
-        print('Found user: ${currentUser.displayname['firstname']}');
         if (documentSnapshot.get('role') == "Coordinator") {
           Navigator.pushReplacement(
             context,
@@ -284,7 +283,12 @@ class _LoginPageState extends State<LoginPage> {
           }
 
           currentStudent = convertToStudent(currentUser);
-          // ignore: use_build_context_synchronously
+          print(
+              "Current student uid: ${currentStudent.uid}\nCurrent User uid: ${currentUser.uid}");
+
+          setState(() {
+            retrieveStudentPOS(currentStudent.uid);
+          });
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(

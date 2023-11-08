@@ -59,14 +59,12 @@ class Student extends user {
       idnumber: json['idnumber'],
       enrolledCourses: enrolledCourses,
       pastCourses: pastCourses,
-    
     );
   }
 }
 
 Future<List<EnrolledCourseData>> getEnrolledCoursesForStudent(
     String studentUid) async {
-      
   try {
     print('Fetching enrolled courses for student: $studentUid');
     final DocumentSnapshot studentSnapshot = await FirebaseFirestore.instance
@@ -80,13 +78,13 @@ Future<List<EnrolledCourseData>> getEnrolledCoursesForStudent(
 
       if (userData != null && userData.containsKey('enrolledCourses')) {
         final List<dynamic> coursesJson = userData['enrolledCourses'];
-        print('Fetched enrolled courses: $coursesJson');
 
         return coursesJson
             .map((courseJson) => EnrolledCourseData.fromJson(courseJson))
             .toList();
       } else {
-        print('Field "enrolledCourses" not found in document');
+        print(
+            'Field "enrolledCourses" not found in document for student: $studentUid');
         return [];
       }
     } else {
@@ -94,15 +92,13 @@ Future<List<EnrolledCourseData>> getEnrolledCoursesForStudent(
       return [];
     }
   } catch (e) {
-    print('Error retrieving enrolled courses: $e');
+    print('Error retrieving enrolled courses for student: $e');
     return [];
   }
 }
 
 Future<List<PastCourse>> getPastCoursesForStudent(String studentUid) async {
-  
   try {
-    print('Fetching past courses for student: $studentUid');
     final DocumentSnapshot studentSnapshot = await FirebaseFirestore.instance
         .collection('users')
         .doc(studentUid)
@@ -110,8 +106,7 @@ Future<List<PastCourse>> getPastCoursesForStudent(String studentUid) async {
 
     if (studentSnapshot.exists) {
       final List<dynamic> coursesJson = studentSnapshot['pastCourses'];
-      print('Fetched past courses: $coursesJson');
-      print('Student Data: ${studentSnapshot.data()}');
+
       return coursesJson
           .map((courseJson) => PastCourse.fromJson(courseJson))
           .toList();
@@ -131,8 +126,7 @@ Future<List<Student>> convertToStudentList(List<user> users) async {
   int i = 0;
   for (var user in users) {
     if (user.role == 'Graduate Student') {
-      List<EnrolledCourseData> enrolledCourses =
-          await getEnrolledCoursesForStudent(user.uid);
+      List<EnrolledCourseData> enrolledCourses = [];
       List<PastCourse> pastCourses =
           []; // You need to fetch past courses here, update accordingly
       studentList.add(Student(
@@ -144,7 +138,6 @@ Future<List<Student>> convertToStudentList(List<user> users) async {
         enrolledCourses: enrolledCourses,
         pastCourses: pastCourses,
       ));
-      print("Student $i : ${studentList[i].displayname}");
       i++;
     }
   }

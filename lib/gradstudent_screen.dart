@@ -9,6 +9,7 @@ import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/enrolledcourses.dart';
 import 'package:sysadmindb/app/models/pastcourses.dart';
 import 'package:sysadmindb/app/models/schoolYear.dart';
+import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/app/models/term.dart';
 import 'package:sysadmindb/main.dart';
@@ -214,8 +215,6 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
         for (Student student in studentList) {
           if (student.enrolledCourses.any((course) =>
               course.coursecode == activecourses[indextodelete].coursecode)) {
-            print("Student with the same course: ${student.displayname}");
-
             await FirebaseFirestore.instance
                 .collection('users')
                 .doc(student.uid)
@@ -281,7 +280,6 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
     Course? selectedCourse = blankCourse;
     int? selectedCourseIndex;
     bool courseAlreadyExists = false;
-    print(currentStudent.enrolledCourses);
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -385,8 +383,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                             String userId = currentUser.uid;
 
                             // Update numstudents in the Courses collection
-                            print(
-                                " NUM STUDENTS 1 ${activecourses[selectedCourseIndex!].numstudents}");
+
                             await FirebaseFirestore.instance
                                 .collection('courses')
                                 .doc(activecourses[selectedCourseIndex!].uid)
@@ -394,16 +391,12 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                                     {'numstudents': FieldValue.increment(1)});
 
                             // Update user data in Firestore
-                            print(studentList.toList());
                             for (Student student in studentList) {
                               print("Checking student: ${student.idnumber}");
                               if (student.enrolledCourses.any((course) =>
                                   course.coursecode ==
                                   activecourses[selectedCourseIndex!]
                                       .coursecode)) {
-                                print(
-                                    "Student with the same course: ${student.displayname}");
-
                                 // Get the student's document reference
                                 final DocumentReference studentDocRef =
                                     FirebaseFirestore.instance
@@ -1072,6 +1065,7 @@ class _MainViewState extends State<GradStudentscreen>
         setState(() {
           term.termcourses.add(selectedCourse);
         });
+        changeinPOS = true;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Course added'),
@@ -1098,6 +1092,7 @@ class _MainViewState extends State<GradStudentscreen>
     _tabController = TabController(length: 3, vsync: this);
   }
 
+  bool changeinPOS = false;
   @override
   Widget build(BuildContext context) {
     // print(currentStudent.pastCourses[1]);
@@ -1226,7 +1221,7 @@ class _MainViewState extends State<GradStudentscreen>
                                                       icon: Icon(Icons.delete,
                                                           color: Colors.red),
                                                       onPressed: () {
-                                                        // Display a confirmation dialog before deleting
+                                                        // Display a confirmation dialog before deleting the course
                                                         showDialog(
                                                           context: context,
                                                           builder: (BuildContext
@@ -1268,6 +1263,8 @@ class _MainViewState extends State<GradStudentscreen>
                                                                       // Remove the course from the term's course list
                                                                       setState(
                                                                           () {
+                                                                        changeinPOS =
+                                                                            true;
                                                                         term.termcourses
                                                                             .removeAt(courseIndex);
                                                                       });
@@ -1280,9 +1277,8 @@ class _MainViewState extends State<GradStudentscreen>
                                                                       print(
                                                                           "Course not found: ${courseToDelete.coursecode}");
                                                                     }
+
                                                                     // Close the confirmation dialog
-                                                                    print(
-                                                                        "Delete ${schoolYear.name} ${term.name} ${termcourse.coursecode} ${termcourse.coursename}");
                                                                     Navigator.of(
                                                                             context)
                                                                         .pop();
@@ -1393,6 +1389,23 @@ class _MainViewState extends State<GradStudentscreen>
                                                                     term,
                                                                     schoolyears,
                                                                     context);
+                                                                //ADD to firebase
+                                                                final FirebaseFirestore
+                                                                    firestore =
+                                                                    FirebaseFirestore
+                                                                        .instance;
+                                                                Map<String,
+                                                                        dynamic>
+                                                                    studentPosData =
+                                                                    studentPOS
+                                                                        .toJson();
+                                                                firestore
+                                                                    .collection(
+                                                                        'studentpos')
+                                                                    .doc(currentStudent
+                                                                        .uid)
+                                                                    .set(
+                                                                        studentPosData);
                                                               },
                                                               child: Text('OK'),
                                                             ),
@@ -1429,6 +1442,35 @@ class _MainViewState extends State<GradStudentscreen>
                 );
               }).toList(),
             ),
+          ),
+          Row(
+            children: [
+              Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Row(children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      // Add your recommendation logic here
+                      print('Recommend POS button pressed');
+                    },
+                    child: Text('Recommend POS'),
+                  ),
+                  SizedBox(
+                    width: 20,
+                  ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent),
+                    onPressed: changeinPOS
+                        ? () {
+                            print('Update POS');
+                          }
+                        : null,
+                    child: Text('Update POS'),
+                  ),
+                ]),
+              )
+            ],
           )
         ],
       )),
@@ -1526,10 +1568,16 @@ class _MainViewState extends State<GradStudentscreen>
                       courses.clear();
                       studentList.clear();
                       activecourses.clear();
+                      currentStudent.uid = '';
                       currentStudent.enrolledCourses.clear();
                       currentStudent.pastCourses.clear();
+                      setState(() {
+                        print(studentPOS.toJson());
+                        studentPOSDefault();
+                        print(studentPOS.toJson());
+                      });
                       wrongCreds = false;
-
+                      // studentPOS = null;
                       correctCreds = false;
                       Navigator.push(
                         context,

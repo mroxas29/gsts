@@ -133,7 +133,7 @@ Future<List<Course>> getCoursesFromFirestore() async {
       }
     }
     courses.forEach((user) {
-      print(user.toJson());
+     
     });
   } catch (e) {
     print("Error fetching courses from Firestore: $e");

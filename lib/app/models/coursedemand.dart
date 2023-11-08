@@ -92,8 +92,7 @@ Future<List<CourseDemand>> getCourseDemandsFromFirestore() async {
 
   // Sort the list by demand count in descending order
   uniqueCourses.sort((a, b) => b['demandCount'].compareTo(a['demandCount']));
-  print("Dito ba yon??${uniqueCourses.toList()}");
-
+  
   return courseDemands;
 }
 
@@ -116,12 +115,12 @@ void updateCourseData() {
         date
       }; // Initialize the set with the date
     }
-    print(courseDemandDatesMap);
+  
   }
 
   // Sort the list by demand count in descending order
   uniqueCourses.sort((a, b) => b['demandCount'].compareTo(a['demandCount']));
-  print("Eto ba yon? ${uniqueCourses.toList()}");
+
 }
 
 Map<String, List<int>> getDemandByMonth(

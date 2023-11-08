@@ -474,8 +474,7 @@ class _MainViewState extends State<Sysad> {
             enrolledStudentNames.add(
                 "${student.displayname['firstname']!} ${student.displayname['lastname']!}");
             enrolledStudentEmails.add(student.email);
-            print(
-                "${student.displayname['firstname']!} ${student.displayname['lastname']!}");
+
           }
         });
       });
@@ -512,7 +511,6 @@ class _MainViewState extends State<Sysad> {
                           onChanged: (value) {
                             setState(() {
                               selectedFaculty = value!;
-                              print(selectedFaculty);
                             });
                           },
                           decoration:
@@ -1028,7 +1026,6 @@ class _MainViewState extends State<Sysad> {
                   expandIcon: Icons.keyboard_arrow_right,
                   shrinkIcon: Icons.keyboard_arrow_left,
                   onToggle: () {
-                    print('Toggle');
                   }),
               theme: SideNavigationBarTheme(
                 itemTheme: SideNavigationBarItemTheme(
