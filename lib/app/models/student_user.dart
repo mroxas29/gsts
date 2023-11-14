@@ -6,6 +6,7 @@ import 'package:sysadmindb/app/models/user.dart';
 class Student extends user {
   List<EnrolledCourseData> enrolledCourses;
   List<PastCourse> pastCourses;
+  
   List<Map<String, dynamic>> coursesJson = [];
   Student({
     required String uid,
@@ -126,9 +127,10 @@ Future<List<Student>> convertToStudentList(List<user> users) async {
   int i = 0;
   for (var user in users) {
     if (user.role == 'Graduate Student') {
-      List<EnrolledCourseData> enrolledCourses = [];
-      List<PastCourse> pastCourses =
-          []; // You need to fetch past courses here, update accordingly
+      List<EnrolledCourseData> enrolledCourses =
+          await getEnrolledCoursesForStudent(user.uid);
+      List<PastCourse> pastCourses = await getPastCoursesForStudent(user.uid);
+      // You need to fetch past courses here, update accordingly
       studentList.add(Student(
         uid: user.uid,
         displayname: user.displayname,

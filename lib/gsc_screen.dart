@@ -5,10 +5,12 @@ import 'package:side_navigation/side_navigation.dart';
 import 'package:sysadmindb/app/models/coursedemand.dart';
 import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/faculty.dart';
+import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/main.dart';
 import 'package:sysadmindb/app/models/user.dart';
 import 'package:sysadmindb/ui/form.dart';
+import 'package:sysadmindb/ui/studentinfopopup.dart';
 
 void main() {
   runApp(
@@ -30,6 +32,7 @@ class _MainViewState extends State<Gscscreen> {
   bool isLoaded = true;
   late String texttest;
   List<Faculty> foundFaculty = [];
+  List<Student> foundStudents = [];
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   Future<List<Student>> graduateStudents = convertToStudentList(users);
   List<Course> foundCourse = [];
@@ -44,6 +47,7 @@ class _MainViewState extends State<Gscscreen> {
     setState(() {
       foundCourse = courses;
       foundFaculty = facultyList;
+      foundStudents = studentList;
     });
 
     print("set state for found users");
@@ -53,8 +57,10 @@ class _MainViewState extends State<Gscscreen> {
 
   void _editFacultyData(BuildContext context, Faculty faculty) {
     final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-    TextEditingController fullNameController =
-        TextEditingController(text: faculty.fullName);
+    TextEditingController firstNameController =
+        TextEditingController(text: faculty.displayname['firstname']);
+    TextEditingController lastNameController =
+        TextEditingController(text: faculty.displayname['lastname']);
     TextEditingController emailController =
         TextEditingController(text: faculty.email);
 
@@ -66,7 +72,8 @@ class _MainViewState extends State<Gscscreen> {
           content: SingleChildScrollView(
             child: Column(
               children: [
-                _buildEditableField('Full Name', fullNameController),
+                _buildEditableField('First Name', firstNameController),
+                _buildEditableField('Last Name', lastNameController),
                 _buildEditableField('Email', emailController),
               ],
             ),
@@ -106,7 +113,8 @@ class _MainViewState extends State<Gscscreen> {
                     QuerySnapshot courseSnapshot = await FirebaseFirestore
                         .instance
                         .collection('courses')
-                        .where('facultyassigned', isEqualTo: faculty.fullName)
+                        .where('facultyassigned',
+                            isEqualTo: faculty.displayname)
                         .get();
 
                     for (QueryDocumentSnapshot courseDoc
@@ -164,7 +172,8 @@ class _MainViewState extends State<Gscscreen> {
               onPressed: () async {
                 // Save the edited data locally
                 setState(() {
-                  faculty.fullName = fullNameController.text;
+                  faculty.displayname['firstname'] = firstNameController.text;
+                  faculty.displayname['lastname'] = lastNameController.text;
                   faculty.email = emailController.text;
                 });
 
@@ -175,7 +184,10 @@ class _MainViewState extends State<Gscscreen> {
                       .doc(faculty
                           .uid) // Assuming you have a 'uid' field in your User class
                       .update({
-                    'fullName': fullNameController.text,
+                    'displayname': {
+                      'firstname': firstNameController.text,
+                      'lastname': lastNameController.text,
+                    },
                     'email': emailController.text,
                   });
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -212,7 +224,7 @@ class _MainViewState extends State<Gscscreen> {
     ];
     String selectedStatus = course.isactive.toString();
     String selectedType = course.type.toString();
-    String selectedFaculty = course.facultyassigned.toString();
+    String selectedFaculty = course.facultyassigned;
 
     final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
     TextEditingController coursecodeController =
@@ -226,14 +238,11 @@ class _MainViewState extends State<Gscscreen> {
       graduateStudentList.forEach((student) {
         student.enrolledCourses.forEach((enrolledCourse) {
           if (enrolledCourse.coursecode == course.coursecode) {
-            enrolledStudentNames.add(
-                "${student.displayname['firstname']!} ${student.displayname['lastname']!}");
-            enrolledStudentEmails.add(student.email);
+            enrolledStudent.add(student);
           }
         });
       });
     });
-
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -258,13 +267,14 @@ class _MainViewState extends State<Gscscreen> {
                           value: selectedFaculty,
                           items: facultyList.map((faculty) {
                             return DropdownMenuItem<String>(
-                              value: faculty.fullName,
-                              child: Text(faculty.fullName),
+                              value: getFullname(faculty),
+                              child: Text(
+                                  '${faculty.displayname['firstname']!} ${faculty.displayname['lastname']}'),
                             );
                           }).toList(),
                           onChanged: (value) {
                             setState(() {
-                              selectedFaculty = value!;
+                              selectedFaculty = value! ;
                             });
                           },
                           decoration:
@@ -316,13 +326,36 @@ class _MainViewState extends State<Gscscreen> {
                           'Enrolled Students',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
-                        for (int i = 0; i < enrolledStudentNames.length; i++)
-                          ListTile(
-                            title: Text(
-                              enrolledStudentNames[i],
-                              style: TextStyle(fontWeight: FontWeight.bold),
+                        for (int i = 0; i < enrolledStudent.length; i++)
+                          GestureDetector(
+                            onTap: () {
+                              // Handle the click event for the ListTile
+                              currentStudent = enrolledStudent[i];
+                              studentPOS = StudentPOS(
+                                  studentIdNumber: enrolledStudent[i].idnumber,
+                                  schoolYears: defaultschoolyears,
+                                  uid: enrolledStudent[i].uid,
+                                  displayname: enrolledStudent[i].displayname,
+                                  role: enrolledStudent[i].role,
+                                  email: enrolledStudent[i].email,
+                                  idnumber: enrolledStudent[i].idnumber,
+                                  enrolledCourses:
+                                      enrolledStudent[i].enrolledCourses,
+                                  pastCourses: enrolledStudent[i].pastCourses);
+
+                              retrieveStudentPOS(enrolledStudent[i].uid);
+                              _showStudentInfo(context, enrolledStudent[i]);
+                            },
+                            child: Tooltip(
+                              message: 'Click to view details',
+                              child: ListTile(
+                                title: Text(
+                                  '${enrolledStudent[i].displayname['firstname']!} ${enrolledStudent[i].displayname['lastname']!}',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                subtitle: Text(enrolledStudent[i].email),
+                              ),
                             ),
-                            subtitle: Text(enrolledStudentEmails[i]),
                           ),
                       ],
                     ),
@@ -492,7 +525,7 @@ class _MainViewState extends State<Gscscreen> {
     } else {
       results = facultyList
           .where((faculty) =>
-              faculty.fullName
+              faculty.displayname
                   .toString()
                   .toLowerCase()
                   .contains(query.toLowerCase()) ||
@@ -501,8 +534,46 @@ class _MainViewState extends State<Gscscreen> {
     }
     setState(() {
       foundFaculty = results; // Update foundFaculty with search results
-      foundFaculty.sort((a, b) => a.fullName.compareTo(b.fullName));
     });
+  }
+
+  void runStudentFilter(String query) {
+    List<Student> results = [];
+    if (query.isEmpty) {
+      results = studentList;
+    } else {
+      results = studentList
+          .where((student) =>
+              student.displayname
+                  .toString()
+                  .toLowerCase()
+                  .contains(query.toLowerCase()) ||
+              student.email.toLowerCase().contains(query.toLowerCase()) ||
+              student.idnumber.toString().contains(query.toLowerCase()) ||
+              student.enrolledCourses.any((course) {
+                return course.coursecode
+                    .toLowerCase()
+                    .contains(query.toLowerCase());
+              }) ||
+              student.pastCourses.any((course) {
+                return course.coursecode
+                    .toLowerCase()
+                    .contains(query.toLowerCase());
+              }))
+          .toList();
+    }
+    setState(() {
+      foundStudents = results; // Update foundFaculty with search results
+    });
+  }
+
+  void _showStudentInfo(BuildContext context, Student student) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StudentInfoPopup(student);
+      },
+    );
   }
 
   void changeScreen(int index) {
@@ -836,7 +907,7 @@ class _MainViewState extends State<Gscscreen> {
       //COURSES SCREEN
       MaterialApp(
         home: DefaultTabController(
-            length: 2,
+            length: 3,
             child: Scaffold(
               appBar: AppBar(
                 title: Text('Program Management'),
@@ -846,6 +917,9 @@ class _MainViewState extends State<Gscscreen> {
                       text: 'Courses',
                     ),
                     Tab(text: 'Faculty'),
+                    Tab(
+                      text: 'Student POS',
+                    )
                   ],
                   indicator: BoxDecoration(
                       color: Color.fromARGB(255, 15, 136, 31),
@@ -930,8 +1004,7 @@ class _MainViewState extends State<Gscscreen> {
                               itemCount: foundCourse.length,
                               itemBuilder: (context, index) => InkWell(
                                     onTap: () {
-                                      enrolledStudentEmails.clear();
-                                      enrolledStudentNames.clear();
+                                      enrolledStudent.clear();
                                       _editCourseData(
                                           context, foundCourse[index]);
                                     },
@@ -1060,7 +1133,7 @@ class _MainViewState extends State<Gscscreen> {
                                           vertical: 10, horizontal: 5),
                                       child: ListTile(
                                         title: Text(
-                                          foundFaculty[index].fullName,
+                                          "${foundFaculty[index].displayname['firstname']} ${foundFaculty[index].displayname['lastname']}",
                                           style: const TextStyle(
                                             fontSize: 20.0,
                                             fontWeight: FontWeight.bold,
@@ -1073,6 +1146,111 @@ class _MainViewState extends State<Gscscreen> {
                                               CrossAxisAlignment.start,
                                           children: [
                                             Text(foundFaculty[index].email),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  )),
+                        ))
+                      ]),
+                  Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            Column(
+                              children: [
+                                Container(
+                                  margin: const EdgeInsets.only(left: 25),
+                                  child: Text("Students program of study",
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                      )),
+                                )
+                              ],
+                            ),
+                            Spacer(),
+                            Column(
+                              children: [
+                                SizedBox(
+                                    width: 500,
+                                    child: Padding(
+                                      padding: EdgeInsets.all(10.0),
+                                      child: TextField(
+                                        controller: controller,
+                                        decoration: InputDecoration(
+                                            prefixIcon:
+                                                const Icon(Icons.search),
+                                            hintText: ' ',
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              borderSide: const BorderSide(
+                                                  color: Colors.blue),
+                                            )),
+                                        onChanged: (value) =>
+                                            runStudentFilter(value),
+                                      ),
+                                    )),
+                              ],
+                            ),
+                          ],
+                        ),
+                        Expanded(
+                            child: SizedBox(
+                          width: 100.0,
+                          height: 200.0,
+                          child: ListView.builder(
+                              // shrinkWrap: true,
+
+                              itemCount: foundStudents.length,
+                              itemBuilder: (context, index) => InkWell(
+                                    onTap: () {
+                                      currentStudent = foundStudents[index];
+                                      studentPOS = StudentPOS(
+                                          studentIdNumber:
+                                              foundStudents[index].idnumber,
+                                          schoolYears: defaultschoolyears,
+                                          uid: foundStudents[index].uid,
+                                          displayname:
+                                              foundStudents[index].displayname,
+                                          role: foundStudents[index].role,
+                                          email: foundStudents[index].email,
+                                          idnumber:
+                                              foundStudents[index].idnumber,
+                                          enrolledCourses: foundStudents[index]
+                                              .enrolledCourses,
+                                          pastCourses:
+                                              foundStudents[index].pastCourses);
+
+                                      retrieveStudentPOS(
+                                          foundStudents[index].uid);
+                                      _showStudentInfo(
+                                          context, foundStudents[index]);
+                                    },
+                                    child: Card(
+                                      key: ValueKey(foundStudents[index]),
+                                      color: Colors.white,
+                                      elevation: 4,
+                                      margin: EdgeInsets.symmetric(
+                                          vertical: 10, horizontal: 5),
+                                      child: ListTile(
+                                        title: Text(
+                                          "${foundStudents[index].displayname['firstname'].toString()}  ${foundStudents[index].displayname['lastname'].toString()}",
+                                          style: const TextStyle(
+                                            fontSize: 20.0,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        subtitle: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(foundStudents[index].email),
                                           ],
                                         ),
                                       ),
@@ -1142,12 +1320,7 @@ class _MainViewState extends State<Gscscreen> {
                       correctCreds = false;
                       foundCourse.clear();
                       wrongCreds = false;
-                      setState(() {
-                        enrolledStudentNames.clear();
-                        enrolledStudentEmails.clear();
-                      });
-
-                      print(enrolledStudentEmails);
+                      enrolledStudent.clear();
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => LoginPage()),

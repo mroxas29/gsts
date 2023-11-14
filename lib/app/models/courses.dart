@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+
 class Course {
   String uid;
   String coursecode;
@@ -133,7 +134,7 @@ Future<List<Course>> getCoursesFromFirestore() async {
       }
     }
     courses.forEach((user) {
-     
+      print(user.toJson());
     });
   } catch (e) {
     print("Error fetching courses from Firestore: $e");

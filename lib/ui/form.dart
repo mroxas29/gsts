@@ -32,7 +32,7 @@ class CourseData {
 class FacultyData {
   String uid = generateUID();
   String email = '';
-  String fullName = '';
+  Map<String,String> displayName= {};
 }
 
 Future<bool> doesCourseCodeExist(String courseCode) async {
@@ -43,7 +43,9 @@ Future<bool> doesCourseCodeExist(String courseCode) async {
 
   return snapshot.docs.isNotEmpty;
 }
-
+String getFullname(Faculty faculty) {
+  return '${faculty.displayname['firstname']} ${faculty.displayname['lastname']}';
+}
 void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
   List<String> status = ['true', 'false'];
   List<String> type = [
@@ -59,7 +61,7 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
   String selectedStatus = status[0];
   String selectedType = type[0];
   String selectedFaculty =
-      facultyList.isNotEmpty ? facultyList[0].fullName : '';
+      facultyList.isNotEmpty ? facultyList[0].displayname['firstname']! : '';
 
   showDialog(
     context: context,
@@ -104,8 +106,8 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                 value: selectedFaculty,
                 items: facultyList.map((faculty) {
                   return DropdownMenuItem<String>(
-                    value: faculty.fullName,
-                    child: Text(faculty.fullName),
+                    value: getFullname(faculty),
+                    child: Text('${faculty.displayname['firstname']} ${faculty.displayname['lastname']}'),
                   );
                 }).toList(),
                 onChanged: (value) {
@@ -244,7 +246,7 @@ void showAddFacultyForm(BuildContext context, GlobalKey<FormState> formKey) {
           child: Column(
             children: [
               TextFormField(
-                decoration: InputDecoration(labelText: 'Full Name'),
+                decoration: InputDecoration(labelText: 'First name'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter the full name';
@@ -252,7 +254,19 @@ void showAddFacultyForm(BuildContext context, GlobalKey<FormState> formKey) {
                   return null;
                 },
                 onSaved: (value) {
-                  _facultyData.fullName = value ?? '';
+                  _facultyData.displayName['firstname'] = value ?? '';
+                },
+              ),
+              TextFormField(
+                decoration: InputDecoration(labelText: 'Last name'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter the Last name';
+                  }
+                  return null;
+                },
+                onSaved: (value) {
+                  _facultyData.displayName['lastname'] = value ?? '';
                 },
               ),
               TextFormField(
@@ -288,7 +302,10 @@ void showAddFacultyForm(BuildContext context, GlobalKey<FormState> formKey) {
                 var uid = generateUID();
                 try {
                   await FirebaseFirestore.instance.collection('faculty').add({
-                    'fullName': _facultyData.fullName,
+                                          'displayname': {
+                      'firstname': _facultyData.displayName['firstname']!,
+                      'lastname': _facultyData.displayName['lastname']!,
+                    },
                     'email': _facultyData.email,
                     'uid': uid
                   }).then((value) {

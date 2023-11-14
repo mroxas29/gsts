@@ -4,6 +4,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import 'package:side_navigation/side_navigation.dart';
+import 'package:sysadmindb/ui/CircularProgressWidget.dart';
 import 'package:sysadmindb/app/models/coursedemand.dart';
 import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/enrolledcourses.dart';
@@ -32,6 +33,11 @@ class StudentProfileScreen extends StatefulWidget {
   @override
   State<StudentProfileScreen> createState() => _StudentProfileScreenState();
 }
+
+int unitsCompleted =
+    currentStudent.pastCourses.fold(0, (int sum, PastCourse pastCourse) {
+  return sum + pastCourse.units;
+});
 
 class _StudentProfileScreenState extends State<StudentProfileScreen> {
   bool isEditing = false;
@@ -647,6 +653,11 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                               if (value == null || value.isEmpty) {
                                 return 'Please enter the grade';
                               }
+
+                              if (int.parse(value) > 4.0 ||
+                                  int.parse(value) < 0.0) {
+                                return 'Invalid grade';
+                              }
                               return null;
                             },
                             onSaved: (value) {
@@ -716,6 +727,11 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                               duration: Duration(seconds: 2),
                             ),
                           );
+
+                          unitsCompleted = pastCourses.fold(0,
+                              (int sum, PastCourse pastCourse) {
+                            return sum + pastCourse.units;
+                          });
                         } catch (e) {
                           print('Error adding past course: $e');
                           // Handle the error and display a relevant message
@@ -918,12 +934,12 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                     )),
                     DataColumn(
                         label: Text(
-                      'Units',
+                      'Grade',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     )),
                     DataColumn(
                         label: Text(
-                      'Grade',
+                      'Units',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     )),
                     DataColumn(
@@ -1023,11 +1039,23 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
   }
 }
 
+DataCell capstoneCell(PastCourse pastCourse) {
+  for (var i = 0; i < currentStudent.pastCourses.length;) {
+    if (currentStudent.pastCourses[i].coursecode.contains('Capstone')) {
+      return DataCell(Text(
+          "${pastCourse.coursecode}: ${pastCourse.coursename}\n${pastCourse.grade}",
+          style: TextStyle(color: Colors.red)));
+    }
+  }
+
+  return DataCell(Text(''));
+}
+
 class CapstoneProjectScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Text('Capstone Project Screen'),
+      child: Text('Capstone Project'),
     );
   }
 }
@@ -1092,16 +1120,81 @@ class _MainViewState extends State<GradStudentscreen>
     _tabController = TabController(length: 3, vsync: this);
   }
 
+  Color getColorForCourseType(Course course) {
+    if (currentStudent.pastCourses
+        .any((pastcourse) => pastcourse.coursecode == course.coursecode)) {
+      return Colors.grey;
+    } else {
+      if (course.type.toLowerCase().contains('bridging')) {
+        return Colors.blue;
+      } // Choose the color you want for Bridging
+      else if (course.type.toLowerCase().contains('foundation')) {
+        return Colors.green;
+      } // Choose the color you want for Foundation
+      else if (course.type.toLowerCase().contains('exam')) {
+        return Colors.red;
+      } // Choose the color you want for Exam
+      else if (course.type.toLowerCase().contains('elective')) {
+        return Colors.orange;
+      } // Choose the color you want for Elective
+      else {
+        return Colors.black;
+      } // Default color for unknown types
+    }
+  }
+
   bool changeinPOS = false;
+
   @override
   Widget build(BuildContext context) {
     // print(currentStudent.pastCourses[1]);
     List<Widget> views = [
-      Center(
-        child: Text(
-          'Dashboard',
-          textDirection: TextDirection.ltr,
-          style: TextStyle(fontFamily: 'Inter'),
+      Container(
+        width: 500, // Set the width directly on the Container
+        margin: EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.5),
+              spreadRadius: 5,
+              blurRadius: 7,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Student Progress',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
+            Column(
+              children: [
+                CircularProgressWidget(
+                  courses: courses,
+                  pastCourses: currentStudent.pastCourses,
+                ),
+                SizedBox(height: 10),
+                Text(
+                  'Courses completed: ${currentStudent.pastCourses.length}',
+                  style: TextStyle(
+                      fontSize: 16.0,
+                      color: const Color.fromARGB(255, 38, 110, 41)),
+                ),
+                Text(
+                  'Courses remaining: ${courses.length - currentStudent.pastCourses.length}',
+                  style: TextStyle(
+                      fontSize: 16.0,
+                      color: const Color.fromARGB(255, 218, 217, 217)),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
       Center(
@@ -1213,7 +1306,11 @@ class _MainViewState extends State<GradStudentscreen>
                                                               EdgeInsets.all(
                                                                   8.0),
                                                           child: Text(
-                                                              "${termcourse.coursecode}: ${termcourse.coursename}"),
+                                                            "${termcourse.coursecode}: ${termcourse.coursename}",
+                                                            style: TextStyle(
+                                                                color: getColorForCourseType(
+                                                                    termcourse)),
+                                                          ),
                                                         ),
                                                       ],
                                                     ),
@@ -1390,22 +1487,6 @@ class _MainViewState extends State<GradStudentscreen>
                                                                     schoolyears,
                                                                     context);
                                                                 //ADD to firebase
-                                                                final FirebaseFirestore
-                                                                    firestore =
-                                                                    FirebaseFirestore
-                                                                        .instance;
-                                                                Map<String,
-                                                                        dynamic>
-                                                                    studentPosData =
-                                                                    studentPOS
-                                                                        .toJson();
-                                                                firestore
-                                                                    .collection(
-                                                                        'studentpos')
-                                                                    .doc(currentStudent
-                                                                        .uid)
-                                                                    .set(
-                                                                        studentPosData);
                                                               },
                                                               child: Text('OK'),
                                                             ),
@@ -1421,8 +1502,11 @@ class _MainViewState extends State<GradStudentscreen>
                                                 style: TextStyle(
                                                   decoration:
                                                       TextDecoration.underline,
-                                                  color: Colors
-                                                      .blue, // You can choose the color you prefer
+                                                  color: const Color.fromARGB(
+                                                      255,
+                                                      74,
+                                                      103,
+                                                      128), // You can choose the color you prefer
                                                 ),
                                               ),
                                             )
@@ -1448,6 +1532,24 @@ class _MainViewState extends State<GradStudentscreen>
               Padding(
                 padding: EdgeInsets.all(8.0),
                 child: Row(children: [
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '■ Bridging/Remedial Courses',
+                        style: TextStyle(color: Colors.blue),
+                      ),
+                      Text('■ Foundation Courses',
+                          style: TextStyle(color: Colors.green)),
+                      Text('■ Elective Courses',
+                          style: TextStyle(color: Colors.orange)),
+                      Text('■ Exam Courses',
+                          style: TextStyle(color: Colors.red)),
+                      Text('■ Completed Course',
+                          style: TextStyle(color: Colors.grey))
+                    ],
+                  ),
                   ElevatedButton(
                     onPressed: () {
                       // Add your recommendation logic here
@@ -1464,6 +1566,25 @@ class _MainViewState extends State<GradStudentscreen>
                     onPressed: changeinPOS
                         ? () {
                             print('Update POS');
+                            final FirebaseFirestore firestore =
+                                FirebaseFirestore.instance;
+                            Map<String, dynamic> studentPosData =
+                                studentPOS.toJson();
+                            firestore
+                                .collection('studentpos')
+                                .doc(currentStudent.uid)
+                                .set(studentPosData);
+
+                            setState(() {
+                              changeinPOS = false;
+                            });
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Program of Study updated'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
                           }
                         : null,
                     child: Text('Update POS'),
@@ -1475,12 +1596,15 @@ class _MainViewState extends State<GradStudentscreen>
         ],
       )),
       Center(
-        child: Text(
-          'Calendar',
-          textDirection: TextDirection.ltr,
-          style: TextStyle(fontFamily: 'Inter', fontSize: 100),
-        ),
-      ),
+          child: Column(
+        children: [
+          Text(
+            'Calendar',
+            textDirection: TextDirection.ltr,
+            style: TextStyle(fontFamily: 'Inter', fontSize: 100),
+          ),
+        ],
+      )),
       Center(
         child: Text(
           'Inbox',
@@ -1565,24 +1689,70 @@ class _MainViewState extends State<GradStudentscreen>
                       backgroundColor: Colors.transparent,
                     ),
                     onPressed: () {
-                      courses.clear();
-                      studentList.clear();
-                      activecourses.clear();
-                      currentStudent.uid = '';
-                      currentStudent.enrolledCourses.clear();
-                      currentStudent.pastCourses.clear();
-                      setState(() {
-                        print(studentPOS.toJson());
-                        studentPOSDefault();
-                        print(studentPOS.toJson());
-                      });
-                      wrongCreds = false;
-                      // studentPOS = null;
-                      correctCreds = false;
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => LoginPage()),
-                      );
+                      if (changeinPOS == true) {
+                        showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: Text('Unsaved Changes'),
+                                content: Text(
+                                    'You have made changes in your POS, are you sure you want to leave without saving?'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      courses.clear();
+                                      studentList.clear();
+                                      activecourses.clear();
+                                      currentStudent.uid = '';
+                                      currentStudent.enrolledCourses.clear();
+                                      currentStudent.pastCourses.clear();
+                                      setState(() {
+                                        studentPOSDefault();
+                                      });
+                                      wrongCreds = false;
+                                      // studentPOS = null;
+                                      correctCreds = false;
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) =>
+                                                LoginPage()), //Leave Page
+                                      );
+                                    },
+                                    child: Text(
+                                      'Leave without saving',
+                                      style: TextStyle(color: Colors.red),
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(context)
+                                          .pop(false); //Stay on Page
+                                    },
+                                    child: Text('Stay'),
+                                  )
+                                ],
+                              );
+                            });
+                      } else {
+                        courses.clear();
+                        studentList.clear();
+                        activecourses.clear();
+                        currentStudent.uid = '';
+                        currentStudent.enrolledCourses.clear();
+                        currentStudent.pastCourses.clear();
+                        setState(() {
+                          studentPOSDefault();
+                        });
+                        wrongCreds = false;
+                        // studentPOS = null;
+                        correctCreds = false;
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => LoginPage()), //Leave Page
+                        );
+                      }
                     },
                   ),
                 ],

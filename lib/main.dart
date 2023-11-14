@@ -42,8 +42,7 @@ TextEditingController emailTextController = TextEditingController();
 late user currentUser;
 late Student currentStudent;
 // Display students enrolled in the specific course
-List<String> enrolledStudentNames = [];
-List<String> enrolledStudentEmails = [];
+List<Student> enrolledStudent = [];
 bool wrongCreds = false;
 bool correctCreds = false;
 
@@ -264,7 +263,7 @@ class _LoginPageState extends State<LoginPage> {
               builder: (context) => Sysad(),
             ),
           );
-        } else {
+        } else if (documentSnapshot.get('role') == "Graduate Student") {
           List<EnrolledCourseData> enrolledCourses =
               await getEnrolledCoursesForStudent(currentUser.uid);
           List<PastCourse> pastCourses =
@@ -295,6 +294,8 @@ class _LoginPageState extends State<LoginPage> {
               builder: (context) => GradStudentscreen(),
             ),
           );
+        } else {
+          wrongCreds = true;
         }
       } else {
         print('Document does not exist on the database');

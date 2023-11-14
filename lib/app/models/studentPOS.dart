@@ -31,7 +31,6 @@ class StudentPOS extends Student {
         );
 
   factory StudentPOS.fromJson(Map<String, dynamic> json) {
-    final studentIdNumber = json['studentIdNumber'] as int;
     final List<dynamic> schoolYearsJson = json['schoolYears'] ?? [];
     final List<SchoolYear> schoolYears = schoolYearsJson
         .map(
@@ -124,7 +123,7 @@ Future<void> retrieveStudentPOS(String uid) async {
         print('Document data is null');
       }
     } else {
-      print('Document does not exist??');
+      print('Document does not exist for $uid');
 
       studentPOSDefault();
       initializeSchoolYears();
@@ -137,3 +136,5 @@ Future<void> retrieveStudentPOS(String uid) async {
 void initializeSchoolYears() async {
   schoolyears = studentPOS.schoolYears;
 }
+
+List<SchoolYear> schoolyears = studentPOS.schoolYears;

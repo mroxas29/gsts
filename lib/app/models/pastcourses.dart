@@ -1,29 +1,27 @@
-
 import 'package:sysadmindb/app/models/courses.dart';
 
 class PastCourse extends Course {
   final double grade;
 
-  PastCourse({
-    required String uid,
-    required String coursecode,
-    required String coursename,
-    required bool isactive,
-    required String facultyassigned,
-    required int numstudents,
-    required int units,
-    required this.grade,
-    required String type
-  }) : super(
-          uid: uid,
-          coursecode: coursecode,
-          coursename: coursename,
-          isactive: isactive,
-          facultyassigned: facultyassigned,
-          numstudents: numstudents,
-          units: units,
-          type: type
-        );
+  PastCourse(
+      {required String uid,
+      required String coursecode,
+      required String coursename,
+      required bool isactive,
+      required String facultyassigned,
+      required int numstudents,
+      required int units,
+      required this.grade,
+      required String type})
+      : super(
+            uid: uid,
+            coursecode: coursecode,
+            coursename: coursename,
+            isactive: isactive,
+            facultyassigned: facultyassigned,
+            numstudents: numstudents,
+            units: units,
+            type: type);
 
   factory PastCourse.fromJson(Map<String, dynamic> json) {
     return PastCourse(
@@ -53,7 +51,6 @@ class PastCourse extends Course {
     };
   }
 }
-
 
 List<Map<String, dynamic>> pastCoursesData = [];
 

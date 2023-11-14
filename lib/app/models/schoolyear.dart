@@ -1,7 +1,5 @@
-import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/term.dart';
-import 'package:sysadmindb/main.dart';
 
 class SchoolYear {
   final String name;
@@ -27,5 +25,3 @@ class SchoolYear {
     return data;
   }
 }
-
-List<SchoolYear> schoolyears = studentPOS.schoolYears;

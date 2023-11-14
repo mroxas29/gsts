@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:side_navigation/side_navigation.dart';
 import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/faculty.dart';
+import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/main.dart';
 import 'package:sysadmindb/app/models/user.dart';
 import 'package:sysadmindb/ui/form.dart';
 import 'package:sysadmindb/ui/reusable_widgets.dart';
+import 'package:sysadmindb/ui/studentinfopopup.dart';
 
 void main() {
   runApp(
@@ -45,14 +47,18 @@ class _MainViewState extends State<Sysad> {
     super.initState();
   }
 
-  Widget _buildEditableField(String label, TextEditingController controller) {
+  Widget _buildEditableField(
+      String label, TextEditingController controller, bool hasStudents) {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 8.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: TextStyle(fontWeight: FontWeight.bold)),
-          TextField(controller: controller),
+          TextField(
+            controller: controller,
+            enabled: !hasStudents, // Disable TextField if hasStudents is true
+          ),
         ],
       ),
     );
@@ -106,6 +112,10 @@ class _MainViewState extends State<Sysad> {
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter an email';
+                    }
+
+                    if (!value.contains('@dlsu.edu.ph')) {
+                      return 'Enter a valid @dlsu.edu.ph email';
                     }
 
                     if (users.any((users) =>
@@ -267,8 +277,8 @@ class _MainViewState extends State<Sysad> {
           content: SingleChildScrollView(
             child: Column(
               children: [
-                _buildEditableField('First Name', firstNameController),
-                _buildEditableField('Last Name', lastNameController),
+                _buildEditableField('First Name', firstNameController, false),
+                _buildEditableField('Last Name', lastNameController, false),
                 Row(children: [
                   Text(
                     "Email: ",
@@ -280,7 +290,7 @@ class _MainViewState extends State<Sysad> {
                         TextStyle(color: const Color.fromARGB(255, 78, 78, 78)),
                   ),
                 ]),
-                _buildEditableField('ID Number', idNumberController),
+                _buildEditableField('ID Number', idNumberController, false),
                 DropdownButtonFormField<String>(
                   value: selectedRole,
                   items: roles.map((role) {
@@ -427,10 +437,10 @@ class _MainViewState extends State<Sysad> {
 
     // If it's not in the list, add it to the list
     if (!isCurrentFacultyInList) {
-      facultyList.add(Faculty(
-          fullName: selectedFaculty,
-          email: selectedFaculty,
-          uid: generateUID()));
+      facultyList.add(Faculty(displayname: {
+        "firstname": selectedFaculty,
+        "lastname": selectedFaculty,
+      }, email: selectedFaculty, uid: generateUID()));
     }
 
     return DropdownButtonFormField<String>(
@@ -438,7 +448,7 @@ class _MainViewState extends State<Sysad> {
       items: facultyList.map((faculty) {
         return DropdownMenuItem<String>(
           value: faculty.email,
-          child: Text(faculty.fullName),
+          child: Text(getFullname(faculty)),
         );
       }).toList(),
       onChanged: onChangedCallback,
@@ -446,7 +456,17 @@ class _MainViewState extends State<Sysad> {
     );
   }
 
+  void _showStudentInfo(BuildContext context, Student student) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StudentInfoPopup(student);
+      },
+    );
+  }
+
   void _editCourseData(BuildContext context, Course course) {
+    bool hasStudents = false;
     List<String> status = ['true', 'false'];
     List<String> type = [
       'Bridging/Remedial Courses',
@@ -471,14 +491,19 @@ class _MainViewState extends State<Sysad> {
       graduateStudentList.forEach((student) {
         student.enrolledCourses.forEach((enrolledCourse) {
           if (enrolledCourse.coursecode == course.coursecode) {
-            enrolledStudentNames.add(
-                "${student.displayname['firstname']!} ${student.displayname['lastname']!}");
-            enrolledStudentEmails.add(student.email);
-
+            enrolledStudent.add(student);
           }
         });
       });
     });
+
+    if (course.numstudents > 0) {
+      print('!EMPTY');
+      hasStudents = true;
+    } else {
+      print('EMPTY');
+      hasStudents = false;
+    }
 
     showDialog(
       context: context,
@@ -497,15 +522,16 @@ class _MainViewState extends State<Sysad> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildEditableField(
-                            'Course code', coursecodeController),
+                            'Course code', coursecodeController, hasStudents),
                         _buildEditableField(
-                            'Course Name', coursenameController),
+                            'Course Name', coursenameController, hasStudents),
                         DropdownButtonFormField<String>(
                           value: selectedFaculty,
                           items: facultyList.map((faculty) {
                             return DropdownMenuItem<String>(
-                              value: faculty.fullName,
-                              child: Text(faculty.fullName),
+                              value:
+                                  "${faculty.displayname['firstname']} ${faculty.displayname['lastname']}",
+                              child: Text(getFullname(faculty)),
                             );
                           }).toList(),
                           onChanged: (value) {
@@ -524,14 +550,17 @@ class _MainViewState extends State<Sysad> {
                               child: Text(type),
                             );
                           }).toList(),
-                          onChanged: (type) {
-                            setState(() {
-                              selectedType = type!;
-                            });
-                          },
+                          onChanged: !hasStudents
+                              ? (type) {
+                                  setState(() {
+                                    selectedType = type!;
+                                  });
+                                }
+                              : null,
                           decoration: InputDecoration(labelText: 'Course Type'),
                         ),
-                        _buildEditableField('Units', unitsController),
+                        _buildEditableField(
+                            'Units', unitsController, hasStudents),
                         DropdownButtonFormField<String>(
                           value: selectedStatus,
                           items: status.map((role) {
@@ -540,11 +569,13 @@ class _MainViewState extends State<Sysad> {
                               child: Text(role),
                             );
                           }).toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              selectedStatus = value!;
-                            });
-                          },
+                          onChanged: !hasStudents
+                              ? (value) {
+                                  setState(() {
+                                    selectedStatus = value!;
+                                  });
+                                }
+                              : null,
                           decoration: InputDecoration(labelText: 'Is active?'),
                         ),
                       ],
@@ -562,13 +593,33 @@ class _MainViewState extends State<Sysad> {
                           'Enrolled Students',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
-                        for (int i = 0; i < enrolledStudentNames.length; i++)
-                          ListTile(
-                            title: Text(
-                              enrolledStudentNames[i],
-                              style: TextStyle(fontWeight: FontWeight.bold),
+                        for (int i = 0; i < enrolledStudent.length; i++)
+                          GestureDetector(
+                            onTap: () {
+                              // Handle the click event for the ListTile
+                              currentStudent = enrolledStudent[i];
+                              studentPOS = StudentPOS(
+                                  studentIdNumber: enrolledStudent[i].idnumber,
+                                  schoolYears: defaultschoolyears,
+                                  uid: enrolledStudent[i].uid,
+                                  displayname: enrolledStudent[i].displayname,
+                                  role: enrolledStudent[i].role,
+                                  email: enrolledStudent[i].email,
+                                  idnumber: enrolledStudent[i].idnumber,
+                                  enrolledCourses:
+                                      enrolledStudent[i].enrolledCourses,
+                                  pastCourses: enrolledStudent[i].pastCourses);
+
+                              retrieveStudentPOS(enrolledStudent[i].uid);
+                              _showStudentInfo(context, enrolledStudent[i]);
+                            },
+                            child: ListTile(
+                              title: Text(
+                                '${enrolledStudent[i].displayname['firstname']!} ${enrolledStudent[i].displayname['lastname']!}',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              subtitle: Text(enrolledStudent[i].email),
                             ),
-                            subtitle: Text(enrolledStudentEmails[i]),
                           ),
                       ],
                     ),
@@ -912,8 +963,7 @@ class _MainViewState extends State<Sysad> {
                   itemCount: foundCourse.length,
                   itemBuilder: (context, index) => InkWell(
                         onTap: () {
-                          enrolledStudentEmails.clear();
-                          enrolledStudentNames.clear();
+                          enrolledStudent.clear();
                           _editCourseData(context, foundCourse[index]);
                         },
                         child: Card(
@@ -1025,8 +1075,7 @@ class _MainViewState extends State<Sysad> {
               toggler: SideBarToggler(
                   expandIcon: Icons.keyboard_arrow_right,
                   shrinkIcon: Icons.keyboard_arrow_left,
-                  onToggle: () {
-                  }),
+                  onToggle: () {}),
               theme: SideNavigationBarTheme(
                 itemTheme: SideNavigationBarItemTheme(
                   labelTextStyle: TextStyle(fontFamily: 'Inter', fontSize: 14),
