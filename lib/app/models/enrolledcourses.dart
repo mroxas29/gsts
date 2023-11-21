@@ -9,7 +9,9 @@ class EnrolledCourseData extends Course {
       required String facultyassigned,
       required int numstudents,
       required int units,
-      required String type})
+      required String type,
+      required String program
+      })
       : super(
             uid: uid,
             coursecode: coursecode,
@@ -18,7 +20,9 @@ class EnrolledCourseData extends Course {
             facultyassigned: facultyassigned,
             numstudents: numstudents,
             units: units,
-            type: type);
+            type: type,
+            program: program,
+            );
 
   factory EnrolledCourseData.fromJson(Map<String, dynamic> json) {
     return EnrolledCourseData(
@@ -30,6 +34,7 @@ class EnrolledCourseData extends Course {
       numstudents: json['numstudents'],
       units: json['units'],
       type: json['type'],
+      program: json['program']
     );
   }
 }

@@ -72,9 +72,9 @@ class _MainViewState extends State<Gscscreen> {
           content: SingleChildScrollView(
             child: Column(
               children: [
-                _buildEditableField('First Name', firstNameController),
-                _buildEditableField('Last Name', lastNameController),
-                _buildEditableField('Email', emailController),
+                _buildEditableField('First Name', firstNameController, false),
+                _buildEditableField('Last Name', lastNameController, false),
+                _buildEditableField('Email', emailController, false),
               ],
             ),
           ),
@@ -214,7 +214,11 @@ class _MainViewState extends State<Gscscreen> {
   }
 
   void _editCourseData(BuildContext context, Course course) {
+    bool hasStudents = false;
     List<String> status = ['true', 'false'];
+
+    List<String> degrees = ['No degree', 'MIT', 'MSIT'];
+    List<String> programs = ['MIT/MSIT', 'MIT', 'MSIT'];
     List<String> type = [
       'Bridging/Remedial Courses',
       'Foundation Courses',
@@ -222,9 +226,11 @@ class _MainViewState extends State<Gscscreen> {
       'Capstone',
       'Exam Course'
     ];
+
+    String selectedProgram = course.program;
     String selectedStatus = course.isactive.toString();
     String selectedType = course.type.toString();
-    String selectedFaculty = course.facultyassigned;
+    String selectedFaculty = course.facultyassigned.toString();
 
     final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
     TextEditingController coursecodeController =
@@ -243,6 +249,15 @@ class _MainViewState extends State<Gscscreen> {
         });
       });
     });
+
+    if (course.numstudents > 0) {
+      print('!EMPTY');
+      hasStudents = true;
+    } else {
+      print('EMPTY');
+      hasStudents = false;
+    }
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -260,25 +275,42 @@ class _MainViewState extends State<Gscscreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildEditableField(
-                            'Course code', coursecodeController),
+                            'Course code', coursecodeController, hasStudents),
                         _buildEditableField(
-                            'Course Name', coursenameController),
+                            'Course Name', coursenameController, hasStudents),
                         DropdownButtonFormField<String>(
                           value: selectedFaculty,
                           items: facultyList.map((faculty) {
                             return DropdownMenuItem<String>(
-                              value: getFullname(faculty),
-                              child: Text(
-                                  '${faculty.displayname['firstname']!} ${faculty.displayname['lastname']}'),
+                              value:
+                                  "${faculty.displayname['firstname']} ${faculty.displayname['lastname']}",
+                              child: Text(getFullname(faculty)),
                             );
                           }).toList(),
                           onChanged: (value) {
                             setState(() {
-                              selectedFaculty = value! ;
+                              selectedFaculty = value!;
                             });
                           },
                           decoration:
                               InputDecoration(labelText: 'Faculty Assigned'),
+                        ),
+                        DropdownButtonFormField<String>(
+                          value: selectedProgram,
+                          items: programs.map((program) {
+                            return DropdownMenuItem<String>(
+                              value: program,
+                              child: Text(program),
+                            );
+                          }).toList(),
+                          onChanged: !hasStudents
+                              ? (value) {
+                                  setState(() {
+                                    selectedProgram = value!;
+                                  });
+                                }
+                              : null,
+                          decoration: InputDecoration(labelText: 'Program'),
                         ),
                         DropdownButtonFormField<String>(
                           value: selectedType,
@@ -288,14 +320,17 @@ class _MainViewState extends State<Gscscreen> {
                               child: Text(type),
                             );
                           }).toList(),
-                          onChanged: (type) {
-                            setState(() {
-                              selectedType = type!;
-                            });
-                          },
+                          onChanged: !hasStudents
+                              ? (type) {
+                                  setState(() {
+                                    selectedType = type!;
+                                  });
+                                }
+                              : null,
                           decoration: InputDecoration(labelText: 'Course Type'),
                         ),
-                        _buildEditableField('Units', unitsController),
+                        _buildEditableField(
+                            'Units', unitsController, hasStudents),
                         DropdownButtonFormField<String>(
                           value: selectedStatus,
                           items: status.map((role) {
@@ -304,11 +339,13 @@ class _MainViewState extends State<Gscscreen> {
                               child: Text(role),
                             );
                           }).toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              selectedStatus = value!;
-                            });
-                          },
+                          onChanged: !hasStudents
+                              ? (value) {
+                                  setState(() {
+                                    selectedStatus = value!;
+                                  });
+                                }
+                              : null,
                           decoration: InputDecoration(labelText: 'Is active?'),
                         ),
                       ],
@@ -341,20 +378,18 @@ class _MainViewState extends State<Gscscreen> {
                                   idnumber: enrolledStudent[i].idnumber,
                                   enrolledCourses:
                                       enrolledStudent[i].enrolledCourses,
-                                  pastCourses: enrolledStudent[i].pastCourses);
+                                  pastCourses: enrolledStudent[i].pastCourses,
+                                  degree: enrolledStudent[i].degree);
 
                               retrieveStudentPOS(enrolledStudent[i].uid);
                               _showStudentInfo(context, enrolledStudent[i]);
                             },
-                            child: Tooltip(
-                              message: 'Click to view details',
-                              child: ListTile(
-                                title: Text(
-                                  '${enrolledStudent[i].displayname['firstname']!} ${enrolledStudent[i].displayname['lastname']!}',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                subtitle: Text(enrolledStudent[i].email),
+                            child: ListTile(
+                              title: Text(
+                                '${enrolledStudent[i].displayname['firstname']!} ${enrolledStudent[i].displayname['lastname']!}',
+                                style: TextStyle(fontWeight: FontWeight.bold),
                               ),
+                              subtitle: Text(enrolledStudent[i].email),
                             ),
                           ),
                       ],
@@ -475,14 +510,18 @@ class _MainViewState extends State<Gscscreen> {
     );
   }
 
-  Widget _buildEditableField(String label, TextEditingController controller) {
+  Widget _buildEditableField(
+      String label, TextEditingController controller, bool hasStudents) {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 8.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: TextStyle(fontWeight: FontWeight.bold)),
-          TextField(controller: controller),
+          TextField(
+            controller: controller,
+            enabled: !hasStudents, // Disable TextField if hasStudents is true
+          ),
         ],
       ),
     );
@@ -568,12 +607,7 @@ class _MainViewState extends State<Gscscreen> {
   }
 
   void _showStudentInfo(BuildContext context, Student student) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return StudentInfoPopup(student);
-      },
-    );
+    StudentInfoPopup(student);
   }
 
   void changeScreen(int index) {
@@ -593,7 +627,6 @@ class _MainViewState extends State<Gscscreen> {
 
     // Prepare data for the BarChart
     final trendData = <BarChartGroupData>[];
-    int demandCount = selectedDemandData['demandCount'];
     for (int i = 0; i < uniqueDates.length; i++) {
       final date = uniqueDates[i];
       final parts = date.split('/');
@@ -1153,84 +1186,99 @@ class _MainViewState extends State<Gscscreen> {
                                   )),
                         ))
                       ]),
-                  Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 1,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Column(
+                            Row(
                               children: [
-                                Container(
-                                  margin: const EdgeInsets.only(left: 25),
-                                  child: Text("Students program of study",
-                                      style: TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                      )),
-                                )
-                              ],
-                            ),
-                            Spacer(),
-                            Column(
-                              children: [
-                                SizedBox(
-                                    width: 500,
-                                    child: Padding(
-                                      padding: EdgeInsets.all(10.0),
-                                      child: TextField(
-                                        controller: controller,
-                                        decoration: InputDecoration(
+                                Column(
+                                  children: [
+                                    Container(
+                                      margin: const EdgeInsets.only(left: 25),
+                                      child: Text(
+                                        "Students Program of Study",
+                                        style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Spacer(),
+                                Column(
+                                  children: [
+                                    SizedBox(
+                                      width: 500,
+                                      child: Padding(
+                                        padding: EdgeInsets.all(10.0),
+                                        child: TextField(
+                                          controller: controller,
+                                          decoration: InputDecoration(
                                             prefixIcon:
                                                 const Icon(Icons.search),
-                                            hintText: ' ',
+                                            hintText: 'Search',
                                             border: OutlineInputBorder(
                                               borderRadius:
                                                   BorderRadius.circular(10),
                                               borderSide: const BorderSide(
-                                                  color: Colors.blue),
-                                            )),
-                                        onChanged: (value) =>
-                                            runStudentFilter(value),
+                                                color: Colors.blue,
+                                              ),
+                                            ),
+                                          ),
+                                          onChanged: (value) =>
+                                              runStudentFilter(value),
+                                        ),
                                       ),
-                                    )),
+                                    ),
+                                  ],
+                                ),
                               ],
                             ),
-                          ],
-                        ),
-                        Expanded(
-                            child: SizedBox(
-                          width: 100.0,
-                          height: 200.0,
-                          child: ListView.builder(
-                              // shrinkWrap: true,
-
-                              itemCount: foundStudents.length,
-                              itemBuilder: (context, index) => InkWell(
+                            Expanded(
+                              child: SizedBox(
+                                width: 100.0,
+                                height: 200.0,
+                                child: ListView.builder(
+                                  itemCount: foundStudents.length,
+                                  itemBuilder: (context, index) => InkWell(
                                     onTap: () {
-                                      currentStudent = foundStudents[index];
-                                      studentPOS = StudentPOS(
-                                          studentIdNumber:
-                                              foundStudents[index].idnumber,
-                                          schoolYears: defaultschoolyears,
-                                          uid: foundStudents[index].uid,
-                                          displayname:
-                                              foundStudents[index].displayname,
-                                          role: foundStudents[index].role,
-                                          email: foundStudents[index].email,
-                                          idnumber:
-                                              foundStudents[index].idnumber,
-                                          enrolledCourses: foundStudents[index]
-                                              .enrolledCourses,
-                                          pastCourses:
-                                              foundStudents[index].pastCourses);
+                                      setState(() {
+                                        currentStudent = foundStudents[index];
 
-                                      retrieveStudentPOS(
-                                          foundStudents[index].uid);
-                                      _showStudentInfo(
-                                          context, foundStudents[index]);
+                                        studentPOS = StudentPOS(
+                                            studentIdNumber:
+                                                foundStudents[index].idnumber,
+                                            schoolYears: defaultschoolyears,
+                                            uid: foundStudents[index].uid,
+                                            displayname: foundStudents[index]
+                                                .displayname,
+                                            role: foundStudents[index].role,
+                                            email: foundStudents[index].email,
+                                            idnumber:
+                                                foundStudents[index].idnumber,
+                                            enrolledCourses:
+                                                foundStudents[index]
+                                                    .enrolledCourses,
+                                            pastCourses: foundStudents[index]
+                                                .pastCourses,
+                                            degree:
+                                                foundStudents[index].degree);
+
+                                        retrieveStudentPOS(
+                                            foundStudents[index].uid);
+                                      });
+
+                                      //     _showStudentInfo(context, foundStudents[index]);
                                     },
                                     child: Card(
+                                      // Your ListTile here...
                                       key: ValueKey(foundStudents[index]),
                                       color: Colors.white,
                                       elevation: 4,
@@ -1255,9 +1303,236 @@ class _MainViewState extends State<Gscscreen> {
                                         ),
                                       ),
                                     ),
-                                  )),
-                        ))
-                      ]),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        flex: 1,
+                        child: AnimatedSwitcher(
+                          duration: Duration(milliseconds: 500),
+                          switchInCurve: Curves.easeIn,
+                          switchOutCurve: Curves.easeOut,
+                          child: currentStudent != null
+                              ? Visibility(
+                                  key: ValueKey(currentStudent),
+                                  visible: currentStudent != null,
+                                  child: Container(
+                                    alignment: Alignment.center,
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Stack(
+                                          children: [
+                                            Container(
+                                              padding: EdgeInsets.all(16),
+                                              margin: EdgeInsets.only(top: 60),
+                                              decoration: BoxDecoration(
+                                                shape: BoxShape.rectangle,
+                                                color: Colors.white,
+                                                borderRadius:
+                                                    BorderRadius.circular(16),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.black,
+                                                    offset: Offset(0, 10),
+                                                    blurRadius: 10,
+                                                  ),
+                                                ],
+                                              ),
+                                              child: Column(
+                                                mainAxisSize: MainAxisSize.max,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.start,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    'Student Information',
+                                                    style: TextStyle(
+                                                        fontSize: 22,
+                                                        fontWeight:
+                                                            FontWeight.w600),
+                                                    textAlign: TextAlign.left,
+                                                  ),
+                                                  SizedBox(height: 16),
+                                                  Text(
+                                                    '${currentStudent!.displayname['firstname']} ${currentStudent!.displayname['lastname']} (${currentStudent!.idnumber})',
+                                                    textAlign: TextAlign.left,
+                                                    style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize: 17),
+                                                  ),
+                                                  SizedBox(height: 8),
+                                                  Text(
+                                                    currentStudent!.email,
+                                                    textAlign: TextAlign.left,
+                                                  ),
+                                                  SizedBox(height: 8),
+                                                  Text(
+                                                    currentStudent!.degree,
+                                                    textAlign: TextAlign.left,
+                                                  ),
+                                                  SizedBox(height: 25),
+                                                  Text('Enrolled Courses:',
+                                                      style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold)),
+                                                  SizedBox(
+                                                    height:
+                                                        100, // Set your preferred height
+                                                    child: ListView.builder(
+                                                      itemCount: currentStudent!
+                                                          .enrolledCourses
+                                                          .length,
+                                                      physics:
+                                                          ClampingScrollPhysics(),
+                                                      itemBuilder:
+                                                          (context, index) {
+                                                        return ListTile(
+                                                          title: Text(
+                                                              currentStudent!
+                                                                  .enrolledCourses[
+                                                                      index]
+                                                                  .coursecode),
+                                                          subtitle: Text(
+                                                              currentStudent!
+                                                                  .enrolledCourses[
+                                                                      index]
+                                                                  .coursename),
+                                                        );
+                                                      },
+                                                    ),
+                                                  ),
+                                                  SizedBox(height: 16),
+                                                  Text('Past Courses:',
+                                                      style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold)),
+                                                  SizedBox(
+                                                    height:
+                                                        100, // Set your preferred height
+                                                    child: ListView.builder(
+                                                      itemCount: currentStudent!
+                                                          .pastCourses.length,
+                                                      physics:
+                                                          ClampingScrollPhysics(),
+                                                      itemBuilder:
+                                                          (context, index) {
+                                                        return ListTile(
+                                                          title: Text(
+                                                              currentStudent!
+                                                                  .pastCourses[
+                                                                      index]
+                                                                  .coursecode),
+                                                          subtitle: Text(
+                                                              '${currentStudent!.pastCourses[index].coursename}\nGrade: ${currentStudent!.pastCourses[index].grade}'),
+                                                        );
+                                                      },
+                                                    ),
+                                                  ),
+                                                  SizedBox(
+                                                    height: 16,
+                                                  ),
+                                                  Text(
+                                                    'Program of Study:',
+                                                    style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold),
+                                                  ),
+                                                  Table(
+                                                    border: TableBorder.all(),
+                                                    children: [
+                                                      TableRow(
+                                                        children: [
+                                                          for (var schoolYear
+                                                              in schoolyears)
+                                                            Padding(
+                                                              padding:
+                                                                  const EdgeInsets
+                                                                      .all(8.0),
+                                                              child: Center(
+                                                                  child: Text(
+                                                                schoolYear.name,
+                                                                style: TextStyle(
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .bold),
+                                                              )),
+                                                            ),
+                                                        ],
+                                                      ),
+                                                      TableRow(
+                                                        children: [
+                                                          for (var schoolYear
+                                                              in schoolyears)
+                                                            Column(
+                                                              children: [
+                                                                for (var term
+                                                                    in schoolYear
+                                                                        .terms)
+                                                                  Column(
+                                                                    mainAxisAlignment:
+                                                                        MainAxisAlignment
+                                                                            .start,
+                                                                    crossAxisAlignment:
+                                                                        CrossAxisAlignment
+                                                                            .start,
+                                                                    children: [
+                                                                      Padding(
+                                                                        padding: const EdgeInsets
+                                                                            .all(
+                                                                            8.0),
+                                                                        child: Center(
+                                                                            child: Text(
+                                                                          term.name,
+                                                                          style:
+                                                                              TextStyle(fontWeight: FontWeight.bold),
+                                                                        )),
+                                                                      ),
+                                                                      for (var course
+                                                                          in term
+                                                                              .termcourses)
+                                                                        Padding(
+                                                                          padding: const EdgeInsets
+                                                                              .all(
+                                                                              8.0),
+                                                                          child:
+                                                                              Text(
+                                                                            "${course.coursecode}: ${course.coursename}",
+                                                                            textAlign:
+                                                                                TextAlign.left,
+                                                                          ),
+                                                                        ),
+                                                                    ],
+                                                                  )
+                                                              ],
+                                                            ),
+                                                        ],
+                                                      ),
+                                                    ],
+                                                  )
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+
+                                        // Add more details as needed
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              : Container(),
+                        ),
+                      ),
+                    ],
+                  )
                 ],
               ),
             )),

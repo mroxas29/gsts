@@ -18,6 +18,7 @@ class StudentPOS extends Student {
     required String role,
     required String email,
     required int idnumber,
+    required String degree,
     required List<EnrolledCourseData> enrolledCourses,
     required List<PastCourse> pastCourses,
   }) : super(
@@ -28,6 +29,7 @@ class StudentPOS extends Student {
           idnumber: idnumber,
           enrolledCourses: enrolledCourses,
           pastCourses: pastCourses,
+          degree: degree,
         );
 
   factory StudentPOS.fromJson(Map<String, dynamic> json) {
@@ -38,23 +40,24 @@ class StudentPOS extends Student {
         .toList();
 
     return StudentPOS(
-      studentIdNumber: json['studentIdNumber'] as int,
-      schoolYears: schoolYears,
-      uid: json['uid'],
-      displayname:
-          Map<String, String>.from(json['displayname'] as Map<String, dynamic>),
-      role: json['role'],
-      email: json['email'],
-      idnumber: json['idnumber'],
-      enrolledCourses: (json['enrolledCourses'] as List<dynamic>)
-          .map<EnrolledCourseData>((courseJson) {
-        return EnrolledCourseData.fromJson(courseJson as Map<String, dynamic>);
-      }).toList(),
-      pastCourses:
-          (json['pastCourses'] as List<dynamic>).map<PastCourse>((courseJson) {
-        return PastCourse.fromJson(courseJson as Map<String, dynamic>);
-      }).toList(),
-    );
+        studentIdNumber: json['studentIdNumber'] as int,
+        schoolYears: schoolYears,
+        uid: json['uid'],
+        displayname: Map<String, String>.from(
+            json['displayname'] as Map<String, dynamic>),
+        role: json['role'],
+        email: json['email'],
+        idnumber: json['idnumber'],
+        enrolledCourses: (json['enrolledCourses'] as List<dynamic>)
+            .map<EnrolledCourseData>((courseJson) {
+          return EnrolledCourseData.fromJson(
+              courseJson as Map<String, dynamic>);
+        }).toList(),
+        pastCourses: (json['pastCourses'] as List<dynamic>)
+            .map<PastCourse>((courseJson) {
+          return PastCourse.fromJson(courseJson as Map<String, dynamic>);
+        }).toList(),
+        degree: json['degree']);
   }
 
   Map<String, dynamic> toJson() {
@@ -68,27 +71,30 @@ class StudentPOS extends Student {
 }
 
 StudentPOS studentPOS = StudentPOS(
-    studentIdNumber: currentStudent.idnumber,
+    studentIdNumber: currentStudent!.idnumber,
     schoolYears: defaultschoolyears,
-    uid: currentStudent.uid,
-    displayname: currentStudent.displayname,
-    role: currentStudent.role,
-    email: currentStudent.email,
-    idnumber: currentStudent.idnumber,
-    enrolledCourses: currentStudent.enrolledCourses,
-    pastCourses: currentStudent.pastCourses);
+    uid: currentStudent!.uid,
+    displayname: currentStudent!.displayname,
+    role: currentStudent!.role,
+    email: currentStudent!.email,
+    idnumber: currentStudent!.idnumber,
+    enrolledCourses: currentStudent!.enrolledCourses,
+    pastCourses: currentStudent!.pastCourses,
+    degree: currentStudent!.degree);
 
 void studentPOSDefault() {
   studentPOS = StudentPOS(
-      studentIdNumber: currentStudent.idnumber,
-      schoolYears: defaultschoolyears,
-      uid: currentStudent.uid,
-      displayname: currentStudent.displayname,
-      role: currentStudent.role,
-      email: currentStudent.email,
-      idnumber: currentStudent.idnumber,
-      enrolledCourses: currentStudent.enrolledCourses,
-      pastCourses: currentStudent.pastCourses);
+    studentIdNumber: currentStudent!.idnumber,
+    schoolYears: defaultschoolyears,
+    uid: currentStudent!.uid,
+    displayname: currentStudent!.displayname,
+    role: currentStudent!.role,
+    email: currentStudent!.email,
+    idnumber: currentStudent!.idnumber,
+    enrolledCourses: currentStudent!.enrolledCourses,
+    pastCourses: currentStudent!.pastCourses,
+    degree: currentStudent!.degree,
+  );
 }
 
 List<SchoolYear> defaultschoolyears = List.generate(3, (index) {

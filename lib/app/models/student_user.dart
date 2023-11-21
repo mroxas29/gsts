@@ -6,6 +6,7 @@ import 'package:sysadmindb/app/models/user.dart';
 class Student extends user {
   List<EnrolledCourseData> enrolledCourses;
   List<PastCourse> pastCourses;
+  String degree;
   
   List<Map<String, dynamic>> coursesJson = [];
   Student({
@@ -16,6 +17,7 @@ class Student extends user {
     required int idnumber,
     required this.enrolledCourses,
     required this.pastCourses,
+    required this.degree,
   }) : super(
           uid: uid,
           displayname: displayname,
@@ -35,6 +37,7 @@ class Student extends user {
       "enrolledCourses":
           enrolledCourses.map((course) => course.toJson()).toList(),
       "pastCourses": pastCourses.map((course) => course.toJson()).toList(),
+      "degree": degree,
     };
   }
 
@@ -60,6 +63,7 @@ class Student extends user {
       idnumber: json['idnumber'],
       enrolledCourses: enrolledCourses,
       pastCourses: pastCourses,
+      degree: json['degree']
     );
   }
 }
@@ -124,12 +128,14 @@ Future<List<PastCourse>> getPastCoursesForStudent(String studentUid) async {
 List<Student> studentList = [];
 Future<List<Student>> convertToStudentList(List<user> users) async {
   studentList.clear();
-  int i = 0;
   for (var user in users) {
     if (user.role == 'Graduate Student') {
       List<EnrolledCourseData> enrolledCourses =
           await getEnrolledCoursesForStudent(user.uid);
       List<PastCourse> pastCourses = await getPastCoursesForStudent(user.uid);
+        String degree =
+          await getDegreeForStudent(user.uid); // Fetch degree information
+      
       // You need to fetch past courses here, update accordingly
       studentList.add(Student(
         uid: user.uid,
@@ -139,10 +145,37 @@ Future<List<Student>> convertToStudentList(List<user> users) async {
         idnumber: user.idnumber,
         enrolledCourses: enrolledCourses,
         pastCourses: pastCourses,
+        degree: degree,
       ));
-      i++;
     }
   }
 
   return studentList;
+}
+
+Future<String> getDegreeForStudent(String studentUid) async {
+  try {
+    final DocumentSnapshot studentSnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(studentUid)
+        .get();
+
+    if (studentSnapshot.exists) {
+      final Map<String, dynamic>? userData =
+          studentSnapshot.data() as Map<String, dynamic>?;
+
+      if (userData != null && userData.containsKey('degree')) {
+        return userData['degree'] as String;
+      } else {
+        print('Field "degree" not found in document for student: $studentUid');
+        return ''; // Return a default value or handle accordingly
+      }
+    } else {
+      print('Student not found with uid: $studentUid');
+      return ''; // Return a default value or handle accordingly
+    }
+  } catch (e) {
+    print('Error retrieving degree for student: $e');
+    return ''; // Return a default value or handle accordingly
+  }
 }

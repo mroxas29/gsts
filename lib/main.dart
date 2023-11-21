@@ -40,7 +40,7 @@ class LoginPage extends StatefulWidget {
 TextEditingController passwordTextController = TextEditingController();
 TextEditingController emailTextController = TextEditingController();
 late user currentUser;
-late Student currentStudent;
+late Student? currentStudent;
 // Display students enrolled in the specific course
 List<Student> enrolledStudent = [];
 bool wrongCreds = false;
@@ -250,6 +250,7 @@ class _LoginPageState extends State<LoginPage> {
         String targetemail = emailTextController.text;
         currentUser = users.firstWhere((users) => users.email == targetemail);
         if (documentSnapshot.get('role') == "Coordinator") {
+          currentStudent = studentList[0];
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
@@ -268,25 +269,26 @@ class _LoginPageState extends State<LoginPage> {
               await getEnrolledCoursesForStudent(currentUser.uid);
           List<PastCourse> pastCourses =
               await getPastCoursesForStudent(currentUser.uid);
+          String degree = await getDegreeForStudent(currentUser.uid);
           // Assuming enrolledCourses is a list of EnrolledCourseData
           Student convertToStudent(user currentUser) {
             return Student(
-              uid: currentUser.uid,
-              displayname: currentUser.displayname,
-              role: currentUser.role,
-              email: currentUser.email,
-              idnumber: currentUser.idnumber,
-              enrolledCourses: enrolledCourses,
-              pastCourses: pastCourses,
-            );
+                uid: currentUser.uid,
+                displayname: currentUser.displayname,
+                role: currentUser.role,
+                email: currentUser.email,
+                idnumber: currentUser.idnumber,
+                enrolledCourses: enrolledCourses,
+                pastCourses: pastCourses,
+                degree: degree);
           }
 
           currentStudent = convertToStudent(currentUser);
           print(
-              "Current student uid: ${currentStudent.uid}\nCurrent User uid: ${currentUser.uid}");
+              "Current student uid: ${currentStudent!.uid}\nCurrent User uid: ${currentUser.uid}");
 
           setState(() {
-            retrieveStudentPOS(currentStudent.uid);
+            retrieveStudentPOS(currentStudent!.uid);
           });
           Navigator.pushReplacement(
             context,

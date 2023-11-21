@@ -66,12 +66,16 @@ class _MainViewState extends State<Sysad> {
 
   void showAddUserForm(BuildContext context, GlobalKey<FormState> formKey) {
     List<String> roles = ['Coordinator', 'Graduate Student', 'Admin'];
+    List<String> degrees = ['No degree', 'MIT', 'MSIT'];
+
     final UserData _userData = UserData();
 
+    String selectedDegree = degrees[0];
     String selectedRole = roles[0];
-    TextEditingController emailController = TextEditingController();
     TextEditingController passwordController = TextEditingController();
     TextEditingController confirmPasswordController = TextEditingController();
+    bool isStudent = false;
+
     print("Add user form executed");
     showDialog(
       context: context,
@@ -157,12 +161,42 @@ class _MainViewState extends State<Sysad> {
                     );
                   }).toList(),
                   onChanged: (value) {
-                    selectedRole = value!;
+                    setState(() {
+                      selectedRole = value!;
+                      selectedDegree = '';
+                      if (selectedRole.contains('Student')) {
+                        isStudent = true;
+                      } else {
+                        isStudent = false;
+                        selectedDegree = '';
+                      }
+                      print(isStudent.toString());
+                    });
                   },
                   onSaved: (value) {
                     _userData.role = value ?? '';
                   },
                   decoration: InputDecoration(labelText: 'Role'),
+                ),
+                DropdownButtonFormField<String>(
+                  value: selectedDegree,
+                  items: degrees.map((degree) {
+                    return DropdownMenuItem<String>(
+                      value: degree,
+                      child: Text(degree),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      selectedDegree = value!;
+                    });
+                  },
+                  onSaved: (value) {
+                    if (isStudent) {
+                      _userData.degree = value ?? '';
+                    }
+                  },
+                  decoration: InputDecoration(labelText: 'Degree'),
                 ),
                 TextFormField(
                   decoration: InputDecoration(labelText: 'Password'),
@@ -214,6 +248,36 @@ class _MainViewState extends State<Sysad> {
                     );
                     String userID = userCredential.user!.uid;
 
+                    if (isStudent) {
+                      await FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(userID)
+                          .set({
+                        'displayname': {
+                          'firstname': _userData.displayname['firstname']!,
+                          'lastname': _userData.displayname['lastname']!,
+                        },
+                        'role': _userData.role,
+                        'email': _userData.email.toLowerCase(),
+                        'idnumber': _userData.idnumber,
+                        'degree': _userData.degree
+                      });
+                    } else {
+                      await FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(userID)
+                          .set({
+                        'displayname': {
+                          'firstname': _userData.displayname['firstname']!,
+                          'lastname': _userData.displayname['lastname']!,
+                        },
+                        'role': _userData.role,
+                        'email': _userData.email.toLowerCase(),
+                        'idnumber': _userData.idnumber,
+                      });
+                    }
+                    Navigator.pop(context);
+                    users.clear();
                     await FirebaseFirestore.instance
                         .collection('users')
                         .doc(userID)
@@ -468,6 +532,9 @@ class _MainViewState extends State<Sysad> {
   void _editCourseData(BuildContext context, Course course) {
     bool hasStudents = false;
     List<String> status = ['true', 'false'];
+
+    List<String> degrees = ['No degree', 'MIT', 'MSIT'];
+    List<String> programs = ['MIT/MSIT', 'MIT', 'MSIT'];
     List<String> type = [
       'Bridging/Remedial Courses',
       'Foundation Courses',
@@ -475,6 +542,8 @@ class _MainViewState extends State<Sysad> {
       'Capstone',
       'Exam Course'
     ];
+
+    String selectedProgram = course.program;
     String selectedStatus = course.isactive.toString();
     String selectedType = course.type.toString();
     String selectedFaculty = course.facultyassigned.toString();
@@ -543,6 +612,23 @@ class _MainViewState extends State<Sysad> {
                               InputDecoration(labelText: 'Faculty Assigned'),
                         ),
                         DropdownButtonFormField<String>(
+                          value: selectedProgram,
+                          items: programs.map((program) {
+                            return DropdownMenuItem<String>(
+                              value: program,
+                              child: Text(program),
+                            );
+                          }).toList(),
+                          onChanged: !hasStudents
+                              ? (value) {
+                                  setState(() {
+                                    selectedProgram = value!;
+                                  });
+                                }
+                              : null,
+                          decoration: InputDecoration(labelText: 'Program'),
+                        ),
+                        DropdownButtonFormField<String>(
                           value: selectedType,
                           items: type.map((type) {
                             return DropdownMenuItem<String>(
@@ -608,7 +694,8 @@ class _MainViewState extends State<Sysad> {
                                   idnumber: enrolledStudent[i].idnumber,
                                   enrolledCourses:
                                       enrolledStudent[i].enrolledCourses,
-                                  pastCourses: enrolledStudent[i].pastCourses);
+                                  pastCourses: enrolledStudent[i].pastCourses,
+                                  degree: enrolledStudent[i].degree);
 
                               retrieveStudentPOS(enrolledStudent[i].uid);
                               _showStudentInfo(context, enrolledStudent[i]);

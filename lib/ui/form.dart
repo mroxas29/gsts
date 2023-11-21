@@ -17,6 +17,7 @@ class UserData {
   String role = '';
   String password = '';
   String type = '';
+  String degree = '';
 }
 
 class CourseData {
@@ -27,12 +28,13 @@ class CourseData {
   int numstudents = 0;
   int units = 0;
   String type = '';
+  String program = '';
 }
 
 class FacultyData {
   String uid = generateUID();
   String email = '';
-  Map<String,String> displayName= {};
+  Map<String, String> displayName = {};
 }
 
 Future<bool> doesCourseCodeExist(String courseCode) async {
@@ -43,25 +45,31 @@ Future<bool> doesCourseCodeExist(String courseCode) async {
 
   return snapshot.docs.isNotEmpty;
 }
+
 String getFullname(Faculty faculty) {
   return '${faculty.displayname['firstname']} ${faculty.displayname['lastname']}';
 }
+
 void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
   List<String> status = ['true', 'false'];
+  List<String> programs = ['MIT/MSIT', 'MIT', 'MSIT'];
   List<String> type = [
     'Bridging/Remedial Courses',
     'Foundation Courses',
     'Elective Courses',
     'Capstone',
-    'Exam Course'
+    'Exam Course',
+    'Specialized Courses'
   ];
 
   final CourseData _courseData = CourseData();
 
   String selectedStatus = status[0];
+  String selectedProgram = programs[0];
   String selectedType = type[0];
-  String selectedFaculty =
-      facultyList.isNotEmpty ? facultyList[0].displayname['firstname']! : '';
+  String selectedFaculty = facultyList.isNotEmpty
+      ? "${facultyList[0].displayname['firstname']!} ${facultyList[0].displayname['lastname']!}"
+      : '';
 
   showDialog(
     context: context,
@@ -107,7 +115,8 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                 items: facultyList.map((faculty) {
                   return DropdownMenuItem<String>(
                     value: getFullname(faculty),
-                    child: Text('${faculty.displayname['firstname']} ${faculty.displayname['lastname']}'),
+                    child: Text(
+                        '${faculty.displayname['firstname']} ${faculty.displayname['lastname']}'),
                   );
                 }).toList(),
                 onChanged: (value) {
@@ -130,6 +139,22 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                 onSaved: (value) {
                   _courseData.units = int.parse(value ?? '');
                 },
+              ),
+              DropdownButtonFormField<String>(
+                value: selectedProgram,
+                items: programs.map((program) {
+                  return DropdownMenuItem<String>(
+                    value: program,
+                    child: Text(program),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  selectedProgram = value!;
+                },
+                onSaved: (value) {
+                  _courseData.program = value ?? '';
+                },
+                decoration: InputDecoration(labelText: 'Program'),
               ),
               DropdownButtonFormField<String>(
                 value: selectedStatus,
@@ -202,6 +227,7 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                       'isactive': _courseData.isactive,
                       'numstudents': 0,
                       'type': selectedType,
+                      'program': selectedProgram,
                     });
                     Navigator.pop(context);
 
@@ -302,7 +328,7 @@ void showAddFacultyForm(BuildContext context, GlobalKey<FormState> formKey) {
                 var uid = generateUID();
                 try {
                   await FirebaseFirestore.instance.collection('faculty').add({
-                                          'displayname': {
+                    'displayname': {
                       'firstname': _facultyData.displayName['firstname']!,
                       'lastname': _facultyData.displayName['lastname']!,
                     },

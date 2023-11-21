@@ -35,7 +35,7 @@ class StudentProfileScreen extends StatefulWidget {
 }
 
 int unitsCompleted =
-    currentStudent.pastCourses.fold(0, (int sum, PastCourse pastCourse) {
+    currentStudent!.pastCourses.fold(0, (int sum, PastCourse pastCourse) {
   return sum + pastCourse.units;
 });
 
@@ -171,7 +171,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
   void _deleteEnrolledCourse(
     EnrolledCourseData enrolledCourse,
   ) async {
-    int indextodelete = currentStudent.enrolledCourses.indexOf(enrolledCourse);
+    int indextodelete = currentStudent!.enrolledCourses.indexOf(enrolledCourse);
     bool confirmDelete = await showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -206,15 +206,15 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
       try {
         // Remove the course from the enrolledCourses list
         setState(() {
-          currentStudent.enrolledCourses.remove(enrolledCourse);
+          currentStudent!.enrolledCourses.remove(enrolledCourse);
         });
 
         // Update Firestore to reflect the changes
         await FirebaseFirestore.instance
             .collection('users')
-            .doc(currentStudent.uid)
+            .doc(currentStudent!.uid)
             .update({
-          'enrolledCourses': currentStudent.enrolledCourses
+          'enrolledCourses': currentStudent!.enrolledCourses
               .map((course) => course.toJson())
               .toList(),
         });
@@ -300,19 +300,21 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                   children: [
                     DropdownButtonFormField<Course>(
                       value: selectedCourse,
-                      items: [blankCourse, ...activecourses].map((course) {
+                      items: [
+                        blankCourse,
+                        ...activecourses.where((course) =>
+                            course.program.contains(currentStudent!.degree))
+                      ].map((course) {
                         return DropdownMenuItem<Course>(
                           value: course,
-                          child: Text(course.coursecode),
+                          child: Text(
+                              "${course.coursecode}: ${course.coursename}"),
                         );
                       }).toList(),
                       onChanged: (value) {
                         setState(() {
                           selectedCourse = value;
-                          // Handle the selection of the blank option here
                           if (value == blankCourse) {
-                            // Close the popup and show a message
-
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text('No course chosen.'),
@@ -320,7 +322,6 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                               ),
                             );
                           } else {
-                            // Handle the selection of a valid course
                             selectedCourseIndex =
                                 activecourses.indexOf(selectedCourse!);
                             courseAlreadyExists = false;
@@ -363,7 +364,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                       formKey.currentState!.save();
 
                       if (selectedCourse != blankCourse) {
-                        if (currentStudent.enrolledCourses.any((course) =>
+                        if (currentStudent!.enrolledCourses.any((course) =>
                             course.coursecode == selectedCourse?.coursecode)) {
                           // Check if the course is already in enrolledCourses
                           setState(() {
@@ -373,15 +374,15 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                           late EnrolledCourseData enrolledCourse;
 
                           enrolledCourse = EnrolledCourseData(
-                            uid: generateUID(),
-                            coursecode: selectedCourse!.coursecode,
-                            coursename: selectedCourse!.coursename,
-                            isactive: selectedCourse!.isactive,
-                            facultyassigned: selectedCourse!.facultyassigned,
-                            numstudents: selectedCourse!.numstudents + 1,
-                            units: selectedCourse!.units,
-                            type: selectedCourse!.type,
-                          );
+                              uid: generateUID(),
+                              coursecode: selectedCourse!.coursecode,
+                              coursename: selectedCourse!.coursename,
+                              isactive: selectedCourse!.isactive,
+                              facultyassigned: selectedCourse!.facultyassigned,
+                              numstudents: selectedCourse!.numstudents + 1,
+                              units: selectedCourse!.units,
+                              type: selectedCourse!.type,
+                              program: selectedCourse!.program);
                           onAddEnrolledCourse(enrolledCourse);
 
                           try {
@@ -682,7 +683,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                     // Validate and save form data
                     if (formKey.currentState!.validate()) {
                       formKey.currentState!.save();
-                      if (currentStudent.pastCourses.any((course) =>
+                      if (currentStudent!.pastCourses.any((course) =>
                           course.coursecode == selectedCourse?.coursecode)) {
                         // Check if the course is already in pastCourses
                         setState(() {
@@ -690,17 +691,18 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                         });
                       } else {
                         final pastCourse = PastCourse(
-                          uid: generateUID(),
-                          coursecode: selectedCourse!.coursecode,
-                          coursename: selectedCourse!.coursename,
-                          facultyassigned: selectedCourse!.facultyassigned,
-                          units: selectedCourse!.units,
-                          numstudents: selectedCourse!.numstudents,
-                          isactive: selectedCourse!.isactive,
-                          grade: enteredGrade!,
-                          type:
-                              selectedCourse!.type, // Assign the entered grade
-                        );
+                            uid: generateUID(),
+                            coursecode: selectedCourse!.coursecode,
+                            coursename: selectedCourse!.coursename,
+                            facultyassigned: selectedCourse!.facultyassigned,
+                            units: selectedCourse!.units,
+                            numstudents: selectedCourse!.numstudents,
+                            isactive: selectedCourse!.isactive,
+                            grade: enteredGrade!,
+                            type: selectedCourse!.type,
+                            program: selectedCourse!
+                                .program // Assign the entered grade
+                            );
 
                         onAddPastCourse(pastCourse);
 
@@ -778,7 +780,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
     // If the user confirms the deletion, proceed
     if (confirmDelete == true) {
       setState(() {
-        currentStudent.pastCourses.remove(pastCourse);
+        currentStudent!.pastCourses.remove(pastCourse);
       });
 
       try {
@@ -854,7 +856,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                   style: TextStyle(fontWeight: FontWeight.bold),
                 )),
               ],
-              rows: currentStudent.enrolledCourses
+              rows: currentStudent!.enrolledCourses
                   .map(
                     (enrolledCourse) => DataRow(
                       cells: [
@@ -891,7 +893,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                   showAddEnrolledCoursePopup(context, _formKey, activecourses,
                       (enrolledCourse) {
                     setState(() {
-                      currentStudent.enrolledCourses.add(enrolledCourse);
+                      currentStudent!.enrolledCourses.add(enrolledCourse);
                     });
 
                     // Handle the added enrolled course
@@ -948,7 +950,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                       style: TextStyle(fontWeight: FontWeight.bold),
                     )),
                   ],
-                  rows: currentStudent.pastCourses
+                  rows: currentStudent!.pastCourses
                       .map(
                         (pastCourse) => DataRow(
                           cells: [
@@ -985,7 +987,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                           context,
                           _formKey,
                           (pastCourse) => setState(() {
-                                currentStudent.pastCourses.add(pastCourse);
+                                currentStudent!.pastCourses.add(pastCourse);
                               }));
                     },
                     child: Padding(
@@ -1022,7 +1024,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                             // You can replace this with your desired behavior
                             showCourseDemandForm(
                                 context,
-                                currentStudent.idnumber,
+                                currentStudent!.idnumber,
                                 inactivecourses,
                                 courseDemands);
                           },
@@ -1040,8 +1042,8 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
 }
 
 DataCell capstoneCell(PastCourse pastCourse) {
-  for (var i = 0; i < currentStudent.pastCourses.length;) {
-    if (currentStudent.pastCourses[i].coursecode.contains('Capstone')) {
+  for (var i = 0; i < currentStudent!.pastCourses.length;) {
+    if (currentStudent!.pastCourses[i].coursecode.contains('Capstone')) {
       return DataCell(Text(
           "${pastCourse.coursecode}: ${pastCourse.coursename}\n${pastCourse.grade}",
           style: TextStyle(color: Colors.red)));
@@ -1121,7 +1123,7 @@ class _MainViewState extends State<GradStudentscreen>
   }
 
   Color getColorForCourseType(Course course) {
-    if (currentStudent.pastCourses
+    if (currentStudent!.pastCourses
         .any((pastcourse) => pastcourse.coursecode == course.coursecode)) {
       return Colors.grey;
     } else {
@@ -1177,17 +1179,17 @@ class _MainViewState extends State<GradStudentscreen>
               children: [
                 CircularProgressWidget(
                   courses: courses,
-                  pastCourses: currentStudent.pastCourses,
+                  pastCourses: currentStudent!.pastCourses,
                 ),
                 SizedBox(height: 10),
                 Text(
-                  'Courses completed: ${currentStudent.pastCourses.length}',
+                  'Courses completed: ${currentStudent!.pastCourses.length}',
                   style: TextStyle(
                       fontSize: 16.0,
                       color: const Color.fromARGB(255, 38, 110, 41)),
                 ),
                 Text(
-                  'Courses remaining: ${courses.length - currentStudent.pastCourses.length}',
+                  'Courses remaining: ${courses.length - currentStudent!.pastCourses.length}',
                   style: TextStyle(
                       fontSize: 16.0,
                       color: const Color.fromARGB(255, 218, 217, 217)),
@@ -1572,7 +1574,7 @@ class _MainViewState extends State<GradStudentscreen>
                                 studentPOS.toJson();
                             firestore
                                 .collection('studentpos')
-                                .doc(currentStudent.uid)
+                                .doc(currentStudent!.uid)
                                 .set(studentPosData);
 
                             setState(() {
@@ -1703,9 +1705,9 @@ class _MainViewState extends State<GradStudentscreen>
                                       courses.clear();
                                       studentList.clear();
                                       activecourses.clear();
-                                      currentStudent.uid = '';
-                                      currentStudent.enrolledCourses.clear();
-                                      currentStudent.pastCourses.clear();
+                                      currentStudent!.uid = '';
+                                      currentStudent!.enrolledCourses.clear();
+                                      currentStudent!.pastCourses.clear();
                                       setState(() {
                                         studentPOSDefault();
                                       });
@@ -1738,9 +1740,9 @@ class _MainViewState extends State<GradStudentscreen>
                         courses.clear();
                         studentList.clear();
                         activecourses.clear();
-                        currentStudent.uid = '';
-                        currentStudent.enrolledCourses.clear();
-                        currentStudent.pastCourses.clear();
+                        currentStudent!.uid = '';
+                        currentStudent!.enrolledCourses.clear();
+                        currentStudent!.pastCourses.clear();
                         setState(() {
                           studentPOSDefault();
                         });

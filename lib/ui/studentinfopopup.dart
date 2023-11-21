@@ -16,18 +16,22 @@ class StudentInfoPopup extends StatefulWidget {
 class _StudentInfoPopupState extends State<StudentInfoPopup> {
   @override
   Widget build(BuildContext context) {
-    return Dialog(
+    return 
+    SingleChildScrollView(
+      child:  Dialog(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
       elevation: 0,
       backgroundColor: Colors.transparent,
       child: contentBox(context),
+    ),
     );
+   
   }
 
   Color getColorForCourseType(Course course) {
-    if (currentStudent.pastCourses
+    if (currentStudent!.pastCourses
         .any((pastcourse) => pastcourse.coursecode == course.coursecode)) {
       return Colors.grey;
     } else {
@@ -50,281 +54,149 @@ class _StudentInfoPopupState extends State<StudentInfoPopup> {
   }
 
   Widget contentBox(BuildContext context) {
-    return Stack(
-      children: [
-        Container(
-          padding: EdgeInsets.all(16),
-          margin: EdgeInsets.only(top: 60),
-          decoration: BoxDecoration(
-            shape: BoxShape.rectangle,
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black,
-                offset: Offset(0, 10),
-                blurRadius: 10,
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Student Information',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
-                textAlign: TextAlign.left,
-              ),
-              SizedBox(height: 16),
-              Text(
-                '${widget.student.displayname['firstname']} ${widget.student.displayname['lastname']}',
-                textAlign: TextAlign.left,
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
-              ),
-              SizedBox(height: 8),
-              Text(
-                'Email: ${widget.student.email}',
-                textAlign: TextAlign.left,
-              ),
-              SizedBox(height: 8),
-              Text(
-                'ID Number: ${widget.student.idnumber}',
-                textAlign: TextAlign.left,
-              ),
-              TextButton(
-                onPressed: () {
-                  showDialog(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return Align(
-                          alignment: Alignment.center,
-                          child: Container(
-                            decoration: BoxDecoration(
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(50))),
-                            width: 1500,
-
-                            // TODO: Build your POS UI here
+    return SingleChildScrollView(
+      child: Stack(
+        children: [
+          Container(
+            padding: EdgeInsets.all(16),
+            margin: EdgeInsets.only(top: 60),
+            decoration: BoxDecoration(
+              shape: BoxShape.rectangle,
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black,
+                  offset: Offset(0, 10),
+                  blurRadius: 10,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.max,
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Student Information',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+                  textAlign: TextAlign.left,
+                ),
+                SizedBox(height: 16),
+                Text(
+                  '${widget.student.displayname['firstname']} ${widget.student.displayname['lastname']} (${widget.student.idnumber})',
+                  textAlign: TextAlign.left,
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  widget.student.email,
+                  textAlign: TextAlign.left,
+                ),
+                SizedBox(height: 8),
+                Text(
+                  widget.student.degree,
+                  textAlign: TextAlign.left,
+                ),
+                SizedBox(height: 25),
+                Text('Enrolled Courses:',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                SizedBox(
+                  height: 100, // Set your preferred height
+                  child: ListView.builder(
+                    itemCount: widget.student.enrolledCourses.length,
+                    physics: ClampingScrollPhysics(),
+                    itemBuilder: (context, index) {
+                      return ListTile(
+                        title: Text(
+                            widget.student.enrolledCourses[index].coursecode),
+                        subtitle: Text(
+                            widget.student.enrolledCourses[index].coursename),
+                      );
+                    },
+                  ),
+                ),
+                SizedBox(height: 16),
+                Text('Past Courses:',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                SizedBox(
+                  height: 100, // Set your preferred height
+                  child: ListView.builder(
+                    itemCount: widget.student.pastCourses.length,
+                    physics: ClampingScrollPhysics(),
+                    itemBuilder: (context, index) {
+                      return ListTile(
+                        title:
+                            Text(widget.student.pastCourses[index].coursecode),
+                        subtitle: Text(
+                            '${widget.student.pastCourses[index].coursename}\nGrade: ${widget.student.pastCourses[index].grade}'),
+                      );
+                    },
+                  ),
+                ),
+                SizedBox(
+                  height: 16,
+                ),
+                Text(
+                  'Program of Study:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Table(
+                  border: TableBorder.all(),
+                  children: [
+                    TableRow(
+                      children: [
+                        for (var schoolYear in schoolyears)
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
                             child: Center(
-                              child: Column(
-                                children: [
-                                  SingleChildScrollView(
-                                    child: Table(
-                                      border: TableBorder.all(),
-                                      children: schoolyears.map((schoolYear) {
-                                        return TableRow(
-                                            decoration: BoxDecoration(
-                                                color: Color.fromARGB(
-                                                    255, 221, 221, 221)),
-                                            children: [
-                                              Padding(
-                                                padding: EdgeInsets.all(8.0),
-                                                child: Row(children: [
-                                                  Expanded(
-                                                      child: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
-                                                    children: [
-                                                      Container(
-                                                        alignment:
-                                                            Alignment.center,
-                                                        decoration:
-                                                            BoxDecoration(
-                                                          color: const Color
-                                                              .fromARGB(255,
-                                                              104, 177, 106),
-                                                          border: Border.all(),
-                                                          borderRadius:
-                                                              BorderRadius.only(
-                                                            bottomLeft:
-                                                                Radius.zero,
-                                                            bottomRight:
-                                                                Radius.zero,
-                                                            topLeft:
-                                                                Radius.circular(
-                                                                    10),
-                                                            topRight:
-                                                                Radius.circular(
-                                                                    10),
-                                                          ),
-                                                        ),
-                                                        child: Row(
-                                                          mainAxisAlignment:
-                                                              MainAxisAlignment
-                                                                  .center,
-                                                          children: [
-                                                            Padding(
-                                                              padding:
-                                                                  EdgeInsets
-                                                                      .all(10),
-                                                              child: Text(
-                                                                schoolYear.name,
-                                                                style:
-                                                                    TextStyle(
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .bold,
-                                                                  fontSize: 20,
-                                                                ),
-                                                              ),
-                                                            )
-                                                          ],
-                                                        ),
-                                                      ),
-                                                      Row(
-                                                        children: schoolYear
-                                                            .terms
-                                                            .map((term) {
-                                                          return Expanded(
-                                                            child: Container(
-                                                              padding:
-                                                                  EdgeInsets
-                                                                      .all(8.0),
-                                                              decoration:
-                                                                  BoxDecoration(
-                                                                      border: Border
-                                                                          .all(),
-                                                                      color: Colors
-                                                                          .white,
-                                                                      borderRadius:
-                                                                          BorderRadius
-                                                                              .only(
-                                                                        bottomLeft:
-                                                                            Radius.circular(10),
-                                                                        bottomRight:
-                                                                            Radius.circular(10),
-                                                                        topLeft:
-                                                                            Radius.zero,
-                                                                        topRight:
-                                                                            Radius.zero,
-                                                                      )),
-                                                              child: Column(
-                                                                crossAxisAlignment:
-                                                                    CrossAxisAlignment
-                                                                        .start,
-                                                                children: [
-                                                                  Container(
-                                                                    alignment:
-                                                                        Alignment
-                                                                            .center,
-                                                                    child: Text(
-                                                                      term.name,
-                                                                      style:
-                                                                          TextStyle(
-                                                                        fontWeight:
-                                                                            FontWeight.bold,
-                                                                        fontSize:
-                                                                            17,
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                  Column(
-                                                                    crossAxisAlignment:
-                                                                        CrossAxisAlignment
-                                                                            .start,
-                                                                    children: term
-                                                                        .termcourses
-                                                                        .map(
-                                                                            (termcourse) {
-                                                                      return Row(
-                                                                        mainAxisAlignment:
-                                                                            MainAxisAlignment.spaceBetween,
-                                                                        children: [
-                                                                          Column(
-                                                                            children: [
-                                                                              Container(
-                                                                                padding: EdgeInsets.all(8.0),
-                                                                                child: Text(
-                                                                                  "${termcourse.coursecode}: ${termcourse.coursename}",
-                                                                                  style: TextStyle(color: getColorForCourseType(termcourse)),
-                                                                                ),
-                                                                              )
-                                                                            ],
-                                                                          )
-                                                                        ],
-                                                                      );
-                                                                    }).toList(),
-                                                                  )
-                                                                ],
-                                                              ),
-                                                            ),
-                                                          );
-                                                        }).toList(),
-                                                      )
-                                                    ],
-                                                  ))
-                                                ]),
-                                              ),
-                                            ]);
-                                      }).toList(),
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    height: 50,
-                                  ),
-                                  ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.transparent),
-                                    onPressed: () {},
-                                    child: Text('Recommend a course'),
-                                  ),
-                                ],
-                              ),
-                            ),
+                                child: Text(
+                              schoolYear.name,
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            )),
                           ),
-                        );
-                      });
-                },
-                child: Text('Show student POS'),
-              ),
-              SizedBox(height: 16),
-              Text('Enrolled Courses:',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              Container(
-                height: 100, // Set your preferred height
-                child: ListView.builder(
-                  itemCount: widget.student.enrolledCourses.length,
-                  itemBuilder: (context, index) {
-                    return ListTile(
-                      title: Text(
-                          widget.student.enrolledCourses[index].coursecode),
-                      subtitle: Text(
-                          widget.student.enrolledCourses[index].coursename),
-                    );
-                  },
-                ),
-              ),
-              SizedBox(height: 16),
-              Text('Past Courses:',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              SizedBox(
-                height: 100, // Set your preferred height
-                child: ListView.builder(
-                  itemCount: widget.student.pastCourses.length,
-                  itemBuilder: (context, index) {
-                    return ListTile(
-                      title: Text(widget.student.pastCourses[index].coursecode),
-                      subtitle: Text(
-                          '${widget.student.pastCourses[index].coursename}\nGrade: ${widget.student.pastCourses[index].grade}'),
-                    );
-                  },
-                ),
-              ),
-            ],
+                      ],
+                    ),
+                    TableRow(
+                      children: [
+                        for (var schoolYear in schoolyears)
+                          Column(
+                            children: [
+                              for (var term in schoolYear.terms)
+                                Column(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Center(
+                                          child: Text(
+                                        term.name,
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold),
+                                      )),
+                                    ),
+                                    for (var course in term.termcourses)
+                                      Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Text(
+                                          "${course.coursecode}: ${course.coursename}",
+                                          textAlign: TextAlign.left,
+                                        ),
+                                      ),
+                                  ],
+                                )
+                            ],
+                          ),
+                      ],
+                    ),
+                  ],
+                )
+              ],
+            ),
           ),
-        ),
-        Positioned(
-          top: 0,
-          left: 16,
-          right: 16,
-          child: CircleAvatar(
-            backgroundColor: Colors.blue,
-            radius: 40,
-            child: Icon(Icons.person, size: 60, color: Colors.white),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

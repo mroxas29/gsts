@@ -12,7 +12,8 @@ class PastCourse extends Course {
       required int numstudents,
       required int units,
       required this.grade,
-      required String type})
+      required String type,
+      required String program})
       : super(
             uid: uid,
             coursecode: coursecode,
@@ -21,7 +22,8 @@ class PastCourse extends Course {
             facultyassigned: facultyassigned,
             numstudents: numstudents,
             units: units,
-            type: type);
+            type: type,
+            program: program);
 
   factory PastCourse.fromJson(Map<String, dynamic> json) {
     return PastCourse(
@@ -34,6 +36,7 @@ class PastCourse extends Course {
       units: json['units'],
       grade: json['grade'],
       type: json['type'],
+      program: json['program']
     );
   }
 

@@ -1,4 +1,4 @@
-import 'package:sysadmindb/app/models/studentPOS.dart';
+
 import 'package:sysadmindb/app/models/term.dart';
 
 class SchoolYear {
