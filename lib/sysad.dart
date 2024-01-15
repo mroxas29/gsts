@@ -321,7 +321,9 @@ class _MainViewState extends State<Sysad> {
 
   void _editUserData(BuildContext context, user user) {
     List<String> roles = ['Coordinator', 'Graduate Student', 'Admin'];
+    List<String> degree = ['MIT', 'MSIT', 'No degree'];
     String selectedRole = user.role;
+
 
     TextEditingController firstNameController =
         TextEditingController(text: user.displayname['firstname']);
@@ -329,9 +331,9 @@ class _MainViewState extends State<Sysad> {
         TextEditingController(text: user.displayname['lastname']);
     TextEditingController emailController =
         TextEditingController(text: user.email);
-
     TextEditingController idNumberController =
         TextEditingController(text: user.idnumber.toString());
+    
 
     showDialog(
       context: context,
@@ -354,7 +356,17 @@ class _MainViewState extends State<Sysad> {
                         TextStyle(color: const Color.fromARGB(255, 78, 78, 78)),
                   ),
                 ]),
-                _buildEditableField('ID Number', idNumberController, false),
+                Row(children: [
+                  Text(
+                    "ID Number: ",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    idNumberController.text,
+                    style:
+                        TextStyle(color: const Color.fromARGB(255, 78, 78, 78)),
+                  ),
+                ]),
                 DropdownButtonFormField<String>(
                   value: selectedRole,
                   items: roles.map((role) {
@@ -449,6 +461,7 @@ class _MainViewState extends State<Sysad> {
                   user.displayname['lastname'] = lastNameController.text;
                   user.email = emailController.text;
                   user.role = selectedRole;
+                
                   user.idnumber = int.parse(idNumberController.text);
                 });
 

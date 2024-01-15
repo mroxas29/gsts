@@ -35,6 +35,7 @@ class FacultyData {
   String uid = generateUID();
   String email = '';
   Map<String, String> displayName = {};
+
 }
 
 Future<bool> doesCourseCodeExist(String courseCode) async {
@@ -47,7 +48,9 @@ Future<bool> doesCourseCodeExist(String courseCode) async {
 }
 
 String getFullname(Faculty faculty) {
+
   return '${faculty.displayname['firstname']} ${faculty.displayname['lastname']}';
+  
 }
 
 void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
