@@ -45,6 +45,7 @@ late Student? currentStudent;
 List<Student> enrolledStudent = [];
 bool wrongCreds = false;
 bool correctCreds = false;
+String curpass = passwordTextController.text;
 
 class _LoginPageState extends State<LoginPage> {
   Future<void> resetPassword(String email) async {
@@ -240,7 +241,6 @@ class _LoginPageState extends State<LoginPage> {
 
   void route() async {
     User? authuser = FirebaseAuth.instance.currentUser;
-
     await FirebaseFirestore.instance
         .collection('users')
         .doc(authuser!.uid)

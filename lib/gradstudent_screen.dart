@@ -45,6 +45,11 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   TextEditingController firstNameController = TextEditingController();
   TextEditingController lastNameController = TextEditingController();
   TextEditingController idNumberController = TextEditingController();
+
+  TextEditingController currentPasswordController = TextEditingController();
+  TextEditingController newPasswordController = TextEditingController();
+  TextEditingController confirmNewPasswordController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -65,6 +70,13 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   @override
   Widget build(BuildContext context) {
     User? user = FirebaseAuth.instance.currentUser;
+    bool is12chars = is12charslong(newPasswordController.text);
+    bool isAtMost64chars = isatmost64chars(newPasswordController.text);
+    bool hasSpecial = hasSpecialChar(newPasswordController.text);
+    bool hasNum = hasNumber(newPasswordController.text);
+    bool isMatching =
+        confirmNewPasswordController.text == newPasswordController.text;
+    bool curpassinc = false;
 
     if (user == null) {
       // User not logged in
@@ -89,19 +101,115 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
             ),
             TextField(
               controller: firstNameController,
-              enabled: isEditing,
+              enabled: false,
               decoration: InputDecoration(labelText: 'First Name'),
             ),
             TextField(
               controller: lastNameController,
-              enabled: isEditing,
+              enabled: false,
               decoration: InputDecoration(labelText: 'Last Name'),
             ),
             TextField(
               controller: idNumberController,
-              enabled: isEditing,
+              enabled: false,
               decoration: InputDecoration(labelText: 'ID Number'),
             ),
+            TextFormField(
+              controller: currentPasswordController,
+              enabled: isEditing,
+              obscureText: true,
+              decoration: InputDecoration(labelText: 'Current Password'),
+              validator: (value) {
+                if (value != curpass) {
+                  curpassinc = false;
+                  return 'Current password is incorrect';
+                }
+                return null;
+              },
+            ),
+            TextField(
+              controller: newPasswordController,
+              enabled: isEditing,
+              obscureText: true,
+              decoration: InputDecoration(labelText: 'New Password'),
+              onChanged: (password) {
+                setState(() {
+                  is12chars = is12charslong(password);
+                  isAtMost64chars = isatmost64chars(password);
+                  hasSpecial = hasSpecialChar(password);
+                  hasNum = hasNumber(password);
+                  isMatching = confirmNewPasswordController.text ==
+                      newPasswordController.text;
+                });
+              },
+            ),
+            TextField(
+              controller: confirmNewPasswordController,
+              enabled: isEditing,
+              obscureText: true,
+              decoration: InputDecoration(labelText: 'Confirm New Password'),
+              onChanged: (passwordTextController) {
+                setState(() {
+                  isMatching = confirmNewPasswordController.text ==
+                      newPasswordController.text;
+                });
+              },
+            ),
+            SizedBox(height: 16),
+
+            Column(
+              children: [
+                Text(
+                  'Password Requirements:',
+                  style: TextStyle(
+                    color: isEditing ? Colors.black : Colors.grey,
+                  ),
+                ),
+                Text(
+                  '- At least 12 characters long',
+                  style: TextStyle(
+                    color: is12chars
+                        ? Colors.green
+                        : (isEditing ? Colors.red : Colors.grey),
+                  ),
+                ),
+                Text(
+                  '- At most 64 characters long',
+                  style: TextStyle(
+                    color: isEditing
+                        ? (isAtMost64chars ? Colors.green : Colors.red)
+                        : Colors.grey,
+                  ),
+                ),
+                Text(
+                  '- Contains at least one special character',
+                  style: TextStyle(
+                    color: hasSpecial
+                        ? Colors.green
+                        : (isEditing ? Colors.red : Colors.grey),
+                  ),
+                ),
+                Text(
+                  '- Contains at least one number',
+                  style: TextStyle(
+                    color: hasNum
+                        ? Colors.green
+                        : (isEditing ? Colors.red : Colors.grey),
+                  ),
+                ),
+                Text(
+                  isMatching
+                      ? '- New passwords match'
+                      : '- Passwords do not match',
+                  style: TextStyle(
+                    color: isEditing
+                        ? (isMatching ? Colors.green : Colors.red)
+                        : Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 16),
             // Non-editable fields
             Container(
               height: 16,
@@ -117,50 +225,105 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                   isEditing = !isEditing;
                   if (!isEditing) {
                     // Save changes when editing is done
-                    updateUserProfile();
+                    //updateUserProfile();
+                    if (currentPasswordController.text == curpass) {
+                      curpassinc = true;
+                    }
+                    savePasswordChanges(
+                        newPasswordController.text,
+                        isMatching,
+                        isAtMost64chars,
+                        hasNum,
+                        hasSpecial,
+                        curpassinc,
+                        is12chars);
+                    // Clear password fields
+                    currentPasswordController.clear();
+                    newPasswordController.clear();
+                    confirmNewPasswordController.clear();
                   }
                 });
               },
-              child: Text(isEditing ? 'Save' : 'Edit'),
+              child: Text(isEditing ? 'Save Password' : 'Change Password'),
             ),
             SizedBox(height: 16),
           ],
         ));
   }
 
-  void updateUserProfile() async {
-    try {
-      FirebaseFirestore.instance
-          .collection('users')
-          .doc(currentUser.uid)
-          .update({
-        'displayname': {
-          'firstname': firstNameController.text,
-          'lastname': lastNameController.text,
-        },
-        'idnumber': int.parse(idNumberController.text),
-        // Add other fields as needed
-      });
+  void savePasswordChanges(
+      String newPassword,
+      bool isMatching,
+      bool isatmost64chars,
+      bool hasNum,
+      bool hasSpecial,
+      bool curpassinc,
+      bool is12chars) async {
+    if (isMatching &&
+        isatmost64chars &&
+        hasNum &&
+        hasSpecial &&
+        curpassinc &&
+        is12chars) {
+      try {
+        // Update password if successfully reauthenticated
+        await FirebaseAuth.instance.currentUser!.updatePassword(newPassword);
 
-      // Show a SnackBar or any other feedback
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('User data updated successfully'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    } catch (e) {
-      print('Error updating user data: $e');
-      // Handle the error or show an error message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error updating user data: $e'),
-          duration: Duration(seconds: 2),
-        ),
-      );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Password changed successfully'),
+            duration: Duration(seconds: 5),
+          ),
+        );
+      } catch (updateError) {
+        print('Error updating password: $updateError');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating password: $updateError'),
+            duration: Duration(seconds: 5),
+          ),
+        );
+      }
+    } else {
+      if (!curpassinc) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Current password is incorrect'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('See password requirements'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 }
+
+bool is12charslong(String password) {
+  return password.length >= 12;
+}
+
+bool isatmost64chars(String password) {
+  return password.length <= 64;
+}
+
+bool hasSpecialChar(String password) {
+  // Replace this with your logic to check if password has at least one special character
+  RegExp specialCharRegex = RegExp(r'[!@#\$%^&*(),.?":{}|<>]');
+  return specialCharRegex.hasMatch(password);
+}
+
+bool hasNumber(String password) {
+  // Replace this with your logic to check if password has at least one number
+  RegExp numberRegex = RegExp(r'\d');
+  return numberRegex.hasMatch(password);
+}
+// check if the password meets the specified requirements
 
 class CurriculumAuditScreen extends StatefulWidget {
   @override
