@@ -440,6 +440,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
     }
   }
 
+// ADD COURSES IN CURRICULUM AUDIT
   void showAddEnrolledCoursePopup(
     BuildContext context,
     GlobalKey<FormState> formKey,
@@ -755,6 +756,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
     updateCourseData();
   }
 
+// ADD PAST COURSE IN CURRICULUM AUDIT
   void showAddPastCourse(
     BuildContext context,
     GlobalKey<FormState> formKey,
