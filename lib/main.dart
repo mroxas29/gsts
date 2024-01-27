@@ -30,16 +30,8 @@ void main() async {
   ));
 }
 
-//hello marion
-class testhtml extends StatelessWidget{
-  final String htmlcontent = """ <h1> Hello </h1>""";
-  
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(child: Html(
-      data: htmlcontent,
-    ));
-}
+
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
