@@ -307,15 +307,6 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                                         : Colors.grey,
                                   ),
                                 ),
-                                Text(
-                                  isValidPass
-                                      ? '✔ Password is secure'
-                                      : '✖ Password is not secure',
-                                  style: TextStyle(
-                                    color:
-                                        isValidPass ? Colors.green : Colors.red,
-                                  ),
-                                ),
                               ],
                             ),
                             SizedBox(
@@ -392,6 +383,9 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
             duration: Duration(seconds: 5),
           ),
         );
+        setState(() {
+          curpass = newPassword;
+        });
       } catch (updateError) {
         print('Error updating password: $updateError');
         ScaffoldMessenger.of(context).showSnackBar(
