@@ -35,7 +35,6 @@ class FacultyData {
   String uid = generateUID();
   String email = '';
   Map<String, String> displayName = {};
-
 }
 
 Future<bool> doesCourseCodeExist(String courseCode) async {
@@ -48,9 +47,7 @@ Future<bool> doesCourseCodeExist(String courseCode) async {
 }
 
 String getFullname(Faculty faculty) {
-
   return '${faculty.displayname['firstname']} ${faculty.displayname['lastname']}';
-  
 }
 
 void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
@@ -79,119 +76,121 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
     builder: (BuildContext context) {
       return AlertDialog(
         title: Text('Add New Course'),
-        content: Form(
-          key: formKey,
-          autovalidateMode: AutovalidateMode.always,
-          child: Column(
-            children: [
-              TextFormField(
-                decoration: InputDecoration(labelText: 'Course code'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter the course code';
-                  }
-                  if (courses.any((course) =>
-                      course.coursecode.toString().toUpperCase() ==
-                      value.toUpperCase())) {
-                    return "Course with course code: $value already exists";
-                  }
-                  return null;
-                },
-                onSaved: (value) {
-                  _courseData.coursecode = value ?? '';
-                },
-              ),
-              TextFormField(
-                decoration: InputDecoration(labelText: 'Course name'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter the course name';
-                  }
-                  return null;
-                },
-                onSaved: (value) {
-                  _courseData.coursename = value ?? '';
-                },
-              ),
-              DropdownButtonFormField<String>(
-                value: selectedFaculty,
-                items: facultyList.map((faculty) {
-                  return DropdownMenuItem<String>(
-                    value: getFullname(faculty),
-                    child: Text(
-                        '${faculty.displayname['firstname']} ${faculty.displayname['lastname']}'),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  selectedFaculty = value!;
-                },
-                onSaved: (value) {
-                  _courseData.facultyassigned = value ?? '';
-                },
-                decoration: InputDecoration(labelText: 'Assign to'),
-              ),
-              TextFormField(
-                decoration: InputDecoration(labelText: 'Course units'),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter the course units';
-                  }
-                  return null;
-                },
-                onSaved: (value) {
-                  _courseData.units = int.parse(value ?? '');
-                },
-              ),
-              DropdownButtonFormField<String>(
-                value: selectedProgram,
-                items: programs.map((program) {
-                  return DropdownMenuItem<String>(
-                    value: program,
-                    child: Text(program),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  selectedProgram = value!;
-                },
-                onSaved: (value) {
-                  _courseData.program = value ?? '';
-                },
-                decoration: InputDecoration(labelText: 'Program'),
-              ),
-              DropdownButtonFormField<String>(
-                value: selectedStatus,
-                items: status.map((role) {
-                  return DropdownMenuItem<String>(
-                    value: role,
-                    child: Text(role),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  selectedStatus = value!;
-                },
-                onSaved: (value) {
-                  _courseData.isactive = bool.parse(value ?? '');
-                },
-                decoration: InputDecoration(labelText: 'Is active?'),
-              ),
-              DropdownButtonFormField<String>(
-                value: selectedType,
-                items: type.map((type) {
-                  return DropdownMenuItem<String>(
-                    value: type,
-                    child: Text(type),
-                  );
-                }).toList(),
-                onChanged: (type) {
-                  selectedType = type!;
-                },
-                onSaved: (type) {
-                  _courseData.type = type!;
-                },
-                decoration: InputDecoration(labelText: 'Course Type'),
-              ),
-            ],
+        content: SingleChildScrollView(
+          child: Form(
+            key: formKey,
+            autovalidateMode: AutovalidateMode.always,
+            child: Column(
+              children: [
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'Course code'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter the course code';
+                    }
+                    if (courses.any((course) =>
+                        course.coursecode.toString().toUpperCase() ==
+                        value.toUpperCase())) {
+                      return "Course with course code: $value already exists";
+                    }
+                    return null;
+                  },
+                  onSaved: (value) {
+                    _courseData.coursecode = value ?? '';
+                  },
+                ),
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'Course name'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter the course name';
+                    }
+                    return null;
+                  },
+                  onSaved: (value) {
+                    _courseData.coursename = value ?? '';
+                  },
+                ),
+                DropdownButtonFormField<String>(
+                  value: selectedFaculty,
+                  items: facultyList.map((faculty) {
+                    return DropdownMenuItem<String>(
+                      value: getFullname(faculty),
+                      child: Text(
+                          '${faculty.displayname['firstname']} ${faculty.displayname['lastname']}'),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    selectedFaculty = value!;
+                  },
+                  onSaved: (value) {
+                    _courseData.facultyassigned = value ?? '';
+                  },
+                  decoration: InputDecoration(labelText: 'Assign to'),
+                ),
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'Course units'),
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter the course units';
+                    }
+                    return null;
+                  },
+                  onSaved: (value) {
+                    _courseData.units = int.parse(value ?? '');
+                  },
+                ),
+                DropdownButtonFormField<String>(
+                  value: selectedProgram,
+                  items: programs.map((program) {
+                    return DropdownMenuItem<String>(
+                      value: program,
+                      child: Text(program),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    selectedProgram = value!;
+                  },
+                  onSaved: (value) {
+                    _courseData.program = value ?? '';
+                  },
+                  decoration: InputDecoration(labelText: 'Program'),
+                ),
+                DropdownButtonFormField<String>(
+                  value: selectedStatus,
+                  items: status.map((role) {
+                    return DropdownMenuItem<String>(
+                      value: role,
+                      child: Text(role),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    selectedStatus = value!;
+                  },
+                  onSaved: (value) {
+                    _courseData.isactive = bool.parse(value ?? '');
+                  },
+                  decoration: InputDecoration(labelText: 'Is active?'),
+                ),
+                DropdownButtonFormField<String>(
+                  value: selectedType,
+                  items: type.map((type) {
+                    return DropdownMenuItem<String>(
+                      value: type,
+                      child: Text(type),
+                    );
+                  }).toList(),
+                  onChanged: (type) {
+                    selectedType = type!;
+                  },
+                  onSaved: (type) {
+                    _courseData.type = type!;
+                  },
+                  decoration: InputDecoration(labelText: 'Course Type'),
+                ),
+              ],
+            ),
           ),
         ),
         actions: [

@@ -49,6 +49,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   TextEditingController currentPasswordController = TextEditingController();
   TextEditingController newPasswordController = TextEditingController();
   TextEditingController confirmNewPasswordController = TextEditingController();
+  bool isValidPass = false;
 
   @override
   void initState() {
@@ -65,6 +66,13 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
       lastNameController.text = currentUser.displayname['lastname']!;
       idNumberController.text = currentUser.idnumber.toString();
     }
+  }
+
+  String _capitalize(String input) {
+    if (input.isEmpty) {
+      return '';
+    }
+    return input[0].toUpperCase() + input.substring(1);
   }
 
   @override
@@ -85,168 +93,272 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
       );
     }
 
-    return Padding(
+    if (is12charslong(curpass) &&
+        isatmost64chars(curpass) &&
+        hasSpecialChar(curpass) &&
+        hasNumber(curpass) &&
+        hasSpecialChar(curpass)) {
+      setState(() {
+        isValidPass = true;
+      });
+    } else {
+      setState(() {
+        isValidPass = false;
+      });
+    }
+
+    return SingleChildScrollView(
         padding: EdgeInsets.all(8.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            Text(
-              'User Profile:',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 25),
-            ),
-            SizedBox(height: 16),
-            // Editable fields
-            Container(
-              height: 16,
-            ),
-            TextField(
-              controller: firstNameController,
-              enabled: false,
-              decoration: InputDecoration(labelText: 'First Name'),
-            ),
-            TextField(
-              controller: lastNameController,
-              enabled: false,
-              decoration: InputDecoration(labelText: 'Last Name'),
-            ),
-            TextField(
-              controller: idNumberController,
-              enabled: false,
-              decoration: InputDecoration(labelText: 'ID Number'),
-            ),
-            TextFormField(
-              controller: currentPasswordController,
-              enabled: isEditing,
-              obscureText: true,
-              decoration: InputDecoration(labelText: 'Current Password'),
-              validator: (value) {
-                if (value != curpass) {
-                  curpassinc = false;
-                  return 'Current password is incorrect';
-                }
-                return null;
-              },
-            ),
-            TextField(
-              controller: newPasswordController,
-              enabled: isEditing,
-              obscureText: true,
-              decoration: InputDecoration(labelText: 'New Password'),
-              onChanged: (password) {
-                setState(() {
-                  is12chars = is12charslong(password);
-                  isAtMost64chars = isatmost64chars(password);
-                  hasSpecial = hasSpecialChar(password);
-                  hasNum = hasNumber(password);
-                  isMatching = confirmNewPasswordController.text ==
-                      newPasswordController.text;
-                });
-              },
-            ),
-            TextField(
-              controller: confirmNewPasswordController,
-              enabled: isEditing,
-              obscureText: true,
-              decoration: InputDecoration(labelText: 'Confirm New Password'),
-              onChanged: (passwordTextController) {
-                setState(() {
-                  isMatching = confirmNewPasswordController.text ==
-                      newPasswordController.text;
-                });
-              },
-            ),
-            SizedBox(height: 16),
-
-            Column(
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  'Password Requirements:',
-                  style: TextStyle(
-                    color: isEditing ? Colors.black : Colors.grey,
+                SingleChildScrollView(
+                  child: Card(
+                    color: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.0)),
+                    elevation: 4.0,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(10, 10, 200, 70),
+                      child: Column(
+                        crossAxisAlignment:
+                            CrossAxisAlignment.start, // Align text to the left
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Your profile",
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                          Text(
+                            "${_capitalize(firstNameController.text)} ${_capitalize(lastNameController.text)} ",
+                            style: TextStyle(
+                                fontSize: 34,
+                                fontWeight: FontWeight.bold,
+                                color: Color.fromARGB(255, 23, 71, 25)),
+                          ),
+                          Text(currentStudent!.degree.endsWith('SIT')
+                              ? 'Master of Science in Information Technology - ${currentStudent!.idnumber.toString()}'
+                              : 'Master in Information Technology - ${currentStudent!.idnumber.toString()}'),
+                          Text(currentStudent!.email),
+                          Text(
+                            isValidPass
+                                ? '🔒 Your password is secure'
+                                : '✖ Your password is not secure',
+                            style: TextStyle(
+                                color: isValidPass ? Colors.green : Colors.red),
+                          )
+                        ],
+                      ),
+                    ),
                   ),
-                ),
-                Text(
-                  '- At least 12 characters long',
-                  style: TextStyle(
-                    color: is12chars
-                        ? Colors.green
-                        : (isEditing ? Colors.red : Colors.grey),
-                  ),
-                ),
-                Text(
-                  '- At most 64 characters long',
-                  style: TextStyle(
-                    color: isEditing
-                        ? (isAtMost64chars ? Colors.green : Colors.red)
-                        : Colors.grey,
-                  ),
-                ),
-                Text(
-                  '- Contains at least one special character',
-                  style: TextStyle(
-                    color: hasSpecial
-                        ? Colors.green
-                        : (isEditing ? Colors.red : Colors.grey),
-                  ),
-                ),
-                Text(
-                  '- Contains at least one number',
-                  style: TextStyle(
-                    color: hasNum
-                        ? Colors.green
-                        : (isEditing ? Colors.red : Colors.grey),
-                  ),
-                ),
-                Text(
-                  isMatching
-                      ? '- New passwords match'
-                      : '- Passwords do not match',
-                  style: TextStyle(
-                    color: isEditing
-                        ? (isMatching ? Colors.green : Colors.red)
-                        : Colors.grey,
+                )
+              ],
+            ),
+            SizedBox(
+              height: 20,
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 560, // Set your desired width
+                  child: SingleChildScrollView(
+                    child: Card(
+                      color: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                      elevation: 4.0,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(10, 10, 200, 80),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Password Management",
+                              style:
+                                  TextStyle(fontSize: 12, color: Colors.grey),
+                            ),
+                            TextFormField(
+                              controller: currentPasswordController,
+                              enabled: isEditing,
+                              obscureText: true,
+                              decoration: InputDecoration(
+                                labelText: 'Current Password',
+                              ),
+                              validator: (value) {
+                                if (value != curpass) {
+                                  curpassinc = false;
+                                  return 'Current password is incorrect';
+                                }
+                                return null;
+                              },
+                            ),
+                            TextField(
+                              controller: newPasswordController,
+                              enabled: isEditing,
+                              obscureText: true,
+                              decoration: InputDecoration(
+                                labelText: 'New Password',
+                              ),
+                              onChanged: (password) {
+                                setState(() {
+                                  is12chars = is12charslong(password);
+                                  isAtMost64chars = isatmost64chars(password);
+                                  hasSpecial = hasSpecialChar(password);
+                                  hasNum = hasNumber(password);
+                                  isMatching =
+                                      confirmNewPasswordController.text ==
+                                          newPasswordController.text;
+                                });
+                              },
+                            ),
+                            TextField(
+                              controller: confirmNewPasswordController,
+                              enabled: isEditing,
+                              obscureText: true,
+                              decoration: InputDecoration(
+                                labelText: 'Confirm New Password',
+                              ),
+                              onChanged: (passwordTextController) {
+                                setState(() {
+                                  isMatching =
+                                      confirmNewPasswordController.text ==
+                                          newPasswordController.text;
+                                });
+                              },
+                            ),
+                            SizedBox(height: 16),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Password Requirements:',
+                                  style: TextStyle(
+                                    color:
+                                        isEditing ? Colors.black : Colors.grey,
+                                  ),
+                                ),
+                                Text(
+                                  is12chars
+                                      ? '✔ At least 12 characters long'
+                                      : '✖ At least 12 characters long',
+                                  style: TextStyle(
+                                    color: is12chars
+                                        ? Colors.green
+                                        : (isEditing
+                                            ? Colors.red
+                                            : Colors.grey),
+                                  ),
+                                ),
+                                Text(
+                                  isAtMost64chars
+                                      ? '✔ At most 64 characters long'
+                                      : '✖ At most 64 characters long',
+                                  style: TextStyle(
+                                    color: isEditing
+                                        ? (isAtMost64chars
+                                            ? Colors.green
+                                            : Colors.red)
+                                        : Colors.grey,
+                                  ),
+                                ),
+                                Text(
+                                  hasSpecial
+                                      ? '✔ Contains at least one special character'
+                                      : '✖ Contains at least one special character',
+                                  style: TextStyle(
+                                    color: hasSpecial
+                                        ? Colors.green
+                                        : (isEditing
+                                            ? Colors.red
+                                            : Colors.grey),
+                                  ),
+                                ),
+                                Text(
+                                  hasNum
+                                      ? '✔ Contains at least one number'
+                                      : '✖ Contains at least one number',
+                                  style: TextStyle(
+                                    color: hasNum
+                                        ? Colors.green
+                                        : (isEditing
+                                            ? Colors.red
+                                            : Colors.grey),
+                                  ),
+                                ),
+                                Text(
+                                  isMatching
+                                      ? '✔ New passwords match'
+                                      : '✖ Passwords do not match',
+                                  style: TextStyle(
+                                    color: isEditing
+                                        ? (isMatching
+                                            ? Colors.green
+                                            : Colors.red)
+                                        : Colors.grey,
+                                  ),
+                                ),
+                                Text(
+                                  isValidPass
+                                      ? '✔ Password is secure'
+                                      : '✖ Password is not secure',
+                                  style: TextStyle(
+                                    color:
+                                        isValidPass ? Colors.green : Colors.red,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(
+                              height: 10,
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                setState(() {
+                                  isEditing = !isEditing;
+                                  if (!isEditing) {
+                                    // Save changes when editing is done
+                                    //updateUserProfile();
+                                    if (currentPasswordController.text ==
+                                        curpass) {
+                                      curpassinc = true;
+                                    }
+                                    savePasswordChanges(
+                                      newPasswordController.text,
+                                      isMatching,
+                                      isAtMost64chars,
+                                      hasNum,
+                                      hasSpecial,
+                                      curpassinc,
+                                      is12chars,
+                                    );
+                                    // Clear password fields
+                                    currentPasswordController.clear();
+                                    newPasswordController.clear();
+                                    confirmNewPasswordController.clear();
+                                  }
+                                });
+                              },
+                              child: Text(
+                                isEditing ? 'Save Password' : 'Change Password',
+                                style: TextStyle(
+                                    color: isEditing
+                                        ? const Color.fromARGB(255, 23, 71, 25)
+                                        : Colors.grey),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ],
-            ),
-            SizedBox(height: 16),
-            // Non-editable fields
-            Container(
-              height: 16,
-            ),
-            Text(
-              'Email: ${user.email}',
-              style: TextStyle(fontSize: 15),
-            ),
-            SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  isEditing = !isEditing;
-                  if (!isEditing) {
-                    // Save changes when editing is done
-                    //updateUserProfile();
-                    if (currentPasswordController.text == curpass) {
-                      curpassinc = true;
-                    }
-                    savePasswordChanges(
-                        newPasswordController.text,
-                        isMatching,
-                        isAtMost64chars,
-                        hasNum,
-                        hasSpecial,
-                        curpassinc,
-                        is12chars);
-                    // Clear password fields
-                    currentPasswordController.clear();
-                    newPasswordController.clear();
-                    confirmNewPasswordController.clear();
-                  }
-                });
-              },
-              child: Text(isEditing ? 'Save Password' : 'Change Password'),
-            ),
-            SizedBox(height: 16),
+            )
           ],
         ));
   }
@@ -1448,7 +1560,7 @@ class _MainViewState extends State<GradStudentscreen>
       ),
       Scaffold(
         appBar: AppBar(
-          title: Text('Student Hub'),
+          title: Text('Student Hub', style: TextStyle(color: Colors.white)),
           bottom: TabBar(
             controller: _tabController,
             tabs: [
@@ -1462,16 +1574,17 @@ class _MainViewState extends State<GradStudentscreen>
                 text: 'Capstone Project',
               )
             ],
-            indicator: BoxDecoration(
-                color: Color.fromARGB(255, 15, 136, 31),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black,
-                      blurRadius: 10.0,
-                      offset: Offset(0, 3))
-                ]),
+            labelColor: Colors.white,
+            labelPadding: EdgeInsets.only(left: 10),
+            unselectedLabelColor: Colors.white70,
+            indicatorColor: Colors.white,
+            indicatorWeight: 4,
+            indicator: UnderlineTabIndicator(
+                borderSide: BorderSide(width: 4.0, color: Colors.white),
+                insets: EdgeInsets.symmetric(horizontal: 16.0)),
           ),
           backgroundColor: const Color.fromARGB(255, 23, 71, 25),
+          automaticallyImplyLeading: false,
         ),
         body: TabBarView(
           controller: _tabController,
