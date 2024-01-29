@@ -114,46 +114,51 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                SingleChildScrollView(
-                  child: Card(
-                    color: Colors.white,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8.0)),
-                    elevation: 4.0,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(10, 10, 200, 70),
-                      child: Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start, // Align text to the left
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Your profile",
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                SizedBox(
+                    width: 560,
+                    child: SingleChildScrollView(
+                      child: Card(
+                        color: Colors.white,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8.0)),
+                        elevation: 4.0,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(10, 10, 200, 70),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment
+                                .start, // Align text to the left
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Your profile",
+                                style:
+                                    TextStyle(fontSize: 12, color: Colors.grey),
+                              ),
+                              Text(
+                                "${_capitalize(firstNameController.text)} ${_capitalize(lastNameController.text)} ",
+                                style: TextStyle(
+                                    fontSize: 34,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color.fromARGB(255, 23, 71, 25)),
+                              ),
+                              Text(currentStudent!.degree.endsWith('SIT')
+                                  ? 'Master of Science in Information Technology - ${currentStudent!.idnumber.toString()}'
+                                  : 'Master in Information Technology - ${currentStudent!.idnumber.toString()}'),
+                              Text(currentStudent!.email),
+                              Text(
+                                isValidPass
+                                    ? '🔒 Your password is secure'
+                                    : '✖ Your password is not secure',
+                                style: TextStyle(
+                                    color: isValidPass
+                                        ? Colors.green
+                                        : Colors.red),
+                              )
+                            ],
                           ),
-                          Text(
-                            "${_capitalize(firstNameController.text)} ${_capitalize(lastNameController.text)} ",
-                            style: TextStyle(
-                                fontSize: 34,
-                                fontWeight: FontWeight.bold,
-                                color: Color.fromARGB(255, 23, 71, 25)),
-                          ),
-                          Text(currentStudent!.degree.endsWith('SIT')
-                              ? 'Master of Science in Information Technology - ${currentStudent!.idnumber.toString()}'
-                              : 'Master in Information Technology - ${currentStudent!.idnumber.toString()}'),
-                          Text(currentStudent!.email),
-                          Text(
-                            isValidPass
-                                ? '🔒 Your password is secure'
-                                : '✖ Your password is not secure',
-                            style: TextStyle(
-                                color: isValidPass ? Colors.green : Colors.red),
-                          )
-                        ],
+                        ),
                       ),
-                    ),
-                  ),
-                )
+                    )),
               ],
             ),
             SizedBox(
