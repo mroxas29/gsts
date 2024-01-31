@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:side_navigation/side_navigation.dart';
@@ -38,6 +39,15 @@ class _MainViewState extends State<Gscscreen> {
   List<Course> foundCourse = [];
   String? selectedCourseDemand;
   String? selectedCourseState = 'Active';
+  TextEditingController firstNameController = TextEditingController();
+  TextEditingController lastNameController = TextEditingController();
+  TextEditingController idNumberController = TextEditingController();
+
+  TextEditingController currentPasswordController = TextEditingController();
+  TextEditingController newPasswordController = TextEditingController();
+  TextEditingController confirmNewPasswordController = TextEditingController();
+  bool isValidPass = false;
+  bool isEditing = false;
 
   /// The currently selected index of the bar
   int selectedIndex = 0;
@@ -617,6 +627,89 @@ class _MainViewState extends State<Gscscreen> {
     });
   }
 
+  void savePasswordChanges(
+      String newPassword,
+      bool isMatching,
+      bool isatmost64chars,
+      bool hasNum,
+      bool hasSpecial,
+      bool curpassinc,
+      bool is12chars) async {
+    if (isMatching &&
+        isatmost64chars &&
+        hasNum &&
+        hasSpecial &&
+        curpassinc &&
+        is12chars) {
+      try {
+        // Update password if successfully reauthenticated
+        await FirebaseAuth.instance.currentUser!.updatePassword(newPassword);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Password changed successfully'),
+            duration: Duration(seconds: 5),
+          ),
+        );
+        setState(() {
+          curpass = newPassword;
+        });
+      } catch (updateError) {
+        print('Error updating password: $updateError');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating password: $updateError'),
+            duration: Duration(seconds: 5),
+          ),
+        );
+      }
+    } else {
+      if (!curpassinc) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Current password is incorrect'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('See password requirements'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  bool is12charslong(String password) {
+    return password.length >= 12;
+  }
+
+  bool isatmost64chars(String password) {
+    return password.length <= 64;
+  }
+
+  bool hasSpecialChar(String password) {
+    // Replace this with your logic to check if password has at least one special character
+    RegExp specialCharRegex = RegExp(r'[!@#\$%^&*(),.?":{}|<>]');
+    return specialCharRegex.hasMatch(password);
+  }
+
+  bool hasNumber(String password) {
+    // Replace this with your logic to check if password has at least one number
+    RegExp numberRegex = RegExp(r'\d');
+    return numberRegex.hasMatch(password);
+  }
+
+// check if the password meets the specified requirements
+  String _capitalize(String input) {
+    if (input.isEmpty) {
+      return '';
+    }
+    return input[0].toUpperCase() + input.substring(1);
+  }
+
   @override
   Widget build(BuildContext context) {
     final selectedDemandData = uniqueCourses.firstWhere(
@@ -665,6 +758,14 @@ class _MainViewState extends State<Gscscreen> {
     // Clear the original Set and add sorted data back to it
     trendData.clear();
     trendData.addAll(sortedTrendData);
+
+    bool is12chars = is12charslong(newPasswordController.text);
+    bool isAtMost64chars = isatmost64chars(newPasswordController.text);
+    bool hasSpecial = hasSpecialChar(newPasswordController.text);
+    bool hasNum = hasNumber(newPasswordController.text);
+    bool isMatching =
+        confirmNewPasswordController.text == newPasswordController.text;
+    bool curpassinc = false;
 
     /// Views to display
     List<Widget> views = [
@@ -941,6 +1042,257 @@ class _MainViewState extends State<Gscscreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [Text("Inbox")]),
+      SingleChildScrollView(
+          padding: EdgeInsets.all(8.0),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                      width: 560,
+                      child: SingleChildScrollView(
+                        child: Card(
+                          color: Colors.white,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8.0)),
+                          elevation: 4.0,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(10, 10, 200, 70),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment
+                                  .start, // Align text to the left
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Your profile",
+                                  style: TextStyle(
+                                      fontSize: 12, color: Colors.grey),
+                                ),
+                                Text(
+                                  "${_capitalize(currentUser.displayname['firstname']!)} ${_capitalize(currentUser.displayname['lastname']!)} ",
+                                  style: TextStyle(
+                                      fontSize: 34,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color.fromARGB(255, 23, 71, 25)),
+                                ),
+                                Text(currentUser.email),
+                                Text(
+                                  isValidPass
+                                      ? '🔒 Your password is secure'
+                                      : '✖ Your password is not secure',
+                                  style: TextStyle(
+                                      color: isValidPass
+                                          ? Colors.green
+                                          : Colors.red),
+                                )
+                              ],
+                            ),
+                          ),
+                        ),
+                      )),
+                ],
+              ),
+              SizedBox(
+                height: 20,
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 560, // Set your desired width
+                    child: SingleChildScrollView(
+                      child: Card(
+                        color: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                        elevation: 4.0,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(10, 10, 200, 80),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Password Management",
+                                style:
+                                    TextStyle(fontSize: 12, color: Colors.grey),
+                              ),
+                              TextFormField(
+                                controller: currentPasswordController,
+                                enabled: isEditing,
+                                obscureText: true,
+                                decoration: InputDecoration(
+                                  labelText: 'Current Password',
+                                ),
+                                validator: (value) {
+                                  if (value != curpass) {
+                                    curpassinc = false;
+                                    return 'Current password is incorrect';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              TextField(
+                                controller: newPasswordController,
+                                enabled: isEditing,
+                                obscureText: true,
+                                decoration: InputDecoration(
+                                  labelText: 'New Password',
+                                ),
+                                onChanged: (password) {
+                                  setState(() {
+                                    is12chars = is12charslong(password);
+                                    isAtMost64chars = isatmost64chars(password);
+                                    hasSpecial = hasSpecialChar(password);
+                                    hasNum = hasNumber(password);
+                                    isMatching =
+                                        confirmNewPasswordController.text ==
+                                            newPasswordController.text;
+                                  });
+                                },
+                              ),
+                              TextField(
+                                controller: confirmNewPasswordController,
+                                enabled: isEditing,
+                                obscureText: true,
+                                decoration: InputDecoration(
+                                  labelText: 'Confirm New Password',
+                                ),
+                                onChanged: (passwordTextController) {
+                                  setState(() {
+                                    isMatching =
+                                        confirmNewPasswordController.text ==
+                                            newPasswordController.text;
+                                  });
+                                },
+                              ),
+                              SizedBox(height: 16),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Password Requirements:',
+                                    style: TextStyle(
+                                      color: isEditing
+                                          ? Colors.black
+                                          : Colors.grey,
+                                    ),
+                                  ),
+                                  Text(
+                                    is12chars
+                                        ? '✔ At least 12 characters long'
+                                        : '✖ At least 12 characters long',
+                                    style: TextStyle(
+                                      color: is12chars
+                                          ? Colors.green
+                                          : (isEditing
+                                              ? Colors.red
+                                              : Colors.grey),
+                                    ),
+                                  ),
+                                  Text(
+                                    isAtMost64chars
+                                        ? '✔ At most 64 characters long'
+                                        : '✖ At most 64 characters long',
+                                    style: TextStyle(
+                                      color: isEditing
+                                          ? (isAtMost64chars
+                                              ? Colors.green
+                                              : Colors.red)
+                                          : Colors.grey,
+                                    ),
+                                  ),
+                                  Text(
+                                    hasSpecial
+                                        ? '✔ Contains at least one special character'
+                                        : '✖ Contains at least one special character',
+                                    style: TextStyle(
+                                      color: hasSpecial
+                                          ? Colors.green
+                                          : (isEditing
+                                              ? Colors.red
+                                              : Colors.grey),
+                                    ),
+                                  ),
+                                  Text(
+                                    hasNum
+                                        ? '✔ Contains at least one number'
+                                        : '✖ Contains at least one number',
+                                    style: TextStyle(
+                                      color: hasNum
+                                          ? Colors.green
+                                          : (isEditing
+                                              ? Colors.red
+                                              : Colors.grey),
+                                    ),
+                                  ),
+                                  Text(
+                                    isMatching
+                                        ? '✔ New passwords match'
+                                        : '✖ Passwords do not match',
+                                    style: TextStyle(
+                                      color: isEditing
+                                          ? (isMatching
+                                              ? Colors.green
+                                              : Colors.red)
+                                          : Colors.grey,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(
+                                height: 10,
+                              ),
+                              ElevatedButton(
+                                onPressed: () {
+                                  setState(() {
+                                    isEditing = !isEditing;
+                                    if (!isEditing) {
+                                      // Save changes when editing is done
+                                      //updateUserProfile();
+                                      if (currentPasswordController.text ==
+                                          curpass) {
+                                        curpassinc = true;
+                                      }
+                                      savePasswordChanges(
+                                        newPasswordController.text,
+                                        isMatching,
+                                        isAtMost64chars,
+                                        hasNum,
+                                        hasSpecial,
+                                        curpassinc,
+                                        is12chars,
+                                      );
+                                      // Clear password fields
+                                      currentPasswordController.clear();
+                                      newPasswordController.clear();
+                                      confirmNewPasswordController.clear();
+                                    }
+                                  });
+                                },
+                                child: Text(
+                                  isEditing
+                                      ? 'Save Password'
+                                      : 'Change Password',
+                                  style: TextStyle(
+                                      color: isEditing
+                                          ? const Color.fromARGB(
+                                              255, 23, 71, 25)
+                                          : Colors.grey),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            ],
+          )),
     ];
 
     return WillPopScope(
@@ -1017,6 +1369,8 @@ class _MainViewState extends State<Gscscreen> {
                   icon: Icons.message,
                   label: 'Inbox',
                 ),
+                SideNavigationBarItem(
+                    icon: Icons.settings, label: 'Profile Settings')
               ],
               onTap: changeScreen,
               toggler: SideBarToggler(
