@@ -136,6 +136,7 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     //  final GlobalKey<State> _LoaderDialog = GlobalKey<State>();
 
+    double screenHeight = MediaQuery.of(context).size.height;
     return WillPopScope(
       onWillPop: () async => false,
       child: Scaffold(
@@ -147,8 +148,9 @@ class _LoginPageState extends State<LoginPage> {
           ),
           contain.Container(
             color: Color.fromARGB(0, 231, 231, 231),
+            height: screenHeight,
             child: Padding(
-                padding: const EdgeInsets.only(top: 200),
+                padding: EdgeInsets.only(top: screenHeight / 5),
                 child: Align(
                   alignment: Alignment.topCenter,
                   child: SizedBox(
