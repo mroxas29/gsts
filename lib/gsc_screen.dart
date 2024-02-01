@@ -390,7 +390,9 @@ class _MainViewState extends State<Gscscreen> {
                                   enrolledCourses:
                                       enrolledStudent[i].enrolledCourses,
                                   pastCourses: enrolledStudent[i].pastCourses,
-                                  degree: enrolledStudent[i].degree);
+                                  degree: enrolledStudent[i].degree,
+                                  status: enrolledStudent[i].status
+                                  );
 
                               retrieveStudentPOS(enrolledStudent[i].uid);
                               _showStudentInfo(context, enrolledStudent[i]);
@@ -1077,6 +1079,9 @@ class _MainViewState extends State<Gscscreen> {
                                       color: Color.fromARGB(255, 23, 71, 25)),
                                 ),
                                 Text(currentUser.email),
+                                
+                               
+                                Text('Status: ${currentUser.status}'),
                                 Text(
                                   isValidPass
                                       ? '🔒 Your password is secure'

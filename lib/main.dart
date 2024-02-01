@@ -139,139 +139,217 @@ class _LoginPageState extends State<LoginPage> {
     return WillPopScope(
       onWillPop: () async => false,
       child: Scaffold(
-          body: contain.Container(
-              color: const Color.fromARGB(255, 231, 231, 231),
-              child: Center(
-                child: SizedBox(
-                    width: 450,
-                    child: SingleChildScrollView(
-                      child: contain.Container(
-                          decoration: BoxDecoration(
-                              color: Color.fromRGBO(255, 255, 255, 0.71),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Color.fromARGB(255, 134, 134, 134),
-                                  offset: Offset(15, 9),
-                                  blurRadius: 20.0,
-                                  spreadRadius: 10.0,
-                                )
-                              ]),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 1,
-                                  ),
-                                  child: Container(
+          body: Stack(
+        children: [
+          Container(
+            height: MediaQuery.of(context).size.height / 3,
+            color: const Color.fromARGB(255, 25, 87, 27),
+          ),
+          contain.Container(
+            color: Color.fromARGB(0, 231, 231, 231),
+            child: Padding(
+                padding: const EdgeInsets.only(top: 200),
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: SizedBox(
+                      width: 450,
+                      child: SingleChildScrollView(
+                        child: contain.Container(
+                            decoration: BoxDecoration(
+                                color: Color.fromRGBO(255, 255, 255, 1),
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(8)),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Color.fromARGB(255, 58, 57, 57),
+                                    offset: Offset(15, 9),
+                                    blurRadius: 30.0,
+                                    spreadRadius: 2.0,
+                                  )
+                                ]),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
                                     padding: EdgeInsets.symmetric(
-                                        horizontal: 20, vertical: 10),
-                                    decoration: BoxDecoration(
-                                      color: Color.fromARGB(255, 7, 68,
-                                          1), // Set your desired background color
-                                    ),
-                                    child: Row(
+                                        horizontal: 20, vertical: 20),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment
+                                          .start, // Align text to the left
+
                                       children: [
                                         Text(
-                                          'Graduate Student Tracking System',
+                                          'Log Into GSTS',
                                           style: TextStyle(
-                                            fontSize: 20,
-                                            fontFamily: 'inter',
-                                            color: Color.fromARGB(
-                                                255, 206, 206, 206),
-                                          ),
+                                              fontSize: 26,
+                                              fontFamily: 'inter',
+                                              color:
+                                                  Color.fromARGB(255, 0, 0, 0),
+                                              fontWeight: FontWeight.bold),
                                           textAlign: TextAlign.left,
                                         ),
+                                        SizedBox(
+                                          height: 20,
+                                        ),
+                                        Text(
+                                          'Email',
+                                          style: TextStyle(
+                                            color: Color.fromARGB(136, 0, 0, 0),
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        SizedBox(
+                                          height: 5,
+                                        ),
+                                        resusableTextField(
+                                            "Enter email",
+                                            Icons.person_outline,
+                                            false,
+                                            emailTextController)
                                       ],
-                                    ),
-                                  )),
-                              Padding(
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: 20, vertical: 20),
-                                  child: resusableTextField(
-                                      "Enter email",
-                                      Icons.person_outline,
-                                      false,
-                                      emailTextController)),
-                              Padding(
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: 15, vertical: 20),
-                                  child: resusableTextField(
-                                      "Enter Password",
-                                      Icons.lock,
-                                      true,
-                                      passwordTextController)),
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Padding(
-                                      padding: EdgeInsets.symmetric(
-                                          horizontal: 5, vertical: 10),
-                                      child: signInSignUpButton(
-                                        context,
-                                        true,
-                                        () {
-                                          setState(() {
-                                            isPressed = true;
+                                    )),
+                                Padding(
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 15, vertical: 20),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment
+                                          .start, // Align text to the left
 
-                                            curpass =
-                                                passwordTextController.text;
-                                          });
-                                          signIn(emailTextController.text,
-                                              passwordTextController.text);
-                                        },
-                                        isPressed,
-                                      )),
-                                  SizedBox(
-                                    width: 20,
-                                  ),
-                                  GestureDetector(
-                                    child: MouseRegion(
-                                      cursor: SystemMouseCursors.click,
-                                      child: Text(
-                                        "Forgot your password?\nClick here",
-                                        style: TextStyle(
-                                          color: Color.fromARGB(255, 9, 63,
-                                              2), // You can choose the color you prefer
-                                          decoration: TextDecoration
-                                              .underline, // Add an underline style
+                                      children: [
+                                        Text(
+                                          'Password',
+                                          style: TextStyle(
+                                            color: Color.fromARGB(136, 0, 0, 0),
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        SizedBox(
+                                          height: 5,
+                                        ),
+                                        resusableTextField(
+                                            "Enter Password",
+                                            Icons.lock,
+                                            true,
+                                            passwordTextController)
+                                      ],
+                                    )),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Padding(
+                                        padding: EdgeInsets.symmetric(
+                                            horizontal: 5, vertical: 10),
+                                        child: signInSignUpButton(
+                                          context,
+                                          true,
+                                          () {
+                                            setState(() {
+                                              isPressed = true;
+
+                                              curpass =
+                                                  passwordTextController.text;
+                                            });
+                                            signIn(emailTextController.text,
+                                                passwordTextController.text);
+                                          },
+                                          isPressed,
+                                        )),
+                                    SizedBox(
+                                      width: 20,
+                                    ),
+                                    GestureDetector(
+                                      child: MouseRegion(
+                                        cursor: SystemMouseCursors.click,
+                                        child: Text(
+                                          "Forgot your password?\nClick here",
+                                          style: TextStyle(
+                                            color: Color.fromARGB(255, 9, 63,
+                                                2), // You can choose the color you prefer
+                                            decoration: TextDecoration
+                                                .underline, // Add an underline style
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    onTap: () {
-                                      showPasswordResetDialog(context);
-                                      // Handle the click action, e.g., navigate to the password reset screen.
-                                    },
-                                  )
-                                ],
-                              ),
-                              Center(
+                                      onTap: () {
+                                        showPasswordResetDialog(context);
+                                        // Handle the click action, e.g., navigate to the password reset screen.
+                                      },
+                                    )
+                                  ],
+                                ),
+                                Center(
                                   child: Column(
-                                children: [
-                                  wrongCreds
-                                      ? Text(
-                                          "Incorrect email or password",
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(color: Colors.red),
-                                        )
-                                      : SizedBox(),
-                                  correctCreds
-                                      ? Text(
-                                          "Login Success",
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                              color: Color.fromARGB(
-                                                  255, 4, 87, 11)),
-                                        )
-                                      : SizedBox()
-                                ],
-                              ))
-                            ],
-                          )),
-                    )),
-              ))),
+                                    children: [
+                                      wrongCreds
+                                          ? Container(
+                                              margin: EdgeInsets.symmetric(
+                                                  vertical: 10),
+                                              padding: EdgeInsets.all(12),
+                                              decoration: BoxDecoration(
+                                                border: Border.all(
+                                                  color: Color.fromARGB(
+                                                          112, 240, 65, 53)
+                                                      .withOpacity(
+                                                          0.9), // Border color
+                                                ),
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                              ),
+                                              child: Text(
+                                                "Incorrect email or password",
+                                                textAlign: TextAlign.center,
+                                                style: TextStyle(
+                                                  color: Colors.red,
+                                                  fontWeight: FontWeight.w100,
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                            )
+                                          : SizedBox(),
+                                      correctCreds
+                                          ? Container(
+                                              margin: EdgeInsets.symmetric(
+                                                  vertical: 10),
+                                              padding: EdgeInsets.all(12),
+                                              decoration: BoxDecoration(
+                                                border: Border.all(
+                                                  color: Color.fromARGB(
+                                                          255, 17, 109, 17)
+                                                      .withOpacity(
+                                                          0.9), // Border color
+                                                ),
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                              ),
+                                              child: Text(
+                                                "Login Success",
+                                                textAlign: TextAlign.center,
+                                                style: TextStyle(
+                                                  color: Color.fromARGB(
+                                                      255, 4, 87, 11),
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                            )
+                                          : SizedBox(),
+                                    ],
+                                  ),
+                                )
+                              ],
+                            )),
+                      )),
+                )),
+          )
+        ],
+      )),
     );
   }
 
@@ -318,7 +396,6 @@ class _LoginPageState extends State<LoginPage> {
           List<PastCourse> pastCourses =
               await getPastCoursesForStudent(currentUser.uid);
           String degree = await getDegreeForStudent(currentUser.uid);
-          // Assuming enrolledCourses is a list of EnrolledCourseData
           Student convertToStudent(user currentUser) {
             return Student(
                 uid: currentUser.uid,
@@ -328,7 +405,8 @@ class _LoginPageState extends State<LoginPage> {
                 idnumber: currentUser.idnumber,
                 enrolledCourses: enrolledCourses,
                 pastCourses: pastCourses,
-                degree: degree);
+                degree: degree,
+                status: currentUser.status);
           }
 
           currentStudent = convertToStudent(currentUser);

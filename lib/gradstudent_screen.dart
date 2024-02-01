@@ -145,6 +145,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                                   ? 'Master of Science in Information Technology - ${currentStudent!.idnumber.toString()}'
                                   : 'Master in Information Technology - ${currentStudent!.idnumber.toString()}'),
                               Text(currentStudent!.email),
+                              Text('Enrollment Status: ${currentUser.status}'),
                               Text(
                                 isValidPass
                                     ? '🔒 Your password is secure'

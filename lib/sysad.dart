@@ -79,7 +79,8 @@ class _MainViewState extends State<Sysad> {
     List<String> roles = ['Coordinator', 'Graduate Student', 'Admin'];
     List<String> degree = ['MIT', 'MSIT', 'No degree'];
     String selectedRole = user.role;
-
+    List<String> status = ['Full Time', 'Part Time', 'LOA'];
+    String selectedStatus = user.status;
     TextEditingController firstNameController =
         TextEditingController(text: user.displayname['firstname']);
     TextEditingController lastNameController =
@@ -133,6 +134,19 @@ class _MainViewState extends State<Sysad> {
                     selectedRole = value!;
                   },
                   decoration: InputDecoration(labelText: 'Role'),
+                ),
+                DropdownButtonFormField<String>(
+                  value: selectedStatus,
+                  items: status.map((stat) {
+                    return DropdownMenuItem<String>(
+                      value: stat,
+                      child: Text(stat),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    selectedStatus = value!;
+                  },
+                  decoration: InputDecoration(labelText: 'Enrollment Status'),
                 ),
               ],
             ),
@@ -215,6 +229,7 @@ class _MainViewState extends State<Sysad> {
                   user.displayname['lastname'] = lastNameController.text;
                   user.email = emailController.text;
                   user.role = selectedRole;
+                  user.status = selectedStatus;
 
                   user.idnumber = int.parse(idNumberController.text);
                 });
@@ -232,6 +247,7 @@ class _MainViewState extends State<Sysad> {
                     },
                     'email': emailController.text,
                     'role': selectedRole,
+                    'status': selectedStatus,
                     'idnumber': int.parse(idNumberController.text),
                   });
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -299,7 +315,6 @@ class _MainViewState extends State<Sysad> {
   void _editCourseData(BuildContext context, Course course) {
     bool hasStudents = false;
     List<String> status = ['true', 'false'];
-
     List<String> degrees = ['No degree', 'MIT', 'MSIT'];
     List<String> programs = ['MIT/MSIT', 'MIT', 'MSIT'];
     List<String> type = [
@@ -463,7 +478,8 @@ class _MainViewState extends State<Sysad> {
                                   enrolledCourses:
                                       enrolledStudent[i].enrolledCourses,
                                   pastCourses: enrolledStudent[i].pastCourses,
-                                  degree: enrolledStudent[i].degree);
+                                  degree: enrolledStudent[i].degree,
+                                  status: enrolledStudent[i].status);
 
                               retrieveStudentPOS(enrolledStudent[i].uid);
                               _showStudentInfo(context, enrolledStudent[i]);
@@ -988,6 +1004,7 @@ class _MainViewState extends State<Sysad> {
                                       color: Color.fromARGB(255, 23, 71, 25)),
                                 ),
                                 Text(currentUser.email),
+                                Text('Status: ${currentUser.status}'),
                                 Text(
                                   isValidPass
                                       ? '🔒 Your password is secure'

@@ -19,6 +19,7 @@ class StudentPOS extends Student {
     required String email,
     required int idnumber,
     required String degree,
+    required String status,
     required List<EnrolledCourseData> enrolledCourses,
     required List<PastCourse> pastCourses,
   }) : super(
@@ -30,6 +31,7 @@ class StudentPOS extends Student {
           enrolledCourses: enrolledCourses,
           pastCourses: pastCourses,
           degree: degree,
+          status: status
         );
 
   factory StudentPOS.fromJson(Map<String, dynamic> json) {
@@ -57,7 +59,8 @@ class StudentPOS extends Student {
             .map<PastCourse>((courseJson) {
           return PastCourse.fromJson(courseJson as Map<String, dynamic>);
         }).toList(),
-        degree: json['degree']);
+        degree: json['degree'],
+        status: json['status']);
   }
 
   Map<String, dynamic> toJson() {
@@ -80,7 +83,9 @@ StudentPOS studentPOS = StudentPOS(
     idnumber: currentStudent!.idnumber,
     enrolledCourses: currentStudent!.enrolledCourses,
     pastCourses: currentStudent!.pastCourses,
-    degree: currentStudent!.degree);
+    degree: currentStudent!.degree,
+    status: currentStudent!.status
+    );
 
 void studentPOSDefault() {
   studentPOS = StudentPOS(
@@ -94,6 +99,8 @@ void studentPOSDefault() {
     enrolledCourses: currentStudent!.enrolledCourses,
     pastCourses: currentStudent!.pastCourses,
     degree: currentStudent!.degree,
+    
+      status: currentStudent!.status
   );
 }
 
