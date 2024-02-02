@@ -50,6 +50,35 @@ String curpass = passwordTextController.text;
 
 final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
+class ArrowPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    Paint paint = Paint()
+      ..color = Color.fromARGB(255, 25, 87, 27) // Set the color of the arrow
+      ..style = PaintingStyle.fill
+      ..strokeWidth = 2.0; // Adjust the thickness of the arrow
+    Path path = Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width, 0)
+      ..lineTo(size.width, size.height)
+      ..cubicTo(size.width * 0.9, size.height * 0.7, size.width * 0.8,
+          size.height * 0.8, size.width * 0.7, size.height * 0.9)
+      ..cubicTo(size.width * 0.6, size.height, size.width * 0.5,
+          size.height * 0.9, size.width * 0.4, size.height * 0.8)
+      ..cubicTo(size.width * 0.3, size.height * 0.7, size.width * 0.2,
+          size.height * 0.8, size.width * 0.1, size.height * 0.9)
+      ..lineTo(0, size.height)
+      ..close();
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) {
+    return false;
+  }
+}
+
 class _LoginPageState extends State<LoginPage> {
   Future<void> resetPassword(String email) async {
     try {
@@ -142,9 +171,12 @@ class _LoginPageState extends State<LoginPage> {
       child: Scaffold(
           body: Stack(
         children: [
-          Container(
-            height: MediaQuery.of(context).size.height / 3,
-            color: const Color.fromARGB(255, 25, 87, 27),
+          CustomPaint(
+            painter: ArrowPainter(),
+            child: Container(
+              height: MediaQuery.of(context).size.height / 1.5,
+              width: MediaQuery.of(context).size.width,
+            ),
           ),
           contain.Container(
             color: Color.fromARGB(0, 231, 231, 231),
