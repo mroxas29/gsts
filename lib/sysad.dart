@@ -1239,7 +1239,7 @@ class _MainViewState extends State<Sysad> {
                     style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
                   subtitle: Text(
-                    emailTextController.text,
+                    emailTextController.text.toLowerCase(),
                     style: TextStyle(
                       color: Color(0xFF747475),
                       fontSize: 12,

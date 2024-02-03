@@ -291,7 +291,9 @@ class _LoginPageState extends State<LoginPage> {
                                               curpass =
                                                   passwordTextController.text;
                                             });
-                                            signIn(emailTextController.text,
+                                            signIn(
+                                                emailTextController.text
+                                                    .toLowerCase(),
                                                 passwordTextController.text);
                                           },
                                           isPressed,
@@ -395,7 +397,7 @@ class _LoginPageState extends State<LoginPage> {
         .get()
         .then((DocumentSnapshot documentSnapshot) async {
       if (documentSnapshot.exists) {
-        String targetemail = emailTextController.text;
+        String targetemail = emailTextController.text.toLowerCase();
         currentUser = users.firstWhere((users) => users.email == targetemail);
         if (passwordTextController.text.length < 12 ||
             curpass.length > 64 ||

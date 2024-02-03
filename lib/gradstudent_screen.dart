@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import 'package:side_navigation/side_navigation.dart';
 import 'package:sysadmindb/ui/CircularProgressWidget.dart';
@@ -562,70 +563,344 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
     Course? selectedCourse = blankCourse;
     int? selectedCourseIndex;
     bool courseAlreadyExists = false;
+    String selectedRadio = '';
+
+    void handleRadioValueChanged(String coursetype) {
+      setState(() {
+        selectedRadio = coursetype;
+      });
+    }
+
+    Widget radioSelectionButton(String value) {
+      return Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: TextButton(
+          onPressed: () {
+            setState(() {
+              selectedRadio = value;
+            });
+          },
+          style: TextButton.styleFrom(
+            foregroundColor: selectedRadio == value
+                ? const Color.fromARGB(
+                    255, 23, 71, 25) // Text color when selected
+                : null,
+            backgroundColor: null, // Fully transparent background
+            side: BorderSide(
+              color: selectedRadio == value
+                  ? const Color.fromARGB(
+                      255, 23, 71, 25) // Border color when selected
+                  : Colors
+                      .transparent, // Transparent border color when not selected
+            ),
+          ),
+          child: Text(value),
+        ),
+      );
+    }
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
             return AlertDialog(
-              title: Text('Add Enrolled Course'),
+              backgroundColor: Colors.white,
+              title: Text('Add currently enrolled Course'),
               content: Form(
-                key: formKey,
-                autovalidateMode: AutovalidateMode.always,
-                child: Column(
-                  children: [
-                    DropdownButtonFormField<Course>(
-                      value: selectedCourse,
-                      items: [
-                        blankCourse,
-                        ...activecourses.where((course) =>
-                            course.program.contains(currentStudent!.degree))
-                      ].map((course) {
-                        return DropdownMenuItem<Course>(
-                          value: course,
-                          child: Text(
-                              "${course.coursecode}: ${course.coursename}"),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          selectedCourse = value;
-                          if (value == blankCourse) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('No course chosen.'),
-                                duration: Duration(seconds: 2),
+                  key: formKey,
+                  autovalidateMode: AutovalidateMode.always,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    selectedRadio = 'Bridging/Remedial';
+                                  });
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.all(20.0),
+                                  foregroundColor:
+                                      selectedRadio == 'Bridging/Remedial'
+                                          ? const Color.fromARGB(255, 23, 71,
+                                              25) // Text color when selected
+                                          : null,
+                                  backgroundColor: selectedRadio ==
+                                          'Bridging/Remedial'
+                                      ? Color.fromARGB(50, 13, 105, 16)
+                                      : null, // Fully transparent background
+                                  side: BorderSide(
+                                    color: selectedRadio == 'Bridging/Remedial'
+                                        ? const Color.fromARGB(255, 23, 71,
+                                            25) // Border color when selected
+                                        : Colors
+                                            .transparent, // Transparent border color when not selected
+                                  ),
+                                ),
+                                child: Text(
+                                  'Bridging/Remedial',
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                  ),
+                                ),
                               ),
-                            );
-                          } else {
-                            selectedCourseIndex =
-                                activecourses.indexOf(selectedCourse!);
-                            courseAlreadyExists = false;
-                          }
-                        });
-                      },
-                      onSaved: (value) {},
-                      decoration: InputDecoration(labelText: 'Select Course'),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    selectedRadio = 'Foundation';
+                                  });
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.all(20.0),
+                                  foregroundColor: selectedRadio == 'Foundation'
+                                      ? const Color.fromARGB(255, 23, 71,
+                                          25) // Text color when selected
+                                      : null,
+                                  backgroundColor: selectedRadio == 'Foundation'
+                                      ? Color.fromARGB(50, 13, 105, 16)
+                                      : null, // Fully transparent background
+                                  side: BorderSide(
+                                    color: selectedRadio == 'Foundation'
+                                        ? const Color.fromARGB(255, 23, 71,
+                                            25) // Border color when selected
+                                        : Colors
+                                            .transparent, // Transparent border color when not selected
+                                  ),
+                                ),
+                                child: Text(
+                                  'Foundation',
+                                  style: TextStyle(color: Colors.black),
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    selectedRadio = 'Elective';
+                                  });
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.all(20.0),
+                                  foregroundColor: selectedRadio == 'Elective'
+                                      ? const Color.fromARGB(255, 23, 71,
+                                          25) // Text color when selected
+                                      : null,
+                                  backgroundColor: selectedRadio == 'Elective'
+                                      ? Color.fromARGB(50, 13, 105, 16)
+                                      : null, // Fully transparent background
+                                  side: BorderSide(
+                                    color: selectedRadio == 'Elective'
+                                        ? const Color.fromARGB(255, 23, 71,
+                                            25) // Border color when selected
+                                        : Colors
+                                            .transparent, // Transparent border color when not selected
+                                  ),
+                                ),
+                                child: Text(
+                                  'Elective',
+                                  style: TextStyle(color: Colors.black),
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    selectedRadio = 'Specialized';
+                                  });
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.all(20.0),
+                                  foregroundColor:
+                                      selectedRadio == 'Specialized'
+                                          ? Color.fromARGB(255, 0, 0,
+                                              0) // Text color when selected
+                                          : null,
+                                  backgroundColor: selectedRadio ==
+                                          'Specialized'
+                                      ? Color.fromARGB(50, 13, 105, 16)
+                                      : null, // Fully transparent background
+                                  side: BorderSide(
+                                    color: selectedRadio == 'Specialized'
+                                        ? const Color.fromARGB(255, 23, 71,
+                                            25) // Border color when selected
+                                        : Colors
+                                            .transparent, // Transparent border color when not selected
+                                  ),
+                                ),
+                                child: Text(
+                                  'Specialized',
+                                  style: TextStyle(color: Colors.black),
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    selectedRadio = 'Exam';
+                                  });
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.all(20.0),
+                                  foregroundColor: selectedRadio == 'Exam'
+                                      ? const Color.fromARGB(255, 23, 71,
+                                          25) // Text color when selected
+                                      : null,
+                                  backgroundColor: selectedRadio == 'Exam'
+                                      ? Color.fromARGB(50, 13, 105, 16)
+                                      : null, // Fully transparent background
+                                  side: BorderSide(
+                                    color: selectedRadio == 'Exam'
+                                        ? const Color.fromARGB(255, 23, 71,
+                                            25) // Border color when selected
+                                        : Colors
+                                            .transparent, // Transparent border color when not selected
+                                  ),
+                                ),
+                                child: Text(
+                                  'Exam',
+                                  style: TextStyle(color: Colors.black),
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    selectedRadio = 'Capstone';
+                                  });
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.all(20.0),
+                                  foregroundColor: selectedRadio == 'Capstone'
+                                      ? Color.fromARGB(255, 0, 0,
+                                          0) // Text color when selected
+                                      : null,
+                                  backgroundColor: selectedRadio == 'Capstone'
+                                      ? Color.fromARGB(50, 13, 105, 16)
+                                      : null, // Fully transparent background
+                                  side: BorderSide(
+                                    color: selectedRadio == 'Capstone'
+                                        ? const Color.fromARGB(255, 23, 71,
+                                            25) // Border color when selected
+                                        : Colors
+                                            .transparent, // Transparent border color when not selected
+                                  ),
+                                ),
+                                child: Text(
+                                  'Capstone',
+                                  style: TextStyle(color: Colors.black),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(
+                          height: 200,
+                          width: MediaQuery.of(context).size.width / 2,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Color.fromARGB(34, 54, 233,
+                                  60), // Set your desired background color
+                              borderRadius: BorderRadius.circular(
+                                  10), // Set your desired border radius
+                            ),
+                            child: ListView.builder(
+                              itemCount: activecourses
+                                  .where((course) =>
+                                      course.program
+                                          .contains(currentStudent!.degree) &&
+                                      course.type.toLowerCase().contains(
+                                          selectedRadio.toLowerCase()))
+                                  .length,
+                              itemBuilder: (BuildContext context, int index) {
+                                final course = activecourses
+                                    .where((course) =>
+                                        course.program
+                                            .contains(currentStudent!.degree) &&
+                                        course.type.toLowerCase().contains(
+                                            selectedRadio.toLowerCase()))
+                                    .toList()[index];
+
+                                return ListTile(
+                                  title: Text(
+                                      "${course.coursecode}: ${course.coursename}"),
+                                  onTap: () {
+                                    setState(() {
+                                      selectedCourse = course;
+                                      selectedCourseIndex = activecourses
+                                          .indexOf(selectedCourse!);
+                                      courseAlreadyExists = false;
+                                    });
+                                  },
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          height: 25,
+                        ),
+                        if (courseAlreadyExists)
+                          Text(
+                            'This course is already added',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        if (selectedCourse != null)
+                          Text(
+                            "Course name",
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                        Text(
+                          selectedCourse!.coursename,
+                          style: TextStyle(fontSize: 18),
+                        ),
+                        Text(
+                          "Faculty name",
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                        Text(
+                          selectedCourse?.facultyassigned ==
+                                  'UNASSIGNED UNASSIGNED'
+                              ? 'No faculty assigned'
+                              : '${selectedCourse?.facultyassigned}',
+                          style: TextStyle(fontSize: 18),
+                        ),
+                        Text(
+                          "Units",
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                        Text(
+                          selectedCourse!.units.toString(),
+                          style: TextStyle(fontSize: 18),
+                        ),
+                        Text(
+                          "Number of students",
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                        Text(
+                          selectedCourse!.numstudents.toString(),
+                          style: TextStyle(fontSize: 18),
+                        ),
+                      ],
                     ),
-                    if (courseAlreadyExists)
-                      Text(
-                        'This course is already added',
-                        style: TextStyle(color: Colors.red),
-                      ),
-                    if (selectedCourse != null)
-                      Column(
-                        children: [
-                          Text('Course Name: ${selectedCourse?.coursename}'),
-                          Text(
-                              'Faculty Assigned: ${selectedCourse?.facultyassigned}'),
-                          Text('Units: ${selectedCourse?.units}'),
-                          Text(
-                              'Number of Students: ${selectedCourse?.numstudents}'),
-                        ],
-                      ),
-                  ],
-                ),
-              ),
+                  )),
               actions: [
                 TextButton(
                   onPressed: () {
@@ -878,6 +1153,41 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
     int? selectedCourseIndex;
     bool courseAlreadyExists = false;
     double? enteredGrade; // Variable to store the entered grade
+    String selectedRadio = '';
+
+    void handleRadioValueChanged(String coursetype) {
+      setState(() {
+        selectedRadio = coursetype;
+      });
+    }
+
+    Widget radioSelectionButton(String value) {
+      return Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: TextButton(
+          onPressed: () {
+            setState(() {
+              selectedRadio = value;
+            });
+          },
+          style: TextButton.styleFrom(
+            foregroundColor: selectedRadio == value
+                ? const Color.fromARGB(
+                    255, 23, 71, 25) // Text color when selected
+                : null,
+            backgroundColor: null, // Fully transparent background
+            side: BorderSide(
+              color: selectedRadio == value
+                  ? const Color.fromARGB(
+                      255, 23, 71, 25) // Border color when selected
+                  : Colors
+                      .transparent, // Transparent border color when not selected
+            ),
+          ),
+          child: Text(value),
+        ),
+      );
+    }
 
     showDialog(
       context: context,
@@ -887,67 +1197,304 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
             return AlertDialog(
               title: Text('Add Past Course'),
               content: Form(
-                key: formKey,
-                autovalidateMode: AutovalidateMode.always,
-                child: Column(
-                  children: [
-                    DropdownButtonFormField<Course>(
-                      value: selectedCourse,
-                      items: courses.map((course) {
-                        return DropdownMenuItem<Course>(
-                          value: course,
-                          child: Text(course.coursecode),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          selectedCourse = value;
-                          selectedCourseIndex =
-                              courses.indexOf(selectedCourse!);
-                          courseAlreadyExists = false;
-                        });
-                      },
-                      onSaved: (value) {},
-                      decoration: InputDecoration(labelText: 'Select Course'),
-                    ),
-                    if (courseAlreadyExists)
-                      Text(
-                        'This course is already added',
-                        style: TextStyle(color: Colors.red),
-                      ),
-                    if (selectedCourse != null)
-                      Column(
-                        children: [
-                          Text('Course Name: ${selectedCourse?.coursename}'),
-                          Text(
-                              'Faculty Assigned: ${selectedCourse?.facultyassigned}'),
-                          Text('Units: ${selectedCourse?.units}'),
-                          TextFormField(
-                            decoration:
-                                InputDecoration(labelText: 'Enter Grade'),
-                            keyboardType:
-                                TextInputType.numberWithOptions(decimal: true),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter the grade';
-                              }
+                  key: formKey,
+                  autovalidateMode: AutovalidateMode.always,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    selectedRadio = 'Bridging/Remedial';
+                                  });
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.all(20.0),
+                                  foregroundColor:
+                                      selectedRadio == 'Bridging/Remedial'
+                                          ? const Color.fromARGB(255, 23, 71,
+                                              25) // Text color when selected
+                                          : null,
+                                  backgroundColor: selectedRadio ==
+                                          'Bridging/Remedial'
+                                      ? Color.fromARGB(50, 13, 105, 16)
+                                      : null, // Fully transparent background
+                                  side: BorderSide(
+                                    color: selectedRadio == 'Bridging/Remedial'
+                                        ? const Color.fromARGB(255, 23, 71,
+                                            25) // Border color when selected
+                                        : Colors
+                                            .transparent, // Transparent border color when not selected
+                                  ),
+                                ),
+                                child: Text(
+                                  'Bridging/Remedial',
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    selectedRadio = 'Foundation';
+                                  });
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.all(20.0),
+                                  foregroundColor: selectedRadio == 'Foundation'
+                                      ? const Color.fromARGB(255, 23, 71,
+                                          25) // Text color when selected
+                                      : null,
+                                  backgroundColor: selectedRadio == 'Foundation'
+                                      ? Color.fromARGB(50, 13, 105, 16)
+                                      : null, // Fully transparent background
+                                  side: BorderSide(
+                                    color: selectedRadio == 'Foundation'
+                                        ? const Color.fromARGB(255, 23, 71,
+                                            25) // Border color when selected
+                                        : Colors
+                                            .transparent, // Transparent border color when not selected
+                                  ),
+                                ),
+                                child: Text(
+                                  'Foundation',
+                                  style: TextStyle(color: Colors.black),
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    selectedRadio = 'Elective';
+                                  });
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.all(20.0),
+                                  foregroundColor: selectedRadio == 'Elective'
+                                      ? const Color.fromARGB(255, 23, 71,
+                                          25) // Text color when selected
+                                      : null,
+                                  backgroundColor: selectedRadio == 'Elective'
+                                      ? Color.fromARGB(50, 13, 105, 16)
+                                      : null, // Fully transparent background
+                                  side: BorderSide(
+                                    color: selectedRadio == 'Elective'
+                                        ? const Color.fromARGB(255, 23, 71,
+                                            25) // Border color when selected
+                                        : Colors
+                                            .transparent, // Transparent border color when not selected
+                                  ),
+                                ),
+                                child: Text(
+                                  'Elective',
+                                  style: TextStyle(color: Colors.black),
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    selectedRadio = 'Specialized';
+                                  });
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.all(20.0),
+                                  foregroundColor:
+                                      selectedRadio == 'Specialized'
+                                          ? Color.fromARGB(255, 0, 0,
+                                              0) // Text color when selected
+                                          : null,
+                                  backgroundColor: selectedRadio ==
+                                          'Specialized'
+                                      ? Color.fromARGB(50, 13, 105, 16)
+                                      : null, // Fully transparent background
+                                  side: BorderSide(
+                                    color: selectedRadio == 'Specialized'
+                                        ? const Color.fromARGB(255, 23, 71,
+                                            25) // Border color when selected
+                                        : Colors
+                                            .transparent, // Transparent border color when not selected
+                                  ),
+                                ),
+                                child: Text(
+                                  'Specialized',
+                                  style: TextStyle(color: Colors.black),
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    selectedRadio = 'Exam';
+                                  });
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.all(20.0),
+                                  foregroundColor: selectedRadio == 'Exam'
+                                      ? const Color.fromARGB(255, 23, 71,
+                                          25) // Text color when selected
+                                      : null,
+                                  backgroundColor: selectedRadio == 'Exam'
+                                      ? Color.fromARGB(50, 13, 105, 16)
+                                      : null, // Fully transparent background
+                                  side: BorderSide(
+                                    color: selectedRadio == 'Exam'
+                                        ? const Color.fromARGB(255, 23, 71,
+                                            25) // Border color when selected
+                                        : Colors
+                                            .transparent, // Transparent border color when not selected
+                                  ),
+                                ),
+                                child: Text(
+                                  'Exam',
+                                  style: TextStyle(color: Colors.black),
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    selectedRadio = 'Capstone';
+                                  });
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.all(20.0),
+                                  foregroundColor: selectedRadio == 'Capstone'
+                                      ? Color.fromARGB(255, 0, 0,
+                                          0) // Text color when selected
+                                      : null,
+                                  backgroundColor: selectedRadio == 'Capstone'
+                                      ? Color.fromARGB(50, 13, 105, 16)
+                                      : null, // Fully transparent background
+                                  side: BorderSide(
+                                    color: selectedRadio == 'Capstone'
+                                        ? const Color.fromARGB(255, 23, 71,
+                                            25) // Border color when selected
+                                        : Colors
+                                            .transparent, // Transparent border color when not selected
+                                  ),
+                                ),
+                                child: Text(
+                                  'Capstone',
+                                  style: TextStyle(color: Colors.black),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(
+                          height: 200,
+                          width: MediaQuery.of(context).size.width / 2,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Color.fromARGB(34, 54, 233,
+                                  60), // Set your desired background color
+                              borderRadius: BorderRadius.circular(
+                                  10), // Set your desired border radius
+                            ),
+                            child: ListView.builder(
+                              itemCount: courses
+                                  .where((course) =>
+                                      course.program
+                                          .contains(currentStudent!.degree) &&
+                                      course.type.toLowerCase().contains(
+                                          selectedRadio.toLowerCase()))
+                                  .length,
+                              itemBuilder: (BuildContext context, int index) {
+                                final course = courses
+                                    .where((course) =>
+                                        course.program
+                                            .contains(currentStudent!.degree) &&
+                                        course.type.toLowerCase().contains(
+                                            selectedRadio.toLowerCase()))
+                                    .toList()[index];
 
-                              if (int.parse(value) > 4.0 ||
-                                  int.parse(value) < 0.0) {
-                                return 'Invalid grade';
-                              }
-                              return null;
-                            },
-                            onSaved: (value) {
-                              // Parse the entered value to double
-                              enteredGrade = double.tryParse(value ?? '');
-                            },
+                                return ListTile(
+                                  title: Text(
+                                      "${course.coursecode}: ${course.coursename}"),
+                                  onTap: () {
+                                    setState(() {
+                                      selectedCourse = course;
+                                      selectedCourseIndex = activecourses
+                                          .indexOf(selectedCourse!);
+                                      courseAlreadyExists = false;
+                                    });
+                                  },
+                                );
+                              },
+                            ),
                           ),
-                        ],
-                      ),
-                  ],
-                ),
-              ),
+                        ),
+                        SizedBox(
+                          height: 25,
+                        ),
+                        if (courseAlreadyExists)
+                          Text(
+                            'This course is already added',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        if (selectedCourse != null)
+                          Text(
+                            "Course name",
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                        Text(
+                          selectedCourse!.coursename,
+                          style: TextStyle(fontSize: 18),
+                        ),
+                        Text(
+                          "Units",
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                        Text(
+                          selectedCourse!.units.toString(),
+                          style: TextStyle(fontSize: 18),
+                        ),
+                        Text(
+                          "Enter Grade",
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                        TextFormField(
+                          decoration: InputDecoration(labelText: 'Grade'),
+                          keyboardType:
+                              TextInputType.numberWithOptions(decimal: true),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter the grade';
+                            }
+
+                            if (int.parse(value) > 4.0 ||
+                                int.parse(value) < 0.0) {
+                              return 'Invalid grade';
+                            }
+                            return null;
+                          },
+                          onSaved: (value) {
+                            // Parse the entered value to double
+                            enteredGrade = double.tryParse(value ?? '');
+                          },
+                        ),
+                      ],
+                    ),
+                  )),
               actions: [
                 TextButton(
                   onPressed: () {
@@ -1613,7 +2160,7 @@ class _MainViewState extends State<GradStudentscreen>
                     style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
                   subtitle: Text(
-                    emailTextController.text,
+                    emailTextController.text.toLowerCase(),
                     style: TextStyle(
                       color: Color(0xFF747475),
                       fontSize: 12,
