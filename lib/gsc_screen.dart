@@ -11,7 +11,7 @@ import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/main.dart';
 import 'package:sysadmindb/app/models/user.dart';
 import 'package:sysadmindb/ui/form.dart';
-import 'package:sysadmindb/ui/studentinfopopup.dart';
+import 'package:sysadmindb/ui/studentInfoPage.dart';
 
 void main() {
   runApp(
@@ -379,23 +379,14 @@ class _MainViewState extends State<Gscscreen> {
                             onTap: () {
                               // Handle the click event for the ListTile
                               currentStudent = enrolledStudent[i];
-                              studentPOS = StudentPOS(
-                                  studentIdNumber: enrolledStudent[i].idnumber,
-                                  schoolYears: defaultschoolyears,
-                                  uid: enrolledStudent[i].uid,
-                                  displayname: enrolledStudent[i].displayname,
-                                  role: enrolledStudent[i].role,
-                                  email: enrolledStudent[i].email,
-                                  idnumber: enrolledStudent[i].idnumber,
-                                  enrolledCourses:
-                                      enrolledStudent[i].enrolledCourses,
-                                  pastCourses: enrolledStudent[i].pastCourses,
-                                  degree: enrolledStudent[i].degree,
-                                  status: enrolledStudent[i].status
-                                  );
 
-                              retrieveStudentPOS(enrolledStudent[i].uid);
-                              _showStudentInfo(context, enrolledStudent[i]);
+                              print(
+                                  "${currentStudent!.displayname['firstname']} ${currentStudent!.displayname['lastname']}");
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => StudentInfoPage(
+                                          student: currentStudent!)));
                             },
                             child: ListTile(
                               title: Text(
@@ -619,10 +610,6 @@ class _MainViewState extends State<Gscscreen> {
     });
   }
 
-  void _showStudentInfo(BuildContext context, Student student) {
-    StudentInfoPopup(student);
-  }
-
   void changeScreen(int index) {
     setState(() {
       selectedIndex = index;
@@ -785,7 +772,8 @@ class _MainViewState extends State<Gscscreen> {
             length: 3,
             child: Scaffold(
               appBar: AppBar(
-                title: Text('Program Management'),
+                title: Text('Program Management',
+                    style: TextStyle(color: Colors.white)),
                 bottom: TabBar(
                   tabs: [
                     Tab(
@@ -796,14 +784,14 @@ class _MainViewState extends State<Gscscreen> {
                       text: 'Student POS',
                     )
                   ],
-                  indicator: BoxDecoration(
-                      color: Color.fromARGB(255, 15, 136, 31),
-                      boxShadow: [
-                        BoxShadow(
-                            color: Colors.black,
-                            blurRadius: 10.0,
-                            offset: Offset(0, 3))
-                      ]),
+                  labelColor: Colors.white,
+                  labelPadding: EdgeInsets.only(left: 10),
+                  unselectedLabelColor: Colors.white70,
+                  indicatorColor: Colors.white,
+                  indicatorWeight: 4,
+                  indicator: UnderlineTabIndicator(
+                      borderSide: BorderSide(width: 4.0, color: Colors.white),
+                      insets: EdgeInsets.symmetric(horizontal: 16.0)),
                 ),
                 backgroundColor: const Color.fromARGB(255, 23, 71, 25),
               ),
@@ -1079,8 +1067,6 @@ class _MainViewState extends State<Gscscreen> {
                                       color: Color.fromARGB(255, 23, 71, 25)),
                                 ),
                                 Text(currentUser.email),
-                                
-                               
                                 Text('Status: ${currentUser.status}'),
                                 Text(
                                   isValidPass

@@ -10,7 +10,6 @@ import 'package:sysadmindb/main.dart';
 import 'package:sysadmindb/app/models/user.dart';
 import 'package:sysadmindb/ui/form.dart';
 import 'package:sysadmindb/ui/reusable_widgets.dart';
-import 'package:sysadmindb/ui/studentinfopopup.dart';
 import 'package:sysadmindb/ui/user_form_dialog.dart';
 
 void main() {
@@ -304,12 +303,7 @@ class _MainViewState extends State<Sysad> {
   }
 
   void _showStudentInfo(BuildContext context, Student student) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return StudentInfoPopup(student);
-      },
-    );
+  
   }
 
   void _editCourseData(BuildContext context, Course course) {
