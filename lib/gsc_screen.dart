@@ -774,7 +774,7 @@ class _MainViewState extends State<Gscscreen> {
     List<Widget> views = [
       Scaffold(
         appBar: AppBar(
-          title: Text("Dashboard"),
+          title: Text("Dashboard", style:TextStyle(color: Colors.white)),
           backgroundColor: const Color.fromARGB(255, 23, 71, 25),
         ),
         body: Row(crossAxisAlignment: CrossAxisAlignment.start, children: []),

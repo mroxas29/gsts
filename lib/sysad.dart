@@ -813,7 +813,9 @@ class _MainViewState extends State<Sysad> {
                             padding: EdgeInsets.all(20),
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(25))),
-                        child: Icon(Icons.person_add)),
+                        child: Column(
+                          children: [Icon(Icons.person_add), Text("Add Users")],
+                        ), ),
                   )
                 ])
               ],
