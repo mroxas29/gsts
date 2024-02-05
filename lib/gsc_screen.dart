@@ -376,17 +376,31 @@ class _MainViewState extends State<Gscscreen> {
                         ),
                         for (int i = 0; i < enrolledStudent.length; i++)
                           GestureDetector(
-                            onTap: () {
+                            onTap: () async {
                               // Handle the click event for the ListTile
                               currentStudent = enrolledStudent[i];
-
-                              print(
-                                  "${currentStudent!.displayname['firstname']} ${currentStudent!.displayname['lastname']}");
+                              studentPOS = StudentPOS(
+                                  studentIdNumber: enrolledStudent[i].idnumber,
+                                  schoolYears: defaultschoolyears,
+                                  uid: enrolledStudent[i].uid,
+                                  displayname: enrolledStudent[i].displayname,
+                                  role: enrolledStudent[i].role,
+                                  email: enrolledStudent[i].email,
+                                  idnumber: enrolledStudent[i].idnumber,
+                                  enrolledCourses:
+                                      enrolledStudent[i].enrolledCourses,
+                                  pastCourses: enrolledStudent[i].pastCourses,
+                                  degree: enrolledStudent[i].degree,
+                                  status: enrolledStudent[i].status);
+                              await retrieveStudentPOS(currentStudent!.uid);
+                              // ignore: use_build_context_synchronously
                               Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                       builder: (context) => StudentInfoPage(
-                                          student: currentStudent!)));
+                                            student: enrolledStudent[i],
+                                            studentpos: studentPOS,
+                                          )));
                             },
                             child: ListTile(
                               title: Text(

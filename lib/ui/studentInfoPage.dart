@@ -1,10 +1,15 @@
+import 'package:appflowy_board/appflowy_board.dart';
 import 'package:flutter/material.dart';
+import 'package:kanban_board/custom/board.dart';
+import 'package:kanban_board/models/inputs.dart';
+import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 
 class StudentInfoPage extends StatefulWidget {
   final Student student;
+  final StudentPOS studentpos;
 
-  StudentInfoPage({required this.student});
+  StudentInfoPage({required this.student, required this.studentpos});
 
   @override
   _StudentInfoPageState createState() => _StudentInfoPageState();
@@ -36,7 +41,6 @@ class _StudentInfoPageState extends State<StudentInfoPage> {
   @override
   Widget build(BuildContext context) {
     Student studentInfo = fetchStudentInfo(widget.student);
-
     return Scaffold(
       appBar: AppBar(
         title: Text('Student Information'),
@@ -183,38 +187,108 @@ class _StudentInfoPageState extends State<StudentInfoPage> {
                   )
                 ],
               ),
+              SizedBox(
+                width: 10,
+              ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
-                  SingleChildScrollView(
-                      child: SizedBox(
-                    width: MediaQuery.sizeOf(context).width / 3,
-                    child: Card(
-                      color: Colors.white,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.0)),
-                      elevation: 4.0,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(10, 10, 200, 70),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Student POS",
-                              style:
-                                  TextStyle(fontSize: 12, color: Colors.grey),
-                            ),
-                          ],
-                        ),
-                      ),
+                  Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Text(
+                      "Program of Study",
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
-                  ))
+                  ),
+                  SingleChildScrollView(
+                    // Allow horizontal scrolling
+                    child: Column(
+                      children: studentPOS.schoolYears.map<Widget>((year) {
+                        return Card(
+                          margin: EdgeInsets.symmetric(vertical: 8.0),
+                          color: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8.0),
+                          ),
+                          elevation: 4.0,
+                          child: Padding(
+                            padding: const EdgeInsets.all(10),
+                            child: Container(
+                              width: MediaQuery.of(context).size.width / 3,
+                              child: Theme(
+                                data: ThemeData(
+                                  dividerColor:
+                                      Colors.transparent, // Remove border
+                                ),
+                                child: ExpansionTile(
+                                  title: Text(
+                                    year.name,
+                                    style: TextStyle(fontSize: 16.0),
+                                  ),
+                                  children: year.terms.expand<Widget>((term) {
+                                    return [
+                                      Padding(
+                                        padding:
+                                            const EdgeInsets.only(left: 16.0),
+                                        child: ExpansionTile(
+                                          title: Text(
+                                            term.name,
+                                            style: TextStyle(fontSize: 14.0),
+                                          ),
+                                          children:
+                                              term.termcourses.map((course) {
+                                            return ListTile(
+                                              title: Text(
+                                                course.coursecode,
+                                                style:
+                                                    TextStyle(fontSize: 12.0),
+                                              ),
+                                              subtitle: Text(
+                                                course.coursename,
+                                                style:
+                                                    TextStyle(fontSize: 12.0),
+                                              ),
+                                            );
+                                          }).toList(),
+                                        ),
+                                      ),
+                                      SizedBox(
+                                          height:
+                                              8.0), // Add space between sub-expansion tiles
+                                    ];
+                                  }).toList(),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
                 ],
               ),
             ],
           )),
     );
   }
+}
+
+class Coursetest {
+  final String courseName;
+  final String courseCode;
+
+  Coursetest({required this.courseName, required this.courseCode});
+}
+
+class Section {
+  final String sectionName;
+  final List<Coursetest> courses;
+  bool isExpanded;
+
+  Section(
+      {required this.sectionName,
+      required this.courses,
+      this.isExpanded = false});
 }

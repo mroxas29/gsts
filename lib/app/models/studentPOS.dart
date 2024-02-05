@@ -23,16 +23,15 @@ class StudentPOS extends Student {
     required List<EnrolledCourseData> enrolledCourses,
     required List<PastCourse> pastCourses,
   }) : super(
-          uid: uid,
-          displayname: displayname,
-          role: role,
-          email: email,
-          idnumber: idnumber,
-          enrolledCourses: enrolledCourses,
-          pastCourses: pastCourses,
-          degree: degree,
-          status: status
-        );
+            uid: uid,
+            displayname: displayname,
+            role: role,
+            email: email,
+            idnumber: idnumber,
+            enrolledCourses: enrolledCourses,
+            pastCourses: pastCourses,
+            degree: degree,
+            status: status);
 
   factory StudentPOS.fromJson(Map<String, dynamic> json) {
     final List<dynamic> schoolYearsJson = json['schoolYears'] ?? [];
@@ -73,35 +72,19 @@ class StudentPOS extends Student {
   }
 }
 
-StudentPOS studentPOS = StudentPOS(
-    studentIdNumber: currentStudent!.idnumber,
-    schoolYears: defaultschoolyears,
-    uid: currentStudent!.uid,
-    displayname: currentStudent!.displayname,
-    role: currentStudent!.role,
-    email: currentStudent!.email,
-    idnumber: currentStudent!.idnumber,
-    enrolledCourses: currentStudent!.enrolledCourses,
-    pastCourses: currentStudent!.pastCourses,
-    degree: currentStudent!.degree,
-    status: currentStudent!.status
-    );
-
 void studentPOSDefault() {
   studentPOS = StudentPOS(
-    studentIdNumber: currentStudent!.idnumber,
-    schoolYears: defaultschoolyears,
-    uid: currentStudent!.uid,
-    displayname: currentStudent!.displayname,
-    role: currentStudent!.role,
-    email: currentStudent!.email,
-    idnumber: currentStudent!.idnumber,
-    enrolledCourses: currentStudent!.enrolledCourses,
-    pastCourses: currentStudent!.pastCourses,
-    degree: currentStudent!.degree,
-    
-      status: currentStudent!.status
-  );
+      studentIdNumber: currentStudent!.idnumber,
+      schoolYears: defaultschoolyears,
+      uid: currentStudent!.uid,
+      displayname: currentStudent!.displayname,
+      role: currentStudent!.role,
+      email: currentStudent!.email,
+      idnumber: currentStudent!.idnumber,
+      enrolledCourses: currentStudent!.enrolledCourses,
+      pastCourses: currentStudent!.pastCourses,
+      degree: currentStudent!.degree,
+      status: currentStudent!.status);
 }
 
 List<SchoolYear> defaultschoolyears = List.generate(3, (index) {
@@ -113,7 +96,7 @@ List<SchoolYear> defaultschoolyears = List.generate(3, (index) {
   return SchoolYear(schoolYearName, terms);
 });
 
-Future<void> retrieveStudentPOS(String uid) async {
+Future<StudentPOS> retrieveStudentPOS(String uid) async {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final DocumentReference documentReference =
       firestore.collection('studentpos').doc(uid); // Use provided UID
@@ -128,9 +111,9 @@ Future<void> retrieveStudentPOS(String uid) async {
 
       if (data != null) {
         // Create a StudentPOS object from the retrieved data
-        studentPOS = StudentPOS.fromJson(data);
-        initializeSchoolYears();
 
+        initializeSchoolYears();
+        studentPOS = StudentPOS.fromJson(data);
         // Now you can use the studentPOS object as needed
       } else {
         print('Document data is null');
@@ -144,6 +127,8 @@ Future<void> retrieveStudentPOS(String uid) async {
   } catch (e) {
     print('Error retrieving document for Student POS: $e');
   }
+
+  return studentPOS;
 }
 
 void initializeSchoolYears() async {
@@ -151,3 +136,15 @@ void initializeSchoolYears() async {
 }
 
 List<SchoolYear> schoolyears = studentPOS.schoolYears;
+StudentPOS studentPOS = StudentPOS(
+    studentIdNumber: currentStudent!.idnumber,
+    schoolYears: defaultschoolyears,
+    uid: currentStudent!.uid,
+    displayname: currentStudent!.displayname,
+    role: currentStudent!.role,
+    email: currentStudent!.email,
+    idnumber: currentStudent!.idnumber,
+    enrolledCourses: currentStudent!.enrolledCourses,
+    pastCourses: currentStudent!.pastCourses,
+    degree: currentStudent!.degree,
+    status: currentStudent!.status);
