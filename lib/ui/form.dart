@@ -266,108 +266,110 @@ void showAddFacultyForm(BuildContext context, GlobalKey<FormState> formKey) {
   showDialog(
     context: context,
     builder: (BuildContext context) {
-      return AlertDialog(
-        title: Text('Add New Faculty'),
-        content: Form(
-          key: formKey,
-          autovalidateMode: AutovalidateMode.always,
-          child: Column(
-            children: [
-              TextFormField(
-                decoration: InputDecoration(labelText: 'First name'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter the full name';
-                  }
-                  return null;
-                },
-                onSaved: (value) {
-                  _facultyData.displayName['firstname'] = value ?? '';
-                },
-              ),
-              TextFormField(
-                decoration: InputDecoration(labelText: 'Last name'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter the Last name';
-                  }
-                  return null;
-                },
-                onSaved: (value) {
-                  _facultyData.displayName['lastname'] = value ?? '';
-                },
-              ),
-              TextFormField(
-                decoration: InputDecoration(labelText: 'Email'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter the email address';
-                  }
-                  if (facultyList.any((faculty) => faculty.email == value)) {
-                    return "Faculty with email $value already exists";
-                  }
-                  // Add email validation if needed
-                  return null;
-                },
-                onSaved: (value) {
-                  _facultyData.email = value ?? '';
-                },
-              ),
-            ],
+      return SingleChildScrollView(
+        child: AlertDialog(
+          title: Text('Add New Faculty'),
+          content: Form(
+            key: formKey,
+            autovalidateMode: AutovalidateMode.always,
+            child: Column(
+              children: [
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'First name'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter the full name';
+                    }
+                    return null;
+                  },
+                  onSaved: (value) {
+                    _facultyData.displayName['firstname'] = value ?? '';
+                  },
+                ),
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'Last name'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter the Last name';
+                    }
+                    return null;
+                  },
+                  onSaved: (value) {
+                    _facultyData.displayName['lastname'] = value ?? '';
+                  },
+                ),
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'Email'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter the email address';
+                    }
+                    if (facultyList.any((faculty) => faculty.email == value)) {
+                      return "Faculty with email $value already exists";
+                    }
+                    // Add email validation if needed
+                    return null;
+                  },
+                  onSaved: (value) {
+                    _facultyData.email = value ?? '';
+                  },
+                ),
+              ],
+            ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              if (formKey.currentState!.validate()) {
-                formKey.currentState!.save();
-                var uid = generateUID();
-                try {
-                  await FirebaseFirestore.instance.collection('faculty').add({
-                    'displayname': {
-                      'firstname': _facultyData.displayName['firstname']!,
-                      'lastname': _facultyData.displayName['lastname']!,
-                    },
-                    'email': _facultyData.email,
-                    'uid': uid
-                  }).then((value) {
-                    // Get the newly generated document ID (UID)
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                if (formKey.currentState!.validate()) {
+                  formKey.currentState!.save();
+                  var uid = generateUID();
+                  try {
+                    await FirebaseFirestore.instance.collection('faculty').add({
+                      'displayname': {
+                        'firstname': _facultyData.displayName['firstname']!,
+                        'lastname': _facultyData.displayName['lastname']!,
+                      },
+                      'email': _facultyData.email,
+                      'uid': uid
+                    }).then((value) {
+                      // Get the newly generated document ID (UID)
 
-                    // Use the UID as needed (if necessary)
-                    print('New faculty member UID: $uid');
-                  });
+                      // Use the UID as needed (if necessary)
+                      print('New faculty member UID: $uid');
+                    });
 
-                  Navigator.pop(context);
+                    Navigator.pop(context);
 
-                  // If you want to refresh the faculty list after adding a new member
+                    // If you want to refresh the faculty list after adding a new member
 
-                  getFacultyList();
+                    getFacultyList();
 
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Faculty member added'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                } catch (e) {
-                  print('Error adding faculty member: $e');
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error adding faculty member: $e'),
-                    ),
-                  );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Faculty member added'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  } catch (e) {
+                    print('Error adding faculty member: $e');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error adding faculty member: $e'),
+                      ),
+                    );
+                  }
                 }
-              }
-            },
-            child: Text('Submit'),
-          ),
-        ],
+              },
+              child: Text('Submit'),
+            ),
+          ],
+        ),
       );
     },
   );

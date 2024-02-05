@@ -11,14 +11,17 @@ class UserData {
   late String role;
   late String password;
   String degree = '';
+  String status = '';
 }
 
 void showAddUserForm(BuildContext context, GlobalKey<FormState> formKey) {
   List<String> roles = ['Coordinator', 'Graduate Student', 'Admin'];
   List<String> degrees = ['No degree', 'MIT', 'MSIT'];
+  List<String> status = ['Full Time', 'Part Time', 'LOA'];
 
   final UserData _userData = UserData();
 
+  String selectedStatus = status[0];
   String selectedDegree = degrees[0];
   String selectedRole = roles[0];
   TextEditingController passwordController = TextEditingController();
@@ -108,6 +111,7 @@ void showAddUserForm(BuildContext context, GlobalKey<FormState> formKey) {
                   }).toList(),
                   onChanged: (value) {
                     // Add the necessary setState method if needed
+
                     selectedRole = value!;
                     selectedDegree = '';
                     if (selectedRole.contains('Student')) {
@@ -141,6 +145,27 @@ void showAddUserForm(BuildContext context, GlobalKey<FormState> formKey) {
                     }
                   },
                   decoration: InputDecoration(labelText: 'Degree'),
+                ),
+                DropdownButtonFormField<String>(
+                  value: selectedStatus,
+                  items: status.map((stat) {
+                    return DropdownMenuItem<String>(
+                      value: stat,
+                      child: Text(stat),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    // Add the necessary setState method if needed
+                    selectedStatus = value!;
+                  },
+                  onSaved: (value) {
+                    if (isStudent) {
+                      _userData.status = value ?? '';
+                    }
+                  },
+                  decoration: (selectedRole == 'Graduate Student')
+                      ? InputDecoration(labelText: 'Enrollment Status')
+                      : InputDecoration(labelText: 'Status'),
                 ),
                 TextFormField(
                   decoration: InputDecoration(labelText: 'Password'),
