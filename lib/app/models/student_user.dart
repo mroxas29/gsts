@@ -39,6 +39,7 @@ class Student extends user {
           enrolledCourses.map((course) => course.toJson()).toList(),
       "pastCourses": pastCourses.map((course) => course.toJson()).toList(),
       "degree": degree,
+      "status": status,
     };
   }
 

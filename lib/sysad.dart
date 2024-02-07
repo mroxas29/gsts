@@ -185,7 +185,7 @@ class _MainViewState extends State<Sysad> {
                         .collection('users')
                         .doc(user.uid)
                         .delete();
-
+                 
                     users.clear();
 
                     addUserFromFirestore().then((value) => {foundUser = users});
@@ -302,9 +302,7 @@ class _MainViewState extends State<Sysad> {
     );
   }
 
-  void _showStudentInfo(BuildContext context, Student student) {
-  
-  }
+  void _showStudentInfo(BuildContext context, Student student) {}
 
   void _editCourseData(BuildContext context, Course course) {
     bool hasStudents = false;

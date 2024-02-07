@@ -50,6 +50,7 @@ class Course {
 
   Map<String, dynamic> toMap() {
     return {
+      'uid': uid,
       'coursecode': coursecode,
       'coursename': coursename,
       'isactive': isactive,

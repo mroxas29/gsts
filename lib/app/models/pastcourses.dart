@@ -27,17 +27,16 @@ class PastCourse extends Course {
 
   factory PastCourse.fromJson(Map<String, dynamic> json) {
     return PastCourse(
-      uid: json['uid'],
-      coursecode: json['coursecode'],
-      coursename: json['coursename'],
-      isactive: json['isactive'],
-      facultyassigned: json['facultyassigned'],
-      numstudents: json['numstudents'],
-      units: json['units'],
-      grade: json['grade'],
-      type: json['type'],
-      program: json['program']
-    );
+        uid: json['uid'],
+        coursecode: json['coursecode'],
+        coursename: json['coursename'],
+        isactive: json['isactive'],
+        facultyassigned: json['facultyassigned'],
+        numstudents: json['numstudents'],
+        units: json['units'],
+        grade: json['grade'],
+        type: json['type'],
+        program: json['program']);
   }
 
   Map<String, dynamic> toJson() {
@@ -48,6 +47,7 @@ class PastCourse extends Course {
       'isactive': isactive,
       'facultyassigned': facultyassigned,
       'numstudents': numstudents,
+      'program': program,
       'units': units,
       'grade': grade,
       'type': type,
