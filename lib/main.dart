@@ -215,6 +215,7 @@ class _LoginPageState extends State<LoginPage> {
                                           .start, // Align text to the left
 
                                       children: [
+                                        Image.asset("assets/images/De_La_Salle_University_Seal.png"),
                                         Text(
                                           'Log Into GSTS',
                                           style: TextStyle(
@@ -223,7 +224,7 @@ class _LoginPageState extends State<LoginPage> {
                                               color:
                                                   Color.fromARGB(255, 0, 0, 0),
                                               fontWeight: FontWeight.bold),
-                                          textAlign: TextAlign.left,
+                                          textAlign: TextAlign.center,
                                         ),
                                         SizedBox(
                                           height: 20,
