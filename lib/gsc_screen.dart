@@ -2,7 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:side_navigation/side_navigation.dart';
+import 'package:sysadmindb/api/invoice_service.dart';
 import 'package:sysadmindb/app/models/coursedemand.dart';
 import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/faculty.dart';
@@ -10,8 +12,14 @@ import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/main.dart';
 import 'package:sysadmindb/app/models/user.dart';
+import 'package:sysadmindb/ui/addcourse.dart';
 import 'package:sysadmindb/ui/form.dart';
 import 'package:sysadmindb/ui/studentInfoPage.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'dart:html' as html;
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:flutter/services.dart';
 
 void main() {
   runApp(
@@ -29,6 +37,7 @@ class Gscscreen extends StatefulWidget {
 class _MainViewState extends State<Gscscreen> {
   final controller = TextEditingController();
   var collection = FirebaseFirestore.instance.collection('faculty');
+  List<StudentPOS> foundPOS = [];
   late List<Map<String, dynamic>> items;
   bool isLoaded = true;
   late String texttest;
@@ -48,6 +57,14 @@ class _MainViewState extends State<Gscscreen> {
   TextEditingController confirmNewPasswordController = TextEditingController();
   bool isValidPass = false;
   bool isEditing = false;
+  StudentPOS? selectedPOS = studentPOSList[0];
+  int? selectedPOSIndex = 0;
+  int? selectedYearIndex = 0;
+  int? selectedTermIndex = 0;
+// Define a list to keep track of selected term indices
+  List<int> selectedTermIndices = [];
+  bool posEdited = false;
+  final PdfInvoiceService service = PdfInvoiceService();
 
   /// The currently selected index of the bar
   int selectedIndex = 0;
@@ -58,6 +75,7 @@ class _MainViewState extends State<Gscscreen> {
       foundCourse = courses;
       foundFaculty = facultyList;
       foundStudents = studentList;
+      foundPOS = studentPOSList;
     });
 
     print("set state for found users");
@@ -380,7 +398,6 @@ class _MainViewState extends State<Gscscreen> {
                               // Handle the click event for the ListTile
                               currentStudent = enrolledStudent[i];
                               studentPOS = StudentPOS(
-                                  studentIdNumber: enrolledStudent[i].idnumber,
                                   schoolYears: defaultschoolyears,
                                   uid: enrolledStudent[i].uid,
                                   displayname: enrolledStudent[i].displayname,
@@ -393,7 +410,7 @@ class _MainViewState extends State<Gscscreen> {
                                   degree: enrolledStudent[i].degree,
                                   status: enrolledStudent[i].status);
                               await retrieveStudentPOS(currentStudent!.uid);
-                              // ignore: use_build_context_synchronously
+
                               Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -403,6 +420,7 @@ class _MainViewState extends State<Gscscreen> {
                                           )));
                             },
                             child: ListTile(
+                              mouseCursor: SystemMouseCursors.click,
                               title: Text(
                                 '${enrolledStudent[i].displayname['firstname']!} ${enrolledStudent[i].displayname['lastname']!}',
                                 style: TextStyle(fontWeight: FontWeight.bold),
@@ -594,6 +612,41 @@ class _MainViewState extends State<Gscscreen> {
     });
   }
 
+  void runPOSFilter(
+    String query,
+    StudentPOS? selectedPOS,
+  ) {
+    List<StudentPOS> results = [];
+    if (query.isEmpty) {
+      results = studentPOSList;
+    } else {
+      results = studentPOSList.where((studentPOS) {
+        final queryParts = query.toLowerCase().split(' ');
+        final firstname =
+            studentPOS.displayname['firstname'].toString().toLowerCase();
+        final lastname =
+            studentPOS.displayname['lastname'].toString().toLowerCase();
+
+        return (queryParts.every((part) =>
+                firstname.contains(part) || lastname.contains(part)) ||
+            studentPOS.idnumber
+                .toString()
+                .toLowerCase()
+                .contains(query.toLowerCase()) ||
+            studentPOS.email
+                .toString()
+                .toLowerCase()
+                .contains(query.toLowerCase()));
+      }).toList();
+    }
+    setState(() {
+      foundPOS = results; // Update the POS with search results
+
+      selectedPOS = foundPOS[0];
+      selectedPOSIndex = 0;
+    });
+  }
+
   void runStudentFilter(String query) {
     List<Student> results = [];
     if (query.isEmpty) {
@@ -713,6 +766,15 @@ class _MainViewState extends State<Gscscreen> {
     return input[0].toUpperCase() + input.substring(1);
   }
 
+  Future<void> launchPDF(String path) async {
+    final url = Uri.parse('assets/$path');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+    } else {
+      throw 'Could not launch $url';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final selectedDemandData = uniqueCourses.firstWhere(
@@ -774,7 +836,7 @@ class _MainViewState extends State<Gscscreen> {
     List<Widget> views = [
       Scaffold(
         appBar: AppBar(
-          title: Text("Dashboard", style:TextStyle(color: Colors.white)),
+          title: Text("Dashboard", style: TextStyle(color: Colors.white)),
           backgroundColor: const Color.fromARGB(255, 23, 71, 25),
         ),
         body: Row(crossAxisAlignment: CrossAxisAlignment.start, children: []),
@@ -927,6 +989,8 @@ class _MainViewState extends State<Gscscreen> {
                                   )),
                         ))
                       ]),
+
+                  //FACULTY TAB
                   Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1030,9 +1094,613 @@ class _MainViewState extends State<Gscscreen> {
                                   )),
                         ))
                       ]),
-                  Column(children: [
-                    //* Student list on the left half, upon click -  student info on the right half //
-                  ]),
+
+                  //STUDENT POS TAB
+                  SingleChildScrollView(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Column(
+                              children: [
+                                Container(
+                                  margin: const EdgeInsets.only(left: 25),
+                                  child: Text("Student's Program of Study",
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                      )),
+                                )
+                              ],
+                            ),
+                            SizedBox(
+                              width: 20,
+                            ),
+                            ElevatedButton(
+                              onPressed: posEdited
+                                  ? () async {
+                                      setState(() {
+                                        posEdited = false;
+                                      });
+
+                                      final FirebaseFirestore firestore =
+                                          FirebaseFirestore.instance;
+                                      Map<String, dynamic> studentPosData =
+                                          selectedPOS!.toJson();
+
+                                      try {
+                                        await firestore
+                                            .collection('studentpos')
+                                            .doc(selectedPOS!.uid)
+                                            .set(studentPosData);
+
+                                        // Update local data after saving changes
+                                        await retrieveAllPOS();
+
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                                'Program of Study updated'),
+                                            duration: Duration(seconds: 2),
+                                          ),
+                                        );
+
+                                        // Update the widget state synchronously if needed
+                                        setState(() {
+                                          foundPOS = studentPOSList;
+                                        });
+                                      } catch (error) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                                'Failed to update Program of Study'),
+                                            duration: Duration(seconds: 2),
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  : null, // Disable the button when no course is added
+                              child: Text("Save changes"),
+                            ),
+                            SizedBox(
+                              width: 20,
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                String? hostname =
+                                    html.window.location.hostname;
+                                int port = html.window.location.port.isEmpty
+                                    ? 80
+                                    : int.parse(html.window.location.port);
+
+                                // html.window.open( 'http://localhost:$port/assets/pdfs/RoxasResume.pdf','_blank');
+                                final data =
+                                    await service.createInvoice(selectedPOS!);
+                                service.savePdfFile(
+                                    "POS_${selectedPOS!.idnumber}.pdf", data);
+                              },
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.download_rounded,
+                                      color: Colors.blue), // Download icon
+                                  SizedBox(
+                                      width:
+                                          8), // Add spacing between icon and text
+                                  Text(
+                                    'Download POS in PDF',
+                                    style: TextStyle(color: Colors.blue),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Spacer(),
+                            Column(
+                              children: [
+                                SizedBox(
+                                  width: 500,
+                                  child: Padding(
+                                    padding: EdgeInsets.all(10.0),
+                                    child: TextField(
+                                      controller: controller,
+                                      decoration: InputDecoration(
+                                          prefixIcon: const Icon(Icons.search),
+                                          hintText: ' ',
+                                          border: OutlineInputBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                            borderSide: const BorderSide(
+                                                color: Colors.blue),
+                                          )),
+                                      onChanged: (value) =>
+                                          runPOSFilter(value, selectedPOS!),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            final String selectedStudentUid = selectedPOS!
+                                .uid; // Assuming selectedPOS has a studentUid property
+                            Student? selectedStudent;
+                            // Iterate through the list of students to find the one with the matching UID
+                            for (Student student in studentList) {
+                              if (student.uid == selectedStudentUid) {
+                                selectedStudent = student;
+
+                                break; // Exit the loop once a matching student is found
+                              }
+                            }
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => StudentInfoPage(
+                                          student: selectedStudent!,
+                                          studentpos: selectedPOS!,
+                                        )));
+                          },
+                          child: Text(
+                            'See student profile',
+                            style: TextStyle(color: Colors.blue),
+                          ),
+                        ),
+                        SingleChildScrollView(
+                          child: Row(
+                            children: [
+                              Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Students",
+                                    textAlign: TextAlign.left,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                  SingleChildScrollView(
+                                    child: SizedBox(
+                                      width:
+                                          MediaQuery.sizeOf(context).height / 3,
+                                      height:
+                                          MediaQuery.sizeOf(context).height /
+                                              1.5,
+                                      child: ListView.builder(
+                                        itemCount: foundPOS.length,
+                                        itemBuilder: (context, index) =>
+                                            InkWell(
+                                          onTap: () {
+                                            setState(() {
+                                              selectedPOS = foundPOS[index];
+
+                                              selectedPOSIndex =
+                                                  index; // Select the tapped item
+                                            });
+                                          },
+                                          child: Card(
+                                            key: ValueKey(foundPOS[index]),
+                                            surfaceTintColor:
+                                                Colors.transparent,
+                                            color: selectedPOSIndex == index
+                                                ? Color.fromARGB(255, 225, 233,
+                                                    231) // Selected color
+                                                : Color.fromARGB(255, 255, 251,
+                                                    254), // Unselected color
+                                            // Adjust elevation
+                                            elevation: 0,
+                                            margin: EdgeInsets.only(
+                                                bottom: 10, left: 5),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.only(
+                                                topLeft: Radius.circular(10),
+                                                bottomLeft: Radius.circular(10),
+                                              ),
+                                            ),
+
+                                            child: ListTile(
+                                              title: Text(
+                                                "${foundPOS[index].displayname['firstname']} ${foundPOS[index].displayname['lastname']}",
+                                                style: TextStyle(
+                                                  color:
+                                                      selectedPOSIndex == index
+                                                          ? Colors.black
+                                                          : Colors.grey,
+                                                  fontSize: 20.0,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              subtitle: Column(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.start,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    "ID Number: ${foundPOS[index].idnumber.toString()}",
+                                                    style: TextStyle(
+                                                      color: selectedPOSIndex ==
+                                                              index
+                                                          ? Colors.black
+                                                          : Colors.grey,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                ],
+                              ),
+                              Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "School Years",
+                                    textAlign: TextAlign.left,
+                                    style: TextStyle(
+                                        fontSize: 12, color: Colors.grey),
+                                  ),
+                                  SingleChildScrollView(
+                                    child: SizedBox(
+                                      width:
+                                          MediaQuery.of(context).size.width / 6,
+                                      height:
+                                          MediaQuery.of(context).size.height /
+                                              1.5,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.only(
+                                              topLeft: selectedPOSIndex == 0
+                                                  ? Radius.circular(0)
+                                                  : Radius.circular(10),
+                                              bottomLeft: Radius.circular(10)),
+                                          color: Color.fromARGB(255, 225, 233,
+                                              231), // Background color for the column
+                                        ),
+                                        child: ListView.builder(
+                                          itemCount:
+                                              selectedPOS!.schoolYears.length,
+                                          itemBuilder: (context, index) =>
+                                              InkWell(
+                                            onTap: () {
+                                              setState(() {
+                                                selectedYearIndex = index;
+                                              });
+                                            },
+                                            child: Card(
+                                              elevation: 0,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.only(
+                                                  topLeft: Radius.circular(10),
+                                                  bottomLeft:
+                                                      Radius.circular(10),
+                                                ),
+                                              ),
+                                              color: selectedYearIndex == index
+                                                  ? Color.fromARGB(
+                                                      255,
+                                                      213,
+                                                      220,
+                                                      218) // Selected color
+                                                  : Color.fromARGB(
+                                                      255,
+                                                      225,
+                                                      233,
+                                                      231), // Unselected color (transparent)
+                                              surfaceTintColor:
+                                                  Colors.transparent,
+                                              margin: EdgeInsets.only(
+                                                  bottom: 10, left: 5, top: 10),
+                                              child: Container(
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.only(
+                                                    topLeft:
+                                                        Radius.circular(10),
+                                                    bottomLeft:
+                                                        Radius.circular(10),
+                                                  ),
+                                                ),
+                                                child: ListTile(
+                                                  title: Row(
+                                                    children: [
+                                                      Expanded(
+                                                        child: Text(
+                                                          selectedPOS!
+                                                              .schoolYears[
+                                                                  index]
+                                                              .name,
+                                                          style: TextStyle(
+                                                            fontSize: 20.0,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            color: selectedYearIndex ==
+                                                                    index
+                                                                ? Colors.black
+                                                                : Colors
+                                                                    .grey, // Text color
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Column(
+                                children: [
+                                  Text(
+                                    "Terms",
+                                    textAlign: TextAlign.left,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                  SingleChildScrollView(
+                                    child: SizedBox(
+                                      width:
+                                          MediaQuery.of(context).size.width / 6,
+                                      height:
+                                          MediaQuery.of(context).size.height /
+                                              1.5,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.all(
+                                                Radius.circular(10)),
+                                            color: Color.fromARGB(255, 213, 220,
+                                                218) // Background color for the column
+                                            ),
+                                        child: ListView.builder(
+                                          itemCount: selectedPOS!
+                                              .schoolYears[selectedYearIndex!]
+                                              .terms
+                                              .length,
+                                          itemBuilder: (context, index) =>
+                                              InkWell(
+                                            onTap: () {
+                                              setState(() {
+                                                if (selectedTermIndices
+                                                    .contains(index)) {
+                                                  // If the term is already selected, remove it from the list
+                                                  selectedTermIndices
+                                                      .remove(index);
+                                                  selectedTermIndices.sort();
+                                                } else {
+                                                  // If the term is not selected, add it to the list
+                                                  selectedTermIndices
+                                                      .add(index);
+                                                  selectedTermIndices.sort();
+                                                }
+                                              });
+                                            },
+                                            child: Card(
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.all(
+                                                    Radius.circular(10)),
+                                              ),
+                                              color: selectedTermIndices
+                                                      .contains(index)
+                                                  ? Color.fromARGB(
+                                                      158,
+                                                      129,
+                                                      221,
+                                                      169) // Selected color
+                                                  : Colors.transparent,
+                                              elevation: 0,
+                                              margin: EdgeInsets.symmetric(
+                                                  vertical: 10, horizontal: 5),
+                                              child: Container(
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(10),
+                                                ),
+                                                child: ListTile(
+                                                  title: Row(
+                                                    children: [
+                                                      Expanded(
+                                                        child: Text(
+                                                          selectedPOS!
+                                                              .schoolYears[
+                                                                  selectedYearIndex!]
+                                                              .terms[index]
+                                                              .name,
+                                                          style: TextStyle(
+                                                            fontSize: 20.0,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            color: selectedTermIndices
+                                                                    .contains(
+                                                                        index)
+                                                                ? Colors.black
+                                                                : Colors
+                                                                    .grey, // Text color
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  subtitle: Column(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment.start,
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Text(
+                                                        "No. of Courses: ${selectedPOS!.schoolYears[selectedYearIndex!].terms[index].termcourses.length.toString()}",
+                                                        style: TextStyle(
+                                                          color: selectedTermIndices
+                                                                  .contains(
+                                                                      index)
+                                                              ? Colors.black
+                                                              : Colors
+                                                                  .grey, // Text color
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(
+                                width: 5,
+                              ),
+                              SingleChildScrollView(
+                                // Allow horizontal scrolling
+                                child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      ...selectedTermIndices
+                                          .toList()
+                                          .map<Widget>((termIndex) {
+                                        final term = selectedPOS!
+                                            .schoolYears[selectedYearIndex!]
+                                            .terms[termIndex];
+                                        return Card(
+                                          margin: EdgeInsets.symmetric(
+                                              vertical: 8.0),
+                                          color: Colors.white,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(8.0),
+                                          ),
+                                          elevation: 4.0,
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(10),
+                                            child: SizedBox(
+                                              width: MediaQuery.of(context)
+                                                      .size
+                                                      .width /
+                                                  3,
+                                              child: Theme(
+                                                data: ThemeData(
+                                                  dividerColor: Colors
+                                                      .transparent, // Remove border
+                                                ),
+                                                child: ExpansionTile(
+                                                  title: Text(
+                                                    term.name,
+                                                    style: TextStyle(
+                                                        fontSize: 14.0),
+                                                  ),
+                                                  children: [
+                                                    ...term.termcourses
+                                                        .map((course) {
+                                                      return ListTile(
+                                                        title: Row(
+                                                          children: [
+                                                            Expanded(
+                                                              child: Text(
+                                                                course
+                                                                    .coursecode,
+                                                                style: TextStyle(
+                                                                    fontSize:
+                                                                        12.0),
+                                                              ),
+                                                            ),
+                                                            IconButton(
+                                                              icon: Icon(
+                                                                Icons.delete,
+                                                                color:
+                                                                    Colors.red,
+                                                              ),
+                                                              onPressed: () {
+                                                                // Implement logic to delete the course
+                                                                // For example:
+                                                                setState(() {
+                                                                  term.termcourses
+                                                                      .remove(
+                                                                          course);
+                                                                  posEdited =
+                                                                      true;
+                                                                });
+                                                              },
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        subtitle: Text(
+                                                          course.coursename,
+                                                          style: TextStyle(
+                                                              fontSize: 12.0),
+                                                        ),
+                                                      );
+                                                    }).toList(),
+                                                    SizedBox(
+                                                        height:
+                                                            8.0), // Add space between course tiles
+                                                    AddCourseButton(
+                                                      onCourseAdded: (course) {
+                                                        setState(() {
+                                                          term.termcourses
+                                                              .add(course);
+                                                          posEdited = true;
+                                                          countCourseOccurrences(
+                                                              studentPOSList,
+                                                              course.coursecode,
+                                                              term.name);
+                                                        });
+                                                      },
+                                                      allCourses: courses,
+                                                      selectedStudentPOS:
+                                                          selectedPOS!,
+                                                    )
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      }).toList(),
+                                      ElevatedButton(
+                                        onPressed: () async {
+                                          setState(() {
+                                            posEdited = false;
+                                          });
+                                          final data = await service
+                                              .createRecommendationForm(
+                                                  selectedPOS!, []);
+                                          service.savePdfFile(
+                                              "DeRF_${selectedPOS!.idnumber}.pdf",
+                                              data);
+                                        }, // Disable the button when no course is added
+                                        child: Text(
+                                            "Download Recommendation Form"),
+                                      ),
+                                    ]),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
                 ],
               ),
             )),

@@ -145,9 +145,7 @@ Future<List<Course>> getCoursesFromFirestore() async {
         specializedcourses.add(newCourse);
       }
     }
-    courses.forEach((user) {
-      print(user.toJson());
-    });
+ 
   } catch (e) {
     print("Error fetching courses from Firestore: $e");
   }

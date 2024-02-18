@@ -391,6 +391,7 @@ class _LoginPageState extends State<LoginPage> {
 
   void route() async {
     User? authuser = FirebaseAuth.instance.currentUser;
+    await retrieveAllPOS();
     await FirebaseFirestore.instance
         .collection('users')
         .doc(authuser!.uid)
@@ -399,6 +400,7 @@ class _LoginPageState extends State<LoginPage> {
       if (documentSnapshot.exists) {
         String targetemail = emailTextController.text.toLowerCase();
         currentUser = users.firstWhere((users) => users.email == targetemail);
+
         if (passwordTextController.text.length < 12 ||
             curpass.length > 64 ||
             !passwordTextController.text.contains(RegExp(r'[0-9]')) ||
@@ -413,6 +415,7 @@ class _LoginPageState extends State<LoginPage> {
         }
         if (documentSnapshot.get('role') == "Coordinator") {
           currentStudent = studentList[0];
+
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(

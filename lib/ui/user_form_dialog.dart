@@ -256,7 +256,8 @@ void showAddUserForm(BuildContext context, GlobalKey<FormState> formKey) {
                       'role': _userData.role,
                       'email': _userData.email.toLowerCase(),
                       'idnumber': _userData.idnumber,
-                      'degree': _userData.degree
+                      'degree': _userData.degree,
+                      'status': _userData.status
                     });
                   } else {
                     await FirebaseFirestore.instance
@@ -267,6 +268,7 @@ void showAddUserForm(BuildContext context, GlobalKey<FormState> formKey) {
                         'firstname': _userData.displayname['firstname']!,
                         'lastname': _userData.displayname['lastname']!,
                       },
+                      'status': _userData.status,
                       'role': _userData.role,
                       'email': _userData.email.toLowerCase(),
                       'idnumber': _userData.idnumber,

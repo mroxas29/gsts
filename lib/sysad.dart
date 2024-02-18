@@ -185,7 +185,7 @@ class _MainViewState extends State<Sysad> {
                         .collection('users')
                         .doc(user.uid)
                         .delete();
-                 
+
                     users.clear();
 
                     addUserFromFirestore().then((value) => {foundUser = users});
@@ -460,7 +460,6 @@ class _MainViewState extends State<Sysad> {
                               // Handle the click event for the ListTile
                               currentStudent = enrolledStudent[i];
                               studentPOS = StudentPOS(
-                                  studentIdNumber: enrolledStudent[i].idnumber,
                                   schoolYears: defaultschoolyears,
                                   uid: enrolledStudent[i].uid,
                                   displayname: enrolledStudent[i].displayname,
@@ -804,16 +803,17 @@ class _MainViewState extends State<Sysad> {
                   Padding(
                     padding: EdgeInsets.all(10.0),
                     child: TextButton(
-                        onPressed: () {
-                          showAddUserForm(context, _formKey);
-                        },
-                        style: ElevatedButton.styleFrom(
-                            padding: EdgeInsets.all(20),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(25))),
-                        child: Column(
-                          children: [Icon(Icons.person_add), Text("Add Users")],
-                        ), ),
+                      onPressed: () {
+                        showAddUserForm(context, _formKey);
+                      },
+                      style: ElevatedButton.styleFrom(
+                          padding: EdgeInsets.all(20),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(25))),
+                      child: Column(
+                        children: [Icon(Icons.person_add), Text("Add Users")],
+                      ),
+                    ),
                   )
                 ])
               ],
