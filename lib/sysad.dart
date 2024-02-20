@@ -905,8 +905,11 @@ class _MainViewState extends State<Sysad> {
                             padding: EdgeInsets.all(20),
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(25))),
-                        child: Icon(Icons.post_add)),
-                  )
+                        child: Column(                      // PREVIOUS CODE: child: Icon(Icons.post_add)),
+                          children: [Icon(Icons.post_add), Text("Add Course")]
+                        ),
+                    ),
+                  ),
                 ])
               ],
             ),
@@ -1274,7 +1277,7 @@ class _MainViewState extends State<Sysad> {
               items: const [
                 SideNavigationBarItem(
                   icon: Icons.dashboard,
-                  label: 'Students',
+                  label: 'User Management',                         // OLD CODE: label: 'Students',
                 ),
                 SideNavigationBarItem(
                   icon: Icons.book,
