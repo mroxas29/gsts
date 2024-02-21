@@ -1,9 +1,8 @@
-
 import 'package:sysadmindb/app/models/term.dart';
 
 class SchoolYear {
-  final String name;
-  final List<Term> terms;
+  String name;
+  List<Term> terms;
 
   SchoolYear(this.name, this.terms);
 
@@ -25,4 +24,3 @@ class SchoolYear {
     return data;
   }
 }
-

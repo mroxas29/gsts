@@ -215,8 +215,9 @@ class _LoginPageState extends State<LoginPage> {
                                           .start, // Align text to the left
 
                                       children: [
-                                        Image.asset(
+                                        /*Image.asset(
                                             "assets/images/De_La_Salle_University_Seal.png"),
+                                        */
                                         Text(
                                           'Log Into GSTS',
                                           style: TextStyle(

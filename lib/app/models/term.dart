@@ -1,7 +1,7 @@
 import 'package:sysadmindb/app/models/courses.dart';
 
 class Term {
-  late final String name;
+  late String name;
   late List<Course> termcourses;
   
 

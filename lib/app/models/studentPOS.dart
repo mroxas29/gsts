@@ -8,7 +8,7 @@ import 'package:sysadmindb/app/models/term.dart';
 import 'package:sysadmindb/main.dart';
 
 class StudentPOS extends Student {
-  final List<SchoolYear> schoolYears;
+  List<SchoolYear> schoolYears;
 
   StudentPOS({
     required this.schoolYears,
@@ -84,11 +84,11 @@ void studentPOSDefault() {
 }
 
 List<SchoolYear> defaultschoolyears = List.generate(3, (index) {
-  final currentYear = DateTime.now().year;
-  final schoolYearName = '${currentYear + index} - ${currentYear + index + 1}';
-  final terms = List<Term>.generate(3, (termIndex) {
+  var currentYear = DateTime.now().year;
+  String schoolYearName = '${currentYear + index} - ${currentYear + index + 1}';
+  List<Term> terms = List<Term>.generate(3, (termIndex) {
     return Term('Term ${termIndex + 1}', []);
-  });
+  }).toList();
   return SchoolYear(schoolYearName, terms);
 });
 List<Term> defaultTerm = List<Term>.generate(3, (termIndex) {
@@ -203,120 +203,124 @@ int countCourseOccurrences(
   print(occurrences);
   return occurrences;
 }
+
 StudentPOS generatePOSforMIT(
     Student student, List<StudentPOS> studentPOSList, List<Course> courses) {
-  // Initialize StudentPOS object
-  StudentPOS studentPOS = StudentPOS(
-    schoolYears: defaultschoolyears,
-    uid: student.uid,
-    displayname: student.displayname,
-    role: student.role,
-    email: student.email,
-    idnumber: student.idnumber,
-    enrolledCourses: student.enrolledCourses,
-    pastCourses: student.pastCourses,
-    degree: student.degree,
-    status: student.status,
-  );
-
   // Get MIT program courses
   List<Course> programCourses = getMITCourses(courses);
+  print("MIT COURSES ${programCourses.length}");
 
   // Get elective courses for MIT program
   List<Course> electiveCourses = getElectiveCourses(programCourses);
+  print("elective COURSES ${electiveCourses.length}");
 
   // Get foundation courses for MIT program
   List<Course> foundationCourses = getFoundationCourses(programCourses);
+  print("foundation COURSES ${foundationCourses.length}");
 
+  StudentPOS newStudentPOS = StudentPOS(
+      schoolYears: [],
+      uid: student.uid,
+      displayname: student.displayname,
+      role: student.role,
+      email: student.email,
+      idnumber: student.idnumber,
+      enrolledCourses: student.enrolledCourses,
+      pastCourses: student.pastCourses,
+      degree: student.degree,
+      status: student.status);
+
+  print(newStudentPOS.schoolYears.toString());
   // Track added courses to avoid duplication
   Set<String> addedCourses = {};
 
-  // Distribute foundation courses and elective courses
-  for (var i = 0; i < studentPOS.schoolYears.length; i++) {
-    for (var term in studentPOS.schoolYears[i].terms) {
-      // Distribute foundation courses
-      for (var course in foundationCourses) {
-        if (countCourseOccurrences(studentPOSList, course.coursecode, term.name) <
-                8 &&
-            !addedCourses.contains(course.coursecode)) {
-          term.termcourses.add(course);
-          addedCourses.add(course.coursecode);
-        } else if (!addedCourses.contains(course.coursecode)) {
-          // Check if the course is underrepresented across all StudentPOS instances
-          bool isUnderrepresented = false;
-          for (var studentPOS in studentPOSList) {
-            int occurrences =
-                countCourseOccurrences(studentPOSList, course.coursecode, term.name);
-            if (occurrences < 8) {
-              isUnderrepresented = true;
-              break;
-            }
-          }
-          // If the course is underrepresented, add it to the current term
-          if (isUnderrepresented) {
-            term.termcourses.add(course);
-            addedCourses.add(course.coursecode);
+// Map to track occurrences of elective and foundation courses across all studentPOS instances
+  Map<String, int> courseOccurrences = {};
+
+  // Distribute elective and foundation courses based on occurrences
+  newStudentPOS.schoolYears = defaultschoolyears;
+
+  for (var schoolYear in newStudentPOS.schoolYears) {
+    for (var term in schoolYear.terms) {
+      term.termcourses.clear(); // Clear the list of courses in the term
+    }
+  }
+// Iterate over studentPOS instances to count occurrences of elective and foundation courses
+  for (var newStudentPOS in studentPOSList) {
+    for (var schoolYear in newStudentPOS.schoolYears) {
+      for (var term in schoolYear.terms) {
+        for (var course in term.termcourses) {
+          if (electiveCourses.contains(course) ||
+              foundationCourses.contains(course)) {
+            courseOccurrences[course.coursecode] ??= 0;
+            courseOccurrences[course.coursecode] =
+                (courseOccurrences[course.coursecode] ?? 0) + 1;
           }
         }
       }
-      // Distribute elective courses
-      for (var course in electiveCourses) {
-        if (countCourseOccurrences(studentPOSList, course.coursecode, term.name) <
-                8 &&
-            !addedCourses.contains(course.coursecode)) {
-          term.termcourses.add(course);
-          addedCourses.add(course.coursecode);
-        } else if (!addedCourses.contains(course.coursecode)) {
-          // Check if the course is underrepresented across all StudentPOS instances
-          bool isUnderrepresented = false;
-          for (var studentPOS in studentPOSList) {
-            int occurrences =
-                countCourseOccurrences(studentPOSList, course.coursecode, term.name);
-            if (occurrences < 8) {
-              isUnderrepresented = true;
-              break;
-            }
-          }
-          // If the course is underrepresented, add it to the current term
-          if (isUnderrepresented) {
+    }
+  }
+
+  for (var i = 0; i < newStudentPOS.schoolYears.length; i++) {
+    var currentSchoolYear = newStudentPOS.schoolYears[i];
+    for (var termIndex = 0;
+        termIndex < currentSchoolYear.terms.length;
+        termIndex++) {
+      var term = currentSchoolYear.terms[termIndex];
+      print(
+          'Current num of courses in term ${term.name} ${term.termcourses.length}');
+      int remainingUnits = 6;
+
+      // Distribute foundation and elective courses
+      for (var course in [...foundationCourses, ...electiveCourses]) {
+        if (!addedCourses.contains(course.coursecode) &&
+            remainingUnits >= course.units) {
+          // Check occurrences across all students' POS instances
+          int occurrences = courseOccurrences[course.coursecode] ?? 0;
+          if (occurrences < 8) {
             term.termcourses.add(course);
+            print(
+                'course ${course.coursecode} added to ${currentSchoolYear.name} ${term.name}');
             addedCourses.add(course.coursecode);
+            remainingUnits -= course.units;
+            courseOccurrences[course.coursecode] = occurrences + 1;
           }
         }
       }
-      // Adjust courses for specific terms
+    }
+  }
+
+// Adjust courses for specific terms
+  for (var i = 0; i < newStudentPOS.schoolYears.length; i++) {
+    for (var termIndex = 0;
+        termIndex < newStudentPOS.schoolYears[i].terms.length;
+        termIndex++) {
+      var term = newStudentPOS.schoolYears[i].terms[termIndex];
       if (i == 1 && term.name == "Term 3") {
         // Adjust for SchoolYear[1] Term 3
         Course capProjW = courses.firstWhere(
-            (course) => course.coursecode == "CIS411M",
-            );
-            Course oex = courses.firstWhere(
+          (course) => course.coursecode == "CIS411M",
+        );
+        Course oex = courses.firstWhere(
           (course) => course.coursecode == "OEX",
         );
-      
-        
         term.termcourses.clear();
-        term.termcourses.addAll([
-         capProjW,
-          oex
-        ]);
+        term.termcourses.addAll([capProjW, oex]);
       } else if (i == 2 && term.name == "Term 1") {
         // Adjust for SchoolYear[2] Term 1
         Course capProjP = courses.firstWhere(
           (course) => course.coursecode == "Capstone Project Proposal",
         );
-          Course capProjF = courses.firstWhere(
+        Course capProjF = courses.firstWhere(
           (course) => course.coursecode == "Capstone Project Final",
         );
         term.termcourses.clear();
-        term.termcourses.addAll([
-          capProjP,
-         capProjF,
-        ]);
+        term.termcourses.addAll([capProjP, capProjF]);
       }
     }
   }
-  return studentPOS;
+
+  return newStudentPOS;
 }
 
 List<Course> getMITCourses(List<Course> courseList) {
@@ -324,7 +328,9 @@ List<Course> getMITCourses(List<Course> courseList) {
 }
 
 List<Course> getElectiveCourses(List<Course> courseList) {
-  return courseList.where((course) => course.type.contains('Elective')).toList();
+  return courseList
+      .where((course) => course.type.contains('Elective'))
+      .toList();
 }
 
 List<Course> getFoundationCourses(List<Course> courseList) {
@@ -332,4 +338,3 @@ List<Course> getFoundationCourses(List<Course> courseList) {
       .where((course) => course.type.contains('Foundation'))
       .toList();
 }
-

@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/sendemail.dart';
+import 'package:sysadmindb/app/models/studentPOS.dart';
+import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/app/models/user.dart';
+import 'package:sysadmindb/main.dart';
 
 class UserData {
   Map<String, String> displayname = {};
@@ -70,11 +74,11 @@ void showAddUserForm(BuildContext context, GlobalKey<FormState> formKey) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter an email';
                     }
-
+/*
                     if (!value.contains('@dlsu.edu.ph')) {
                       return 'Enter a valid @dlsu.edu.ph email';
                     }
-
+*/
                     // Add email validation if needed
                     return null;
                   },
@@ -164,7 +168,7 @@ void showAddUserForm(BuildContext context, GlobalKey<FormState> formKey) {
                     }
                   },
                   decoration: (selectedRole == 'Graduate Student')
-                      ? InputDecoration(labelText: 'Enrollment Status')
+                      ? InputDecoration(labelText: 'Status')
                       : InputDecoration(labelText: 'Status'),
                 ),
                 TextFormField(
@@ -255,10 +259,47 @@ void showAddUserForm(BuildContext context, GlobalKey<FormState> formKey) {
                       },
                       'role': _userData.role,
                       'email': _userData.email.toLowerCase(),
+                      'enrolledCourses': [],
+                      'pastCourses': [],
                       'idnumber': _userData.idnumber,
                       'degree': _userData.degree,
                       'status': _userData.status
                     });
+
+                    Student newStudent = Student(
+                        uid: userID,
+                        displayname: {
+                          'firstname': _userData.displayname['firstname']!,
+                          'lastname': _userData.displayname['lastname']!,
+                        },
+                        role: _userData.role,
+                        email: _userData.email.toLowerCase(),
+                        enrolledCourses: [],
+                        pastCourses: [],
+                        idnumber: _userData.idnumber,
+                        degree: _userData.degree,
+                        status: _userData.status);
+
+                    if (_userData.degree == 'MIT') {
+                      print('student is MIT');
+                      final FirebaseFirestore firestore =
+                          FirebaseFirestore.instance;
+                      Map<String, dynamic> studentPosData =
+                          generatePOSforMIT(newStudent, studentPOSList, courses)
+                              .toJson();
+
+                      try {
+                        firestore
+                            .collection('studentpos')
+                            .doc(newStudent.uid)
+                            .set(studentPosData);
+
+                        // Update local data after saving changes
+                        retrieveAllPOS();
+                      } catch (error) {
+                        print('Failed to update Program of Study');
+                      }
+                    }
                   } else {
                     await FirebaseFirestore.instance
                         .collection('users')
