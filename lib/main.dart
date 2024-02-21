@@ -212,12 +212,13 @@ class _LoginPageState extends State<LoginPage> {
                                       mainAxisAlignment:
                                           MainAxisAlignment.start,
                                       crossAxisAlignment: CrossAxisAlignment
-                                          .start, // Align text to the left
+                                          .center, // Align text to the left
 
                                       children: [
-                                        /*Image.asset(
-                                            "assets/images/De_La_Salle_University_Seal.png"),
-                                        */
+                                        Image.asset(
+                                            "assets/images/De_La_Salle_University_Seal.png",
+                                            height: 200,
+                                            width: 200,),
                                         Text(
                                           'Log Into GSTS',
                                           style: TextStyle(
@@ -238,6 +239,7 @@ class _LoginPageState extends State<LoginPage> {
                                             fontWeight: FontWeight.w600,
                                             fontSize: 16,
                                           ),
+                                          textAlign: TextAlign.left,
                                         ),
                                         SizedBox(
                                           height: 5,
