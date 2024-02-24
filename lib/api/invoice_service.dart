@@ -54,6 +54,7 @@ class PdfInvoiceService {
 
     List<pw.Widget> RemcourseWidgets = [];
     List<pw.Widget> FocourseWidgets = [];
+    List<pw.Widget> SpezCourseWidgets = [];
     List<pw.Widget> ElcourseWidgets = [];
     List<pw.Widget> CapcourseWidgets = [];
 
@@ -61,6 +62,7 @@ class PdfInvoiceService {
     int foUnits = 0;
     int elUnits = 0;
     int capUnits = 0;
+    int electiveCount = 0;
 
 // Iterate through the list of courses
     for (var course in courses) {
@@ -72,6 +74,21 @@ class PdfInvoiceService {
         remUnits += course.units;
         // If it contains the degree, add it as a Text widget
         RemcourseWidgets.add(
+          pw.Text("${course.coursecode}: ${course.coursename}",
+              textAlign: TextAlign.left),
+        );
+      }
+    }
+
+    for (var course in courses) {
+      // Check if the course contains the student's degree
+      if (course.program
+              .toLowerCase()
+              .contains(studentPOS.degree.toLowerCase()) &&
+          course.type.toLowerCase().contains('specialized')) {
+        remUnits += course.units;
+        // If it contains the degree, add it as a Text widget
+        SpezCourseWidgets.add(
           pw.Text("${course.coursecode}: ${course.coursename}",
               textAlign: TextAlign.left),
         );
@@ -160,10 +177,6 @@ class PdfInvoiceService {
                         "Degree: ",
                         style: pw.TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      pw.Text(
-                        "Enrollment Status: ",
-                        style: pw.TextStyle(fontWeight: FontWeight.bold),
-                      ),
                     ],
                   ),
                   pw.Column(
@@ -209,13 +222,20 @@ class PdfInvoiceService {
                               pw.Column(
                                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                                 children: [
-                                  pw.Text("${term.name}",
-                                      style: pw.TextStyle(
-                                          fontWeight:
-                                              pw.FontWeight.bold)), // Term name
+                                  pw.Text(
+                                    "${term.name}",
+                                    style: pw.TextStyle(
+                                      fontWeight: pw.FontWeight.bold,
+                                    ),
+                                  ), // Term name
                                   for (var course in term.termcourses)
                                     pw.Text(
-                                        "${course.coursecode}: ${course.coursename}"), // Term course
+                                      course.type
+                                              .toLowerCase()
+                                              .contains('elective')
+                                          ? "Elective ${electiveCount += 1}"
+                                          : "${course.coursecode}: ${course.coursename}",
+                                    ), // Term course
                                 ],
                               ),
                           ],
@@ -230,55 +250,282 @@ class PdfInvoiceService {
       ),
     );
 
-    pdf.addPage(pw.Page(
-        pageFormat: PdfPageFormat.a4,
-        build: (pw.Context context) {
-          return pw.Column(
-              mainAxisAlignment: pw.MainAxisAlignment.start,
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text("${studentPOS.degree} Program Curricular Requirements",
-                    style: pw.TextStyle(
+    if (studentPOS.degree == 'MIT') {
+      pdf.addPage(pw.Page(
+          pageFormat: PdfPageFormat.a4,
+          build: (pw.Context context) {
+            return pw.Column(
+                mainAxisAlignment: pw.MainAxisAlignment.start,
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                      "${studentPOS.degree} Program Curricular Requirements",
+                      style: pw.TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontStyle: FontStyle.italic)),
+                  pw.SizedBox(height: 10),
+                  pw.Text("Bridging/Remedial Courses",
+                      textAlign: TextAlign.left,
+                      style: pw.TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontStyle: FontStyle.italic)),
+                  pw.Column(
+                      mainAxisAlignment: pw.MainAxisAlignment.start,
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: RemcourseWidgets),
+                  pw.SizedBox(height: 5),
+                  pw.Text("Foundation Courses  ($foUnits units)",
+                      textAlign: TextAlign.left,
+                      style: pw.TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontStyle: FontStyle.italic)),
+                  pw.Column(
+                      mainAxisAlignment: pw.MainAxisAlignment.start,
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: FocourseWidgets),
+                  pw.SizedBox(height: 5),
+                  pw.Text("Elective Courses (15 units)",
+                      textAlign: TextAlign.left,
+                      style: pw.TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontStyle: FontStyle.italic)),
+                  pw.Column(
+                      mainAxisAlignment: pw.MainAxisAlignment.start,
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: ElcourseWidgets),
+                  pw.SizedBox(height: 5),
+                  pw.Text(finale,
+                      textAlign: TextAlign.left,
+                      style: pw.TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontStyle: FontStyle.italic)),
+                  pw.Text('TOTAL \t 36 units',
+                      textAlign: TextAlign.left,
+                      style: pw.TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontStyle: FontStyle.italic)),
+                  pw.Text('\n\n\nNote:',
+                      textAlign: TextAlign.left,
+                      style: pw.TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontStyle: FontStyle.italic)),
-                pw.SizedBox(height: 10),
-                pw.Text("Bridging/Remedial Courses",
+                      )),
+                  pw.Text(
+                    '1. Comprehensive exam must be taken and passed before capstone project final defense.',
                     textAlign: TextAlign.left,
-                    style: pw.TextStyle(
+                  ),
+                  pw.Row(
+                    children: [
+                      pw.Column(
+                        mainAxisAlignment: pw.MainAxisAlignment.start,
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(
+                            'Prepared by:\n\n\n\n\n\n',
+                            textAlign: pw.TextAlign.left,
+                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                          ),
+                          pw.Text(
+                            'Ms. Lissa Magpantay\nDate:',
+                            textAlign: pw.TextAlign.left,
+                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                          ),
+                          pw.SizedBox(
+                              height: 10), // Adjust the spacing as needed
+                          pw.Text(
+                            'MIT/MSIT Coordinator, CCS',
+                            textAlign: pw.TextAlign.left,
+                          ),
+                        ],
+                      ),
+                      pw.SizedBox(width: 20), // Adjust the width as needed
+                      pw.Column(
+                        mainAxisAlignment: pw.MainAxisAlignment.start,
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(
+                            'Noted by:\n\n\n\n\n\n',
+                            textAlign: pw.TextAlign.left,
+                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                          ),
+                          pw.Text(
+                            'Dr. Marnel Peradilla\nDate:',
+                            textAlign: pw.TextAlign.left,
+                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                          ),
+                          pw.SizedBox(
+                              height: 10), // Adjust the spacing as needed
+                          pw.Text(
+                            'Asst Dean for Research &\nAdvanced Studies, CCS',
+                            textAlign: pw.TextAlign.left,
+                          ),
+                        ],
+                      ),
+                      pw.SizedBox(width: 20), // Adjust the width as needed
+                      pw.Column(
+                        mainAxisAlignment: pw.MainAxisAlignment.start,
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(
+                            'Conforme:\n\n\n\n\n\n',
+                            textAlign: pw.TextAlign.left,
+                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                          ),
+                          pw.Text(
+                            'DIT Student Name and Signature\nID#:\nDate:',
+                            textAlign: pw.TextAlign.left,
+                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ]);
+          }));
+    } else {
+      pdf.addPage(pw.Page(
+          pageFormat: PdfPageFormat.a4,
+          build: (pw.Context context) {
+            return pw.Column(
+                mainAxisAlignment: pw.MainAxisAlignment.start,
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                      "${studentPOS.degree} Program Curricular Requirements",
+                      style: pw.TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontStyle: FontStyle.italic)),
+                  pw.SizedBox(height: 10),
+                  pw.Text("Bridging/Remedial Courses",
+                      textAlign: TextAlign.left,
+                      style: pw.TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontStyle: FontStyle.italic)),
+                  pw.Column(
+                      mainAxisAlignment: pw.MainAxisAlignment.start,
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: RemcourseWidgets),
+                  pw.SizedBox(height: 5),
+                  pw.Text("Foundation Courses  (12 units)",
+                      textAlign: TextAlign.left,
+                      style: pw.TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontStyle: FontStyle.italic)),
+                  pw.Column(
+                      mainAxisAlignment: pw.MainAxisAlignment.start,
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: FocourseWidgets),
+                  pw.Text("Specialized Courses  (6 units)",
+                      textAlign: TextAlign.left,
+                      style: pw.TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontStyle: FontStyle.italic)),
+                  pw.Column(
+                      mainAxisAlignment: pw.MainAxisAlignment.start,
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: SpezCourseWidgets),
+                  pw.SizedBox(height: 5),
+                  pw.Text("Elective Courses (9 units)",
+                      textAlign: TextAlign.left,
+                      style: pw.TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontStyle: FontStyle.italic)),
+                  pw.Column(
+                      mainAxisAlignment: pw.MainAxisAlignment.start,
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: ElcourseWidgets),
+                  pw.SizedBox(height: 5),
+                  pw.Text(finale,
+                      textAlign: TextAlign.left,
+                      style: pw.TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontStyle: FontStyle.italic)),
+                  pw.Text('TOTAL \t 36 units',
+                      textAlign: TextAlign.left,
+                      style: pw.TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontStyle: FontStyle.italic)),
+                  pw.Text('\n\n\nNote:',
+                      textAlign: TextAlign.left,
+                      style: pw.TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontStyle: FontStyle.italic)),
-                pw.Column(
-                    mainAxisAlignment: pw.MainAxisAlignment.start,
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: RemcourseWidgets),
-                pw.SizedBox(height: 5),
-                pw.Text("Foundation Courses  ($foUnits units)",
+                      )),
+                  pw.Text(
+                    '1. One local or one international Scopus-indexed published and presented paper that may be related to thesis topic',
                     textAlign: TextAlign.left,
-                    style: pw.TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontStyle: FontStyle.italic)),
-                pw.Column(
-                    mainAxisAlignment: pw.MainAxisAlignment.start,
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: FocourseWidgets),
-                pw.SizedBox(height: 5),
-                pw.Text("Elective Courses (15 units)",
+                  ),
+                  pw.Text(
+                    '2.  Comprehensive exam must be taken and passed before thesis writing and thesis proposal defense.',
                     textAlign: TextAlign.left,
-                    style: pw.TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontStyle: FontStyle.italic)),
-                pw.Column(
-                    mainAxisAlignment: pw.MainAxisAlignment.start,
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: ElcourseWidgets),
-                pw.SizedBox(height: 5),
-                pw.Text(finale,
-                    textAlign: TextAlign.left,
-                    style: pw.TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontStyle: FontStyle.italic)),
-              ]);
-        }));
+                  ),
+                  pw.Row(
+                    children: [
+                      pw.Column(
+                        mainAxisAlignment: pw.MainAxisAlignment.start,
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(
+                            'Prepared by:\n\n\n\n\n\n',
+                            textAlign: pw.TextAlign.left,
+                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                          ),
+                          pw.Text(
+                            'Ms. Lissa Magpantay\nDate:',
+                            textAlign: pw.TextAlign.left,
+                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                          ),
+                          pw.SizedBox(
+                              height: 10), // Adjust the spacing as needed
+                          pw.Text(
+                            'MIT/MSIT Coordinator, CCS',
+                            textAlign: pw.TextAlign.left,
+                          ),
+                        ],
+                      ),
+                      pw.SizedBox(width: 20), // Adjust the width as needed
+                      pw.Column(
+                        mainAxisAlignment: pw.MainAxisAlignment.start,
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(
+                            'Noted by:\n\n\n\n\n\n',
+                            textAlign: pw.TextAlign.left,
+                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                          ),
+                          pw.Text(
+                            'Dr. Marnel Peradilla\nDate:',
+                            textAlign: pw.TextAlign.left,
+                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                          ),
+                          pw.SizedBox(
+                              height: 10), // Adjust the spacing as needed
+                          pw.Text(
+                            'Asst Dean for Research &\nAdvanced Studies, CCS',
+                            textAlign: pw.TextAlign.left,
+                          ),
+                        ],
+                      ),
+                      pw.SizedBox(width: 20), // Adjust the width as needed
+                      pw.Column(
+                        mainAxisAlignment: pw.MainAxisAlignment.start,
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(
+                            'Conforme:\n\n\n\n\n\n',
+                            textAlign: pw.TextAlign.left,
+                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                          ),
+                          pw.Text(
+                            'MSIT Student Name and Signature\nID#:\nDate:',
+                            textAlign: pw.TextAlign.left,
+                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ]);
+          }));
+    }
 
     return pdf.save();
   }
@@ -286,7 +533,7 @@ class PdfInvoiceService {
   Future<Uint8List> createRecommendationForm(
       StudentPOS studentPOS, List<Course> recommendedCourses) async {
     final pdf = pw.Document();
-
+  
     final image = (await rootBundle.load("assets/images/dlsulogo.png"))
         .buffer
         .asUint8List();
@@ -370,6 +617,8 @@ class PdfInvoiceService {
                               style:
                                   pw.TextStyle(fontWeight: pw.FontWeight.bold),
                             ),
+                            pw.Text(
+                                'TO: OFFICE OF ADMISSIONS AND SCHOLARSHIPS (OAS)'),
                             pw.Text(
                               "FROM:_______________",
                             ),
@@ -553,20 +802,12 @@ class PdfInvoiceService {
                           crossAxisAlignment: pw.CrossAxisAlignment.start,
                           children: [
                             pw.SizedBox(height: 10),
-                            pw.Text(
-                              "1.1. _________________________________",
-                              style: pw.TextStyle(fontSize: 10),
-                            ),
-                            pw.SizedBox(height: 10),
-                            pw.Text(
-                              "1.2. _________________________________",
-                              style: pw.TextStyle(fontSize: 10),
-                            ),
-                            pw.SizedBox(height: 10),
-                            pw.Text(
-                              "1.3. _________________________________",
-                              style: pw.TextStyle(fontSize: 10),
-                            ),
+                            for (var i = 0; i < recommendedCourses.length; i++)
+                              pw.Text(
+                                "1.${i + 1}. ${recommendedCourses[i].coursecode}: ${recommendedCourses[i].coursename}",
+                                style: pw.TextStyle(fontSize: 10, decoration: TextDecoration.underline),
+                                
+                              ),
                           ],
                         ),
                         // Right column for lines 1.4 - 1.6
@@ -574,20 +815,11 @@ class PdfInvoiceService {
                           crossAxisAlignment: pw.CrossAxisAlignment.start,
                           children: [
                             pw.SizedBox(height: 10),
-                            pw.Text(
-                              "1.4. _________________________________",
-                              style: pw.TextStyle(fontSize: 10),
-                            ),
-                            pw.SizedBox(height: 10),
-                            pw.Text(
-                              "1.5. _________________________________",
-                              style: pw.TextStyle(fontSize: 10),
-                            ),
-                            pw.SizedBox(height: 10),
-                            pw.Text(
-                              "1.6. _________________________________",
-                              style: pw.TextStyle(fontSize: 10),
-                            ),
+                            for (var i = 3; i < recommendedCourses.length; i++)
+                              pw.Text(
+                                "1.${i + 1}. ${recommendedCourses[i].coursecode}: ${recommendedCourses[i].coursename}",
+                                style: pw.TextStyle(fontSize: 10),
+                              ),
                           ],
                         ),
                       ],

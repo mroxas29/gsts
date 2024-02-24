@@ -89,14 +89,14 @@ class _AddCourseButtonState extends State<AddCourseButton> {
 
                           for (var year
                               in widget.selectedStudentPOS.schoolYears) {
-                            year.terms.forEach((term) {
+                            for (var term in year.terms) {
                               if (term.termcourses.any(
                                   (c) => c.coursecode == course.coursecode)) {
                                 courseExistsInPOS = true;
                                 courseLocation =
                                     "in SY. '${year.name}' and ${term.name}";
                               }
-                            });
+                            }
                           }
 
                           ScaffoldMessenger.of(context).showSnackBar(

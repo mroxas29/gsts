@@ -245,7 +245,6 @@ class _MainViewState extends State<Gscscreen> {
     bool hasStudents = false;
     List<String> status = ['true', 'false'];
 
-    List<String> degrees = ['No degree', 'MIT', 'MSIT'];
     List<String> programs = ['MIT/MSIT', 'MIT', 'MSIT'];
     List<String> type = [
       'Bridging/Remedial Courses',
@@ -253,7 +252,8 @@ class _MainViewState extends State<Gscscreen> {
       'Elective Courses',
       'Capstone',
       'Exam Course',
-      'Specialized Courses'
+      'Specialized Courses',
+      'Thesis Course'
     ];
 
     String selectedProgram = course.program;
@@ -509,6 +509,7 @@ class _MainViewState extends State<Gscscreen> {
                     course.units = int.parse(unitsController.text);
                     course.isactive = bool.parse(selectedStatus);
                     course.type = selectedType;
+                    course.program = selectedProgram;
                   });
 
                   // Update the data in Firestore
@@ -523,6 +524,7 @@ class _MainViewState extends State<Gscscreen> {
                       'units': course.units,
                       'isactive': course.isactive,
                       'type': course.type,
+                      'program': course.program,
                     });
 
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -774,6 +776,8 @@ class _MainViewState extends State<Gscscreen> {
       throw 'Could not launch $url';
     }
   }
+
+  List<Course> recommendedCourses = [];
 
   @override
   Widget build(BuildContext context) {
@@ -1256,6 +1260,7 @@ class _MainViewState extends State<Gscscreen> {
                             children: [
                               Column(
                                 mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     "Students",
@@ -1278,10 +1283,37 @@ class _MainViewState extends State<Gscscreen> {
                                             InkWell(
                                           onTap: () {
                                             setState(() {
-                                              selectedPOS = foundPOS[index];
+                                              if (posEdited == true) {
+                                                showDialog(
+                                                  context: context,
+                                                  builder:
+                                                      (BuildContext context) {
+                                                    return AlertDialog(
+                                                      title: Text(
+                                                          'Unsaved changes'),
+                                                      content: Text(
+                                                          'You have unsaved changes from this POS'),
+                                                      actions: [
+                                                        TextButton(
+                                                          onPressed: () {
+                                                            Navigator.pop(
+                                                                context, true);
+                                                          },
+                                                          child:
+                                                              Text('Go back'),
+                                                        ),
+                                                      ],
+                                                    );
+                                                  },
+                                                );
+                                              } else {
+                                                selectedPOS = foundPOS[index];
 
-                                              selectedPOSIndex =
-                                                  index; // Select the tapped item
+                                                selectedPOSIndex =
+                                                    index; // Select the tapped item
+
+                                                recommendedCourses.clear();
+                                              }
                                             });
                                           },
                                           child: Card(
@@ -1638,6 +1670,12 @@ class _MainViewState extends State<Gscscreen> {
                                                                   term.termcourses
                                                                       .remove(
                                                                           course);
+                                                                  // Remove courses from recommendedCourses based on selectedCourse
+                                                                  recommendedCourses.removeWhere((toremove) =>
+                                                                      toremove
+                                                                          .coursecode ==
+                                                                      course
+                                                                          .coursecode);
                                                                   posEdited =
                                                                       true;
                                                                 });
@@ -1665,7 +1703,13 @@ class _MainViewState extends State<Gscscreen> {
                                                               studentPOSList,
                                                               course.coursecode,
                                                               term.name);
+                                                          recommendedCourses
+                                                              .add(course);
                                                         });
+
+                                                        print(recommendedCourses
+                                                            .toList()
+                                                            .toString());
                                                       },
                                                       allCourses: courses,
                                                       selectedStudentPOS:
@@ -1677,16 +1721,15 @@ class _MainViewState extends State<Gscscreen> {
                                             ),
                                           ),
                                         );
-                                      }).toList(),
+                                      }),
                                       ElevatedButton(
                                         onPressed: () async {
-                                          setState(() {
-                                            posEdited = false;
-                                          });
+                                          
                                           final data = await service
                                               .createRecommendationForm(
-                                                  selectedPOS!, []);
-                                          service.savePdfFile(
+                                                  selectedPOS!,
+                                                  recommendedCourses);
+                                          await service.savePdfFile(
                                               "DeRF_${selectedPOS!.idnumber}.pdf",
                                               data);
                                         }, // Disable the button when no course is added
@@ -1706,14 +1749,11 @@ class _MainViewState extends State<Gscscreen> {
             )),
       ),
 
-
       // CALENDAR PAGE
       Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [Text("Calendar")]),
-
-
 
       Column(
           mainAxisAlignment: MainAxisAlignment.center,

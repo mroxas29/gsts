@@ -72,6 +72,7 @@ List<Course> electivecourses = [];
 List<Course> capstonecourses = [];
 List<Course> examcourses = [];
 List<Course> specializedcourses = [];
+List<Course> thesiscourses = [];
 final blankCourse = Course(
     uid: 'blank',
     coursecode: 'Select a course',
@@ -91,6 +92,7 @@ Future<List<Course>> getCoursesFromFirestore() async {
   electivecourses.clear();
   capstonecourses.clear();
   examcourses.clear();
+  thesiscourses.clear();
 
   print("Add course from FS executed");
   try {
@@ -143,6 +145,10 @@ Future<List<Course>> getCoursesFromFirestore() async {
 
       if (newCourse.type.toLowerCase().contains('specialized')) {
         specializedcourses.add(newCourse);
+      }
+
+      if (newCourse.type.toLowerCase().contains('thesis')) {
+        thesiscourses.add(newCourse);
       }
     }
  

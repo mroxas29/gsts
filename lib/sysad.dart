@@ -315,9 +315,9 @@ class _MainViewState extends State<Sysad> {
       'Elective Courses',
       'Capstone',
       'Exam Course',
-      'Specialized Courses'
+      'Specialized Courses',
+      'Thesis Course'
     ];
-
     String selectedProgram = course.program;
     String selectedStatus = course.isactive.toString();
     String selectedType = course.type.toString();
@@ -564,6 +564,7 @@ class _MainViewState extends State<Sysad> {
                     course.units = int.parse(unitsController.text);
                     course.isactive = bool.parse(selectedStatus);
                     course.type = selectedType;
+                    course.program = selectedProgram;
                   });
 
                   // Update the data in Firestore
@@ -578,6 +579,7 @@ class _MainViewState extends State<Sysad> {
                       'units': course.units,
                       'isactive': course.isactive,
                       'type': course.type,
+                      'program': course.program
                     });
 
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -898,16 +900,16 @@ class _MainViewState extends State<Sysad> {
                   Padding(
                     padding: EdgeInsets.all(10.0),
                     child: TextButton(
-                        onPressed: () {
-                          showAddCourseForm(context, _formKey);
-                        },
-                        style: ElevatedButton.styleFrom(
-                            padding: EdgeInsets.all(20),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(25))),
-                        child: Column(                      // PREVIOUS CODE: child: Icon(Icons.post_add)),
-                          children: [Icon(Icons.post_add), Text("Add Course")]
-                        ),
+                      onPressed: () {
+                        showAddCourseForm(context, _formKey);
+                      },
+                      style: ElevatedButton.styleFrom(
+                          padding: EdgeInsets.all(20),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(25))),
+                      child: Column(
+                          // PREVIOUS CODE: child: Icon(Icons.post_add)),
+                          children: [Icon(Icons.post_add), Text("Add Course")]),
                     ),
                   ),
                 ])
@@ -1277,7 +1279,7 @@ class _MainViewState extends State<Sysad> {
               items: const [
                 SideNavigationBarItem(
                   icon: Icons.dashboard,
-                  label: 'User Management',                         // OLD CODE: label: 'Students',
+                  label: 'User Management', // OLD CODE: label: 'Students',
                 ),
                 SideNavigationBarItem(
                   icon: Icons.book,

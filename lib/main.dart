@@ -216,9 +216,10 @@ class _LoginPageState extends State<LoginPage> {
 
                                       children: [
                                         Image.asset(
-                                            "assets/images/De_La_Salle_University_Seal.png",
-                                            height: 200,
-                                            width: 200,),
+                                          "assets/images/De_La_Salle_University_Seal.png",
+                                          height: 100,
+                                          width: 100,
+                                        ),
                                         Text(
                                           'Log Into GSTS',
                                           style: TextStyle(

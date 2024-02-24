@@ -271,10 +271,12 @@ StudentPOS generatePOSforMIT(
           'Current num of courses in term ${term.name} ${term.termcourses.length}');
       int remainingUnits = 6;
 
-      // Distribute foundation and elective courses
+      int electiveCount = 0;
       for (var course in [...foundationCourses, ...electiveCourses]) {
         if (!addedCourses.contains(course.coursecode) &&
-            remainingUnits >= course.units) {
+            remainingUnits >= course.units &&
+            electiveCount < 5) {
+          // Limit elective courses to 5
           // Check occurrences across all students' POS instances
           int occurrences = courseOccurrences[course.coursecode] ?? 0;
           if (occurrences < 8) {
@@ -284,6 +286,7 @@ StudentPOS generatePOSforMIT(
             addedCourses.add(course.coursecode);
             remainingUnits -= course.units;
             courseOccurrences[course.coursecode] = occurrences + 1;
+            electiveCount++; // Increment the elective count
           }
         }
       }
@@ -323,13 +326,161 @@ StudentPOS generatePOSforMIT(
   return newStudentPOS;
 }
 
+StudentPOS generatePOSforMSIT(
+    Student student, List<StudentPOS> studentPOSList, List<Course> courses) {
+  // Get MSIT program courses
+  List<Course> programCourses = getMSITCourses(courses);
+  print("MSIT COURSES ${programCourses.length}");
+
+  // Get elective courses for MSIT program
+  List<Course> electiveCourses = getElectiveCourses(programCourses);
+  print("elective COURSES ${electiveCourses.length}");
+
+  // Get foundation courses for MSIT program
+  List<Course> foundationCourses = getFoundationCourses(programCourses);
+  print("foundation COURSES ${foundationCourses.length}");
+
+  // Get specialized courses for MSIT program
+  List<Course> specializedCourses = getSpecializedCourses(programCourses);
+  print("specialized COURSES ${specializedCourses.length}");
+
+  StudentPOS newStudentPOS = StudentPOS(
+      schoolYears: [],
+      uid: student.uid,
+      displayname: student.displayname,
+      role: student.role,
+      email: student.email,
+      idnumber: student.idnumber,
+      enrolledCourses: student.enrolledCourses,
+      pastCourses: student.pastCourses,
+      degree: student.degree,
+      status: student.status);
+
+  print(newStudentPOS.schoolYears.toString());
+  // Track added courses to avoid duplication
+  Set<String> addedCourses = {};
+
+  // Map to track occurrences of elective, foundation, and specialized courses across all studentPOS instances
+  Map<String, int> courseOccurrences = {};
+
+  // Distribute elective, foundation, and specialized courses based on occurrences
+  newStudentPOS.schoolYears = defaultschoolyears;
+
+  for (var schoolYear in newStudentPOS.schoolYears) {
+    for (var term in schoolYear.terms) {
+      term.termcourses.clear(); // Clear the list of courses in the term
+    }
+  }
+
+  // Iterate over studentPOS instances to count occurrences of elective, foundation, and specialized courses
+  for (var existingStudentPOS in studentPOSList) {
+    for (var schoolYear in existingStudentPOS.schoolYears) {
+      for (var term in schoolYear.terms) {
+        for (var course in term.termcourses) {
+          if (electiveCourses.contains(course) ||
+              foundationCourses.contains(course) ||
+              specializedCourses.contains(course)) {
+            courseOccurrences[course.coursecode] ??= 0;
+            courseOccurrences[course.coursecode] =
+                (courseOccurrences[course.coursecode] ?? 0) + 1;
+          }
+        }
+      }
+    }
+  }
+
+  for (var i = 0; i < newStudentPOS.schoolYears.length; i++) {
+    var currentSchoolYear = newStudentPOS.schoolYears[i];
+    for (var termIndex = 0;
+        termIndex < currentSchoolYear.terms.length;
+        termIndex++) {
+      var term = currentSchoolYear.terms[termIndex];
+      print(
+          'Current num of courses in term ${term.name} ${term.termcourses.length}');
+      int remainingUnits = 6;
+
+      int electiveCount = 0;
+      for (var course in [
+        ...foundationCourses,
+        ...specializedCourses,
+        ...electiveCourses
+      ]) {
+        if (!addedCourses.contains(course.coursecode) &&
+            remainingUnits >= course.units &&
+            electiveCount < 3) {
+          // Limit elective courses to 3
+          // Check occurrences across all students' POS instances
+          int occurrences = courseOccurrences[course.coursecode] ?? 0;
+          if (occurrences < 8) {
+            term.termcourses.add(course);
+            print(
+                'course ${course.coursecode} added to ${currentSchoolYear.name} ${term.name}');
+            addedCourses.add(course.coursecode);
+            remainingUnits -= course.units;
+            courseOccurrences[course.coursecode] = occurrences + 1;
+            electiveCount++; // Increment the elective count
+          }
+        }
+      }
+
+      // Adjust courses for specific terms
+      if (i == 1 && term.name == "Term 2") {
+        // Adjust for SchoolYear[1] Term 3
+        Course capProjW = courses.firstWhere(
+          (course) => course.coursecode == "CIS801M",
+        );
+        Course elec3 = courses.firstWhere(
+          (course) => course.coursecode == "CIS493M",
+        );
+        Course oex = courses.firstWhere(
+          (course) => course.coursecode == "OEX",
+        );
+        term.termcourses.clear();
+        term.termcourses.addAll([capProjW,elec3, oex]);
+      } else if (i == 1 && term.name == 'Term 3') {
+        // Adjust for SchoolYear[1] Term 3
+        Course THWR1 = courses.firstWhere(
+          (course) => course.coursecode == "THWR1",
+        );
+        Course THPRO = courses.firstWhere(
+          (course) => course.coursecode == "THPROD",
+        );
+        term.termcourses.clear();
+        term.termcourses.addAll([THWR1, THPRO]);
+      } else if (i == 2 && term.name == "Term 1") {
+        // Adjust for SchoolYear[2] Term 1
+        Course THWR2 = courses.firstWhere(
+          (course) => course.coursecode == "THWR2",
+        );
+        Course THFIND = courses.firstWhere(
+          (course) => course.coursecode == "THFIND",
+        );
+        term.termcourses.clear();
+        term.termcourses.addAll([THWR2, THFIND]);
+      }
+    }
+  }
+
+  return newStudentPOS;
+}
+
 List<Course> getMITCourses(List<Course> courseList) {
   return courseList.where((course) => course.program.contains('MIT')).toList();
+}
+
+List<Course> getMSITCourses(List<Course> courseList) {
+  return courseList.where((course) => course.program.contains('MSIT')).toList();
 }
 
 List<Course> getElectiveCourses(List<Course> courseList) {
   return courseList
       .where((course) => course.type.contains('Elective'))
+      .toList();
+}
+
+List<Course> getSpecializedCourses(List<Course> courseList) {
+  return courseList
+      .where((course) => course.type.contains('Specialized'))
       .toList();
 }
 

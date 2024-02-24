@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -18,6 +20,17 @@ class UserData {
   String status = '';
 }
 
+String generateRandomPassword() {
+  const characters =
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#%^&*()_+-=[]{}|;:,.<>?';
+  final random = Random();
+  final passwordLength = 12; // Minimum length required
+
+  return List.generate(
+          passwordLength, (_) => characters[random.nextInt(characters.length)])
+      .join();
+}
+
 void showAddUserForm(BuildContext context, GlobalKey<FormState> formKey) {
   List<String> roles = ['Coordinator', 'Graduate Student', 'Admin'];
   List<String> degrees = ['No degree', 'MIT', 'MSIT'];
@@ -28,8 +41,6 @@ void showAddUserForm(BuildContext context, GlobalKey<FormState> formKey) {
   String selectedStatus = status[0];
   String selectedDegree = degrees[0];
   String selectedRole = roles[0];
-  TextEditingController passwordController = TextEditingController();
-  TextEditingController confirmPasswordController = TextEditingController();
   bool isStudent = false;
 
   print("Add user form executed");
@@ -171,48 +182,6 @@ void showAddUserForm(BuildContext context, GlobalKey<FormState> formKey) {
                       ? InputDecoration(labelText: 'Status')
                       : InputDecoration(labelText: 'Status'),
                 ),
-                TextFormField(
-                  decoration: InputDecoration(labelText: 'Password'),
-                  obscureText: true,
-                  controller: passwordController,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a password';
-                    }
-
-                    String password = value.trim();
-
-                    if (password.length < 12 || password.length > 64) {
-                      return 'Password must be between 12 and 64 characters';
-                    }
-
-                    if (!password.contains(RegExp(r'[0-9]'))) {
-                      return 'Password must contain at least one number';
-                    }
-
-                    if (!password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))) {
-                      return 'Password must contain at least one special character';
-                    }
-
-                    return null;
-                  },
-                  onSaved: (value) {
-                    _userData.password = value ?? '';
-                  },
-                ),
-                TextFormField(
-                  decoration: InputDecoration(labelText: 'Confirm Password'),
-                  obscureText: true,
-                  controller: confirmPasswordController,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please confirm the password';
-                    } else if (value != passwordController.text) {
-                      return 'Passwords do not match';
-                    }
-                    return null;
-                  },
-                ),
               ],
             ),
           ),
@@ -229,14 +198,17 @@ void showAddUserForm(BuildContext context, GlobalKey<FormState> formKey) {
               if (formKey.currentState!.validate()) {
                 formKey.currentState!.save();
 
+                String otp = generateRandomPassword();
+
                 try {
                   UserCredential userCredential = await FirebaseAuth.instance
                       .createUserWithEmailAndPassword(
                     email: _userData.email,
-                    password: _userData.password,
+                    password: otp,
                   );
 
                   User? user = userCredential.user;
+
                   await user?.sendEmailVerification();
                   sendEmail(
                       firstname: _userData.displayname['firstname'],
@@ -244,9 +216,9 @@ void showAddUserForm(BuildContext context, GlobalKey<FormState> formKey) {
                       toemail: _userData.email,
                       subject:
                           'New account at the Graduate Student Tracking System',
-                      password: _userData.password);
+                      password: otp);
 
-                  String userID = userCredential.user!.uid;
+                  String userID = user!.uid;
 
                   if (isStudent) {
                     await FirebaseFirestore.instance
@@ -267,38 +239,48 @@ void showAddUserForm(BuildContext context, GlobalKey<FormState> formKey) {
                     });
 
                     Student newStudent = Student(
-                        uid: userID,
-                        displayname: {
-                          'firstname': _userData.displayname['firstname']!,
-                          'lastname': _userData.displayname['lastname']!,
-                        },
-                        role: _userData.role,
-                        email: _userData.email.toLowerCase(),
-                        enrolledCourses: [],
-                        pastCourses: [],
-                        idnumber: _userData.idnumber,
-                        degree: _userData.degree,
-                        status: _userData.status);
+                      uid: userID,
+                      displayname: {
+                        'firstname': _userData.displayname['firstname']!,
+                        'lastname': _userData.displayname['lastname']!,
+                      },
+                      role: _userData.role,
+                      email: _userData.email.toLowerCase(),
+                      enrolledCourses: [],
+                      pastCourses: [],
+                      idnumber: _userData.idnumber,
+                      degree: _userData.degree,
+                      status: _userData.status,
+                    );
+                    final FirebaseFirestore firestore =
+                        FirebaseFirestore.instance;
 
+                    Map<String, dynamic>? studentPosData;
                     if (_userData.degree == 'MIT') {
                       print('student is MIT');
-                      final FirebaseFirestore firestore =
-                          FirebaseFirestore.instance;
-                      Map<String, dynamic> studentPosData =
+
+                      studentPosData =
                           generatePOSforMIT(newStudent, studentPOSList, courses)
                               .toJson();
+                    }
 
-                      try {
-                        firestore
-                            .collection('studentpos')
-                            .doc(newStudent.uid)
-                            .set(studentPosData);
+                    if (_userData.degree == 'MSIT') {
+                      print('Student is MSIT');
+                      studentPosData = generatePOSforMSIT(
+                              newStudent, studentPOSList, courses)
+                          .toJson();
+                    }
 
-                        // Update local data after saving changes
-                        retrieveAllPOS();
-                      } catch (error) {
-                        print('Failed to update Program of Study');
-                      }
+                    try {
+                      firestore
+                          .collection('studentpos')
+                          .doc(newStudent.uid)
+                          .set(studentPosData!);
+                      print('Student POS MADE');
+                      // Update local data after saving changes
+                      retrieveAllPOS();
+                    } catch (error) {
+                      print('Failed to update Program of Study');
                     }
                   } else {
                     await FirebaseFirestore.instance
@@ -313,8 +295,10 @@ void showAddUserForm(BuildContext context, GlobalKey<FormState> formKey) {
                       'role': _userData.role,
                       'email': _userData.email.toLowerCase(),
                       'idnumber': _userData.idnumber,
+                      'degree': _userData.degree,
                     });
                   }
+
                   Navigator.pop(context);
                   users.clear();
 
@@ -322,12 +306,12 @@ void showAddUserForm(BuildContext context, GlobalKey<FormState> formKey) {
 
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('User created'),
+                      content: Text('User added'),
                       duration: Duration(seconds: 2),
                     ),
                   );
                 } catch (e) {
-                  print('Error creating user: $e');
+                  print('Error creating user: ${e.toString()}');
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Error creating user: $e'),
@@ -336,7 +320,7 @@ void showAddUserForm(BuildContext context, GlobalKey<FormState> formKey) {
                 }
               }
             },
-            child: Text('Submit'),
+            child: Text('Add'),
           ),
         ],
       );

@@ -59,7 +59,8 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
     'Elective Courses',
     'Capstone',
     'Exam Course',
-    'Specialized Courses'
+    'Specialized Courses',
+    'Thesis Course'
   ];
 
   final CourseData _courseData = CourseData();
@@ -252,7 +253,7 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                 }
               }
             },
-            child: Text('Submit'),
+            child: Text('Add'),
           ),
         ],
       );
