@@ -151,7 +151,6 @@ Future<List<Course>> getCoursesFromFirestore() async {
         thesiscourses.add(newCourse);
       }
     }
- 
   } catch (e) {
     print("Error fetching courses from Firestore: $e");
   }

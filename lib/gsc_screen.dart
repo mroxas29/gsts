@@ -777,7 +777,8 @@ class _MainViewState extends State<Gscscreen> {
     }
   }
 
-  List<Course> recommendedCourses = [];
+  List<Course> recommendedRemedialCourses = [];
+  List<Course> recommendedPriorityCourses = [];
 
   @override
   Widget build(BuildContext context) {
@@ -1257,6 +1258,7 @@ class _MainViewState extends State<Gscscreen> {
                         ),
                         SingleChildScrollView(
                           child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Column(
                                 mainAxisAlignment: MainAxisAlignment.start,
@@ -1312,7 +1314,10 @@ class _MainViewState extends State<Gscscreen> {
                                                 selectedPOSIndex =
                                                     index; // Select the tapped item
 
-                                                recommendedCourses.clear();
+                                                recommendedRemedialCourses
+                                                    .clear();
+                                                recommendedPriorityCourses
+                                                    .clear();
                                               }
                                             });
                                           },
@@ -1338,13 +1343,13 @@ class _MainViewState extends State<Gscscreen> {
 
                                             child: ListTile(
                                               title: Text(
-                                                "${foundPOS[index].displayname['firstname']} ${foundPOS[index].displayname['lastname']}",
+                                                "${foundPOS[index].displayname['firstname']} ${foundPOS[index].displayname['lastname']} (${foundPOS[index].idnumber})",
                                                 style: TextStyle(
                                                   color:
                                                       selectedPOSIndex == index
                                                           ? Colors.black
                                                           : Colors.grey,
-                                                  fontSize: 20.0,
+                                                  fontSize: 18.0,
                                                   fontWeight: FontWeight.bold,
                                                 ),
                                               ),
@@ -1355,7 +1360,16 @@ class _MainViewState extends State<Gscscreen> {
                                                     CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
-                                                    "ID Number: ${foundPOS[index].idnumber.toString()}",
+                                                    "Degree: ${foundPOS[index].degree}",
+                                                    style: TextStyle(
+                                                      color: selectedPOSIndex ==
+                                                              index
+                                                          ? Colors.black
+                                                          : Colors.grey,
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    foundPOS[index].status,
                                                     style: TextStyle(
                                                       color: selectedPOSIndex ==
                                                               index
@@ -1602,142 +1616,174 @@ class _MainViewState extends State<Gscscreen> {
                               SizedBox(
                                 width: 5,
                               ),
-                              SingleChildScrollView(
-                                // Allow horizontal scrolling
-                                child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      ...selectedTermIndices
-                                          .toList()
-                                          .map<Widget>((termIndex) {
-                                        final term = selectedPOS!
-                                            .schoolYears[selectedYearIndex!]
-                                            .terms[termIndex];
-                                        return Card(
-                                          margin: EdgeInsets.symmetric(
-                                              vertical: 8.0),
-                                          color: Colors.white,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(8.0),
-                                          ),
-                                          elevation: 4.0,
-                                          child: Padding(
-                                            padding: const EdgeInsets.all(10),
-                                            child: SizedBox(
-                                              width: MediaQuery.of(context)
-                                                      .size
-                                                      .width /
-                                                  3,
-                                              child: Theme(
-                                                data: ThemeData(
-                                                  dividerColor: Colors
-                                                      .transparent, // Remove border
-                                                ),
-                                                child: ExpansionTile(
-                                                  title: Text(
-                                                    term.name,
-                                                    style: TextStyle(
-                                                        fontSize: 14.0),
-                                                  ),
-                                                  children: [
-                                                    ...term.termcourses
-                                                        .map((course) {
-                                                      return ListTile(
-                                                        title: Row(
-                                                          children: [
-                                                            Expanded(
-                                                              child: Text(
-                                                                course
-                                                                    .coursecode,
-                                                                style: TextStyle(
-                                                                    fontSize:
-                                                                        12.0),
-                                                              ),
-                                                            ),
-                                                            IconButton(
-                                                              icon: Icon(
-                                                                Icons.delete,
-                                                                color:
-                                                                    Colors.red,
-                                                              ),
-                                                              onPressed: () {
-                                                                // Implement logic to delete the course
-                                                                // For example:
-                                                                setState(() {
-                                                                  term.termcourses
-                                                                      .remove(
-                                                                          course);
-                                                                  // Remove courses from recommendedCourses based on selectedCourse
-                                                                  recommendedCourses.removeWhere((toremove) =>
-                                                                      toremove
-                                                                          .coursecode ==
-                                                                      course
-                                                                          .coursecode);
-                                                                  posEdited =
-                                                                      true;
-                                                                });
-                                                              },
-                                                            ),
-                                                          ],
-                                                        ),
-                                                        subtitle: Text(
-                                                          course.coursename,
-                                                          style: TextStyle(
-                                                              fontSize: 12.0),
-                                                        ),
-                                                      );
-                                                    }).toList(),
-                                                    SizedBox(
-                                                        height:
-                                                            8.0), // Add space between course tiles
-                                                    AddCourseButton(
-                                                      onCourseAdded: (course) {
-                                                        setState(() {
-                                                          term.termcourses
-                                                              .add(course);
-                                                          posEdited = true;
-                                                          countCourseOccurrences(
-                                                              studentPOSList,
-                                                              course.coursecode,
-                                                              term.name);
-                                                          recommendedCourses
-                                                              .add(course);
-                                                        });
+                              Column(
+                                children: [
+                                  Text(
+                                    "Program of Study",
+                                    textAlign: TextAlign.left,
+                                    style: TextStyle(
+                                        fontSize: 12, color: Colors.grey),
+                                  ),
+                                  SingleChildScrollView(
+                                    // Allow horizontal scrolling
+                                    child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          ...selectedTermIndices
+                                              .toList()
+                                              .map<Widget>((termIndex) {
+                                            final term = selectedPOS!
+                                                .schoolYears[selectedYearIndex!]
+                                                .terms[termIndex];
+                                            return Card(
+                                              margin: EdgeInsets.symmetric(
+                                                  vertical: 8.0),
+                                              color: Colors.white,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(8.0),
+                                              ),
+                                              elevation: 4.0,
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.all(10),
+                                                child: SizedBox(
+                                                  width: MediaQuery.of(context)
+                                                          .size
+                                                          .width /
+                                                      3,
+                                                  child: Theme(
+                                                    data: ThemeData(
+                                                      dividerColor: Colors
+                                                          .transparent, // Remove border
+                                                    ),
+                                                    child: ExpansionTile(
+                                                      title: Text(
+                                                        term.name,
+                                                        style: TextStyle(
+                                                            fontSize: 14.0),
+                                                      ),
+                                                      children: [
+                                                        ...term.termcourses
+                                                            .map((course) {
+                                                          return ListTile(
+                                                            title: Row(
+                                                              children: [
+                                                                Expanded(
+                                                                  child: Text(
+                                                                    course
+                                                                        .coursecode,
+                                                                    style: TextStyle(
+                                                                        fontSize:
+                                                                            12.0),
+                                                                  ),
+                                                                ),
+                                                                IconButton(
+                                                                  icon: Icon(
+                                                                    Icons
+                                                                        .delete,
+                                                                    color: Colors
+                                                                        .red,
+                                                                  ),
+                                                                  onPressed:
+                                                                      () {
+                                                                    // Implement logic to delete the course
+                                                                    // For example:
+                                                                    setState(
+                                                                        () {
+                                                                      term.termcourses
+                                                                          .remove(
+                                                                              course);
+                                                                      // Remove courses from recommendedCourses based on selectedCourse
+                                                                      recommendedRemedialCourses.removeWhere((toremove) =>
+                                                                          toremove
+                                                                              .coursecode ==
+                                                                          course
+                                                                              .coursecode);
 
-                                                        print(recommendedCourses
-                                                            .toList()
-                                                            .toString());
-                                                      },
-                                                      allCourses: courses,
-                                                      selectedStudentPOS:
-                                                          selectedPOS!,
-                                                    )
-                                                  ],
+                                                                      recommendedPriorityCourses.removeWhere((toremove) =>
+                                                                          toremove
+                                                                              .coursecode ==
+                                                                          course
+                                                                              .coursecode);
+                                                                      posEdited =
+                                                                          true;
+                                                                    });
+                                                                  },
+                                                                ),
+                                                              ],
+                                                            ),
+                                                            subtitle: Text(
+                                                              course.coursename,
+                                                              style: TextStyle(
+                                                                  fontSize:
+                                                                      12.0),
+                                                            ),
+                                                          );
+                                                        }).toList(),
+                                                        SizedBox(
+                                                            height:
+                                                                8.0), // Add space between course tiles
+                                                        AddCourseButton(
+                                                          onCourseAdded:
+                                                              (course) {
+                                                            setState(() {
+                                                              term.termcourses
+                                                                  .add(course);
+                                                              posEdited = true;
+                                                              countCourseOccurrences(
+                                                                  studentPOSList,
+                                                                  course
+                                                                      .coursecode,
+                                                                  term.name);
+                                                              if (course.type ==
+                                                                  'Bridging/Remedial Courses') {
+                                                                recommendedRemedialCourses
+                                                                    .add(
+                                                                        course);
+                                                                print(
+                                                                    'ADded Bridging course');
+                                                              } else {
+                                                                recommendedPriorityCourses
+                                                                    .add(
+                                                                        course);
+                                                                print(
+                                                                    'ADded prio course');
+                                                              }
+                                                            });
+                                                          },
+                                                          allCourses: courses,
+                                                          selectedStudentPOS:
+                                                              selectedPOS!,
+                                                        )
+                                                      ],
+                                                    ),
+                                                  ),
                                                 ),
                                               ),
-                                            ),
+                                            );
+                                          }),
+                                          ElevatedButton(
+                                            onPressed: () async {
+                                              final data = await service
+                                                  .createRecommendationForm(
+                                                      selectedPOS!,
+                                                      recommendedRemedialCourses,
+                                                      recommendedPriorityCourses);
+                                              await service.savePdfFile(
+                                                  "DeRF_${selectedPOS!.idnumber}.pdf",
+                                                  data);
+                                            }, // Disable the button when no course is added
+                                            child: Text(
+                                                "Download Recommendation Form"),
                                           ),
-                                        );
-                                      }),
-                                      ElevatedButton(
-                                        onPressed: () async {
-                                          
-                                          final data = await service
-                                              .createRecommendationForm(
-                                                  selectedPOS!,
-                                                  recommendedCourses);
-                                          await service.savePdfFile(
-                                              "DeRF_${selectedPOS!.idnumber}.pdf",
-                                              data);
-                                        }, // Disable the button when no course is added
-                                        child: Text(
-                                            "Download Recommendation Form"),
-                                      ),
-                                    ]),
-                              ),
+                                        ]),
+                                  ),
+                                ],
+                              )
                             ],
                           ),
                         ),

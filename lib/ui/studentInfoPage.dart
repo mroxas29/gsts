@@ -89,7 +89,7 @@ class _StudentInfoPageState extends State<StudentInfoPage> {
           padding: EdgeInsets.all(8.0),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Column(
                 children: [

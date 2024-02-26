@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
 import 'package:side_navigation/side_navigation.dart';
+import 'package:sysadmindb/app/models/AcademicCalendar.dart';
 import 'package:sysadmindb/ui/CircularProgressWidget.dart';
 import 'package:sysadmindb/app/models/coursedemand.dart';
 import 'package:sysadmindb/app/models/courses.dart';
@@ -599,6 +600,12 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
       );
     }
 
+    // Get the current date
+    DateTime currentDate = DateTime.now();
+
+    // Determine the current term
+    String currentTerm = getCurrentTerm(currentDate, academicCalendars);
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -606,7 +613,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
           builder: (BuildContext context, StateSetter setState) {
             return AlertDialog(
               backgroundColor: Colors.white,
-              title: Text('Add currently enrolled Course'),
+              title: Text('Add currently enrolled course for $currentTerm'),
               content: Form(
                   key: formKey,
                   autovalidateMode: AutovalidateMode.always,
@@ -783,20 +790,32 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                               child: TextButton(
                                 onPressed: () {
                                   setState(() {
-                                    selectedRadio = 'Capstone';
+                                    selectedRadio =
+                                        currentStudent!.degree == 'MIT'
+                                            ? 'Capstone'
+                                            : 'Thesis';
                                   });
                                 },
                                 style: TextButton.styleFrom(
                                   padding: const EdgeInsets.all(20.0),
-                                  foregroundColor: selectedRadio == 'Capstone'
+                                  foregroundColor: selectedRadio ==
+                                          (currentStudent!.degree == 'MIT'
+                                              ? 'Capstone'
+                                              : 'Thesis')
                                       ? Color.fromARGB(255, 0, 0,
                                           0) // Text color when selected
                                       : null,
-                                  backgroundColor: selectedRadio == 'Capstone'
+                                  backgroundColor: selectedRadio ==
+                                          (currentStudent!.degree == 'MIT'
+                                              ? 'Capstone'
+                                              : 'Thesis')
                                       ? Color.fromARGB(50, 13, 105, 16)
                                       : null, // Fully transparent background
                                   side: BorderSide(
-                                    color: selectedRadio == 'Capstone'
+                                    color: selectedRadio ==
+                                            (currentStudent!.degree == 'MIT'
+                                                ? 'Capstone'
+                                                : 'Thesis')
                                         ? const Color.fromARGB(255, 23, 71,
                                             25) // Border color when selected
                                         : Colors
@@ -804,7 +823,9 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                                   ),
                                 ),
                                 child: Text(
-                                  'Capstone',
+                                  currentStudent!.degree == 'MIT'
+                                      ? 'Capstone'
+                                      : 'Thesis',
                                   style: TextStyle(color: Colors.black),
                                 ),
                               ),
@@ -830,7 +851,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                                           selectedRadio.toLowerCase()))
                                   .length,
                               itemBuilder: (BuildContext context, int index) {
-                                final course = activecourses
+                                final course = courses
                                     .where((course) =>
                                         course.program
                                             .contains(currentStudent!.degree) &&
@@ -916,7 +937,11 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
 
                       if (selectedCourse != blankCourse) {
                         if (currentStudent!.enrolledCourses.any((course) =>
-                            course.coursecode == selectedCourse?.coursecode)) {
+                                course.coursecode ==
+                                selectedCourse?.coursecode) ||
+                            currentStudent!.pastCourses.any((course) =>
+                                course.coursecode ==
+                                selectedCourse?.coursecode)) {
                           // Check if the course is already in enrolledCourses
                           setState(() {
                             courseAlreadyExists = true;
@@ -1372,20 +1397,32 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                               child: TextButton(
                                 onPressed: () {
                                   setState(() {
-                                    selectedRadio = 'Capstone';
+                                    selectedRadio =
+                                        currentStudent!.degree == 'MIT'
+                                            ? 'Capstone'
+                                            : 'Thesis';
                                   });
                                 },
                                 style: TextButton.styleFrom(
                                   padding: const EdgeInsets.all(20.0),
-                                  foregroundColor: selectedRadio == 'Capstone'
+                                  foregroundColor: selectedRadio ==
+                                          (currentStudent!.degree == 'MIT'
+                                              ? 'Capstone'
+                                              : 'Thesis')
                                       ? Color.fromARGB(255, 0, 0,
                                           0) // Text color when selected
                                       : null,
-                                  backgroundColor: selectedRadio == 'Capstone'
+                                  backgroundColor: selectedRadio ==
+                                          (currentStudent!.degree == 'MIT'
+                                              ? 'Capstone'
+                                              : 'Thesis')
                                       ? Color.fromARGB(50, 13, 105, 16)
                                       : null, // Fully transparent background
                                   side: BorderSide(
-                                    color: selectedRadio == 'Capstone'
+                                    color: selectedRadio ==
+                                            (currentStudent!.degree == 'MIT'
+                                                ? 'Capstone'
+                                                : 'Thesis')
                                         ? const Color.fromARGB(255, 23, 71,
                                             25) // Border color when selected
                                         : Colors
@@ -1393,7 +1430,9 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                                   ),
                                 ),
                                 child: Text(
-                                  'Capstone',
+                                  currentStudent!.degree == 'MIT'
+                                      ? 'Capstone'
+                                      : 'Thesis',
                                   style: TextStyle(color: Colors.black),
                                 ),
                               ),
@@ -1507,8 +1546,12 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                     // Validate and save form data
                     if (formKey.currentState!.validate()) {
                       formKey.currentState!.save();
-                      if (currentStudent!.pastCourses.any((course) =>
-                          course.coursecode == selectedCourse?.coursecode)) {
+                      if (currentStudent!.enrolledCourses.any((course) =>
+                              course.coursecode ==
+                              selectedCourse?.coursecode) ||
+                          currentStudent!.pastCourses.any((course) =>
+                              course.coursecode ==
+                              selectedCourse?.coursecode)) {
                         // Check if the course is already in pastCourses
                         setState(() {
                           courseAlreadyExists = true;
@@ -1970,7 +2013,7 @@ class _MainViewState extends State<GradStudentscreen>
   }
 
   bool changeinPOS = false;
-
+  SchoolYear? selectedSchoolYear = studentPOS.schoolYears[1];
   @override
   Widget build(BuildContext context) {
     // print(currentStudent.pastCourses[1]);
@@ -2020,72 +2063,107 @@ class _MainViewState extends State<GradStudentscreen>
           SizedBox(
             height: 20,
           ),
+          Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: studentPOS.schoolYears.map((schoolYear) {
+                return Row(
+                  children: [
+                    SizedBox(width: 10), // Add some spacing between buttons
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          selectedSchoolYear =
+                              schoolYear; // Update the selected school year
+                        });
+                      },
+                      style: ButtonStyle(
+                        minimumSize: MaterialStateProperty.all(
+                            Size(120, 50)), // Enlarge the button size
+                        backgroundColor:
+                            MaterialStateProperty.resolveWith<Color?>(
+                                (Set<MaterialState> states) {
+                          return selectedSchoolYear == schoolYear
+                              ? Color.fromARGB(50, 13, 105,
+                                  16) // Background color when selected
+                              : null; // Background color when not selected
+                        }),
+                        side: MaterialStateProperty.resolveWith<BorderSide>(
+                            (Set<MaterialState> states) {
+                          return BorderSide(
+                            color: selectedSchoolYear == schoolYear
+                                ? const Color.fromARGB(255, 23, 71,
+                                    25) // Border color when selected
+                                : Colors
+                                    .transparent, // Transparent border color when not selected
+                          );
+                        }),
+                      ),
+                      child: Text(
+                        schoolYear.name, // Display the name of the school year
+                        style: TextStyle(
+                          fontSize: 16, // Enlarge the text size
+                          color: selectedSchoolYear == schoolYear
+                              ? Color.fromARGB(
+                                  255, 0, 0, 0) // Text color when selected
+                              : null, // Text color when not selected
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 10), // Add some spacing between buttons
+                  ],
+                );
+              }).toList(),
+            ),
+          ),
+          SizedBox(
+            height: 20,
+          ),
           Row(
-            children: [
-              Padding(
-                padding: EdgeInsets.all(8.0),
-                child: Row(children: [
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: selectedSchoolYear!.terms.map((term) {
+              return Expanded(
+                child: Card(
+                  margin: EdgeInsets.all(10),
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        '■ Bridging/Remedial Courses',
-                        style: TextStyle(color: Colors.blue),
+                      Padding(
+                        padding: EdgeInsets.all(8),
+                        child: Text(
+                          term.name, // Display the name of the term
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                      Text('■ Foundation Courses',
-                          style: TextStyle(color: Colors.green)),
-                      Text('■ Elective Courses',
-                          style: TextStyle(color: Colors.orange)),
-                      Text('■ Exam Courses',
-                          style: TextStyle(color: Colors.red)),
-                      Text('■ Completed Course',
-                          style: TextStyle(color: Colors.grey))
-                    ],
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      // Add your recommendation logic here
-                      print('Recommend POS button pressed');
-                    },
-                    child: Text('Recommend POS'),
-                  ),
-                  SizedBox(
-                    width: 20,
-                  ),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent),
-                    onPressed: changeinPOS
-                        ? () {
-                            print('Update POS');
-                            final FirebaseFirestore firestore =
-                                FirebaseFirestore.instance;
-                            Map<String, dynamic> studentPosData =
-                                studentPOS.toJson();
-                            firestore
-                                .collection('studentpos')
-                                .doc(currentStudent!.uid)
-                                .set(studentPosData);
-
-                            setState(() {
-                              changeinPOS = false;
-                            });
-
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Program of Study updated'),
-                                duration: Duration(seconds: 2),
-                              ),
+                      Column(
+                        children: term.termcourses.map((course) {
+                          if (course.type == 'Elective Courses') {
+                            // Increment the elective count for each elective course encountered
+                            return ListTile(
+                              title: Text(
+                                  'Elective Course'), // Display the elective count
+                              subtitle: Text('Enroll in any elective course'),
+                            );
+                          } else {
+                            return ListTile(
+                              title: Text(
+                                  course.coursecode), // Display the course code
+                              subtitle: Text(
+                                  course.coursename), // Display the course name
                             );
                           }
-                        : null,
-                    child: Text('Update POS'),
+                        }).toList(),
+                      ),
+                    ],
                   ),
-                ]),
-              )
-            ],
-          )
+                ),
+              );
+            }).toList(),
+          ),
         ],
       )),
       Center(

@@ -531,9 +531,11 @@ class PdfInvoiceService {
   }
 
   Future<Uint8List> createRecommendationForm(
-      StudentPOS studentPOS, List<Course> recommendedCourses) async {
+      StudentPOS studentPOS,
+      List<Course> recommendedRemedialCourses,
+      List<Course> recommendedPriorityCourses) async {
     final pdf = pw.Document();
-  
+
     final image = (await rootBundle.load("assets/images/dlsulogo.png"))
         .buffer
         .asUint8List();
@@ -784,7 +786,7 @@ class PdfInvoiceService {
                   children: [
                     // Header for the chair/program coordinator
                     pw.Text(
-                      "FOR THE CHAIR/PROGRAM COORDINATOR – Kindly indicate the COURSE CODE of the course requirements. Please mark N/A on lines left blank. Errors must be countersigned using your full name.",
+                      "FOR THE CHAIR/PROGRAM COORDINATOR - Kindly indicate the COURSE CODE of the course requirements. Please mark N/A on lines left blank. Errors must be countersigned using your full name.",
                       style: pw.TextStyle(fontSize: 10),
                     ),
                     // Header for section 1
@@ -802,12 +804,24 @@ class PdfInvoiceService {
                           crossAxisAlignment: pw.CrossAxisAlignment.start,
                           children: [
                             pw.SizedBox(height: 10),
-                            for (var i = 0; i < recommendedCourses.length; i++)
-                              pw.Text(
-                                "1.${i + 1}. ${recommendedCourses[i].coursecode}: ${recommendedCourses[i].coursename}",
-                                style: pw.TextStyle(fontSize: 10, decoration: TextDecoration.underline),
-                                
-                              ),
+                            pw.Text(
+                              "1.1. SPS5000/Orientation",
+                              style: pw.TextStyle(
+                                  fontSize: 10,
+                                  decoration: TextDecoration.underline),
+                            ),
+                            pw.Text(
+                              "1.2. ENG501M/ENGF01M",
+                              style: pw.TextStyle(
+                                  fontSize: 10,
+                                  decoration: TextDecoration.underline),
+                            ),
+                            pw.Text(
+                              "1.3. ${recommendedRemedialCourses[0].coursecode}: ${recommendedRemedialCourses[0].coursename}",
+                              style: pw.TextStyle(
+                                  fontSize: 10,
+                                  decoration: TextDecoration.underline),
+                            ),
                           ],
                         ),
                         // Right column for lines 1.4 - 1.6
@@ -815,10 +829,14 @@ class PdfInvoiceService {
                           crossAxisAlignment: pw.CrossAxisAlignment.start,
                           children: [
                             pw.SizedBox(height: 10),
-                            for (var i = 3; i < recommendedCourses.length; i++)
+                            for (var i = 1;
+                                i < recommendedRemedialCourses.length;
+                                i++)
                               pw.Text(
-                                "1.${i + 1}. ${recommendedCourses[i].coursecode}: ${recommendedCourses[i].coursename}",
-                                style: pw.TextStyle(fontSize: 10),
+                                "1.${i + 1}. ${recommendedRemedialCourses[i].coursecode}: ${recommendedRemedialCourses[i].coursename}",
+                                style: pw.TextStyle(
+                                    fontSize: 10,
+                                    decoration: TextDecoration.underline),
                               ),
                           ],
                         ),
@@ -838,57 +856,28 @@ class PdfInvoiceService {
                         pw.Column(
                           crossAxisAlignment: pw.CrossAxisAlignment.start,
                           children: [
-                            pw.SizedBox(height: 10),
-                            pw.Text("2.1. _________________________________"),
-                            pw.SizedBox(height: 10),
-                            pw.Text(
-                              "2.2. _________________________________",
-                              style: pw.TextStyle(fontSize: 10),
-                            ),
-                            pw.SizedBox(height: 10),
-                            pw.Text(
-                              "2.3. _________________________________",
-                              style: pw.TextStyle(fontSize: 10),
-                            ),
-                            pw.SizedBox(height: 10),
-                            pw.Text(
-                              "2.4. _________________________________",
-                              style: pw.TextStyle(fontSize: 10),
-                            ),
-                          ],
-                        ),
-                        // Right column for lines 2.5 - 2.8
-                        pw.Column(
-                          crossAxisAlignment: pw.CrossAxisAlignment.start,
-                          children: [
-                            pw.SizedBox(height: 10),
-                            pw.Text(
-                              "2.5. _________________________________",
-                              style: pw.TextStyle(fontSize: 10),
-                            ),
-                            pw.SizedBox(height: 10),
-                            pw.Text(
-                              "2.6. _________________________________",
-                              style: pw.TextStyle(fontSize: 10),
-                            ),
-                            pw.SizedBox(height: 10),
-                            pw.Text(
-                              "2.7. _________________________________",
-                              style: pw.TextStyle(fontSize: 10),
-                            ),
-                            pw.SizedBox(height: 10),
-                            pw.Text(
-                              "2.8. _________________________________",
-                              style: pw.TextStyle(fontSize: 10),
-                            ),
+                            for (var i = 0;
+                                i < recommendedPriorityCourses.length;
+                                i++)
+                              pw.Text(
+                                "2.${i + 1}. ${recommendedPriorityCourses[i].coursecode}: ${recommendedPriorityCourses[i].coursename}",
+                                style: pw.TextStyle(
+                                    fontSize: 10,
+                                    decoration: TextDecoration.underline),
+                              ),
+
+                            
                           ],
                         ),
                       ],
                     ),
+
+                    
                   ],
                 ),
+                 pw.SizedBox(height: 10),
                 pw.Text(
-                  "CHAIR/PROGRAM COORDINATOR’s REMARKS (IF ANY):",
+                  "CHAIR/PROGRAM COORDINATOR's REMARKS (IF ANY):",
                   style: pw.TextStyle(fontSize: 10),
                 ),
                 pw.Text(

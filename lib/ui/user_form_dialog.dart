@@ -204,11 +204,11 @@ void showAddUserForm(BuildContext context, GlobalKey<FormState> formKey) {
                   UserCredential userCredential = await FirebaseAuth.instance
                       .createUserWithEmailAndPassword(
                     email: _userData.email,
-                    password: otp,
+                    password: '123123',
                   );
 
                   User? user = userCredential.user;
-
+/*
                   await user?.sendEmailVerification();
                   sendEmail(
                       firstname: _userData.displayname['firstname'],
@@ -217,7 +217,7 @@ void showAddUserForm(BuildContext context, GlobalKey<FormState> formKey) {
                       subject:
                           'New account at the Graduate Student Tracking System',
                       password: otp);
-
+*/
                   String userID = user!.uid;
 
                   if (isStudent) {
