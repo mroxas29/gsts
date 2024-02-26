@@ -18,6 +18,9 @@ Container signInSignUpButton(
           }
           return Color.fromARGB(255, 20, 94, 5);
         }),
+        shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+            RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(8)))),
       ),
       icon: isPressed
           ? Container(
@@ -29,7 +32,10 @@ Container signInSignUpButton(
                 strokeWidth: 3,
               ),
             )
-          : const Icon(Icons.lock),
+          : const Icon(
+              Icons.lock,
+              color: Colors.white,
+            ),
       label: Text(isLogin ? 'LOG IN' : 'SIGN UP',
           style: const TextStyle(
               color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),

@@ -9,6 +9,7 @@ class Course {
   int numstudents;
   int units;
   String type;
+  String program;
 
   Course(
       {required this.uid,
@@ -18,7 +19,8 @@ class Course {
       required this.facultyassigned,
       required this.numstudents,
       required this.units,
-      required this.type});
+      required this.type,
+      required this.program});
 
   toJson() {
     return {
@@ -30,6 +32,7 @@ class Course {
       "numstudents": numstudents,
       "units": units,
       "type": type,
+      "program": program,
     };
   }
 
@@ -42,10 +45,12 @@ class Course {
         facultyassigned = map['facultyassigned'],
         numstudents = map['numstudents'],
         units = map['units'],
-        type = map['type'];
+        type = map['type'],
+        program = map['program'];
 
   Map<String, dynamic> toMap() {
     return {
+      'uid': uid,
       'coursecode': coursecode,
       'coursename': coursename,
       'isactive': isactive,
@@ -53,6 +58,7 @@ class Course {
       'numstudents': numstudents,
       'units': units,
       'type': type,
+      'program': program
     };
   }
 }
@@ -65,6 +71,8 @@ List<Course> foundationcourses = [];
 List<Course> electivecourses = [];
 List<Course> capstonecourses = [];
 List<Course> examcourses = [];
+List<Course> specializedcourses = [];
+List<Course> thesiscourses = [];
 final blankCourse = Course(
     uid: 'blank',
     coursecode: 'Select a course',
@@ -73,7 +81,8 @@ final blankCourse = Course(
     units: 0,
     numstudents: 0,
     isactive: false,
-    type: '');
+    type: '',
+    program: '');
 Future<List<Course>> getCoursesFromFirestore() async {
   courses.clear();
   activecourses.clear();
@@ -83,6 +92,7 @@ Future<List<Course>> getCoursesFromFirestore() async {
   electivecourses.clear();
   capstonecourses.clear();
   examcourses.clear();
+  thesiscourses.clear();
 
   print("Add course from FS executed");
   try {
@@ -103,7 +113,8 @@ Future<List<Course>> getCoursesFromFirestore() async {
           isactive: courseData['isactive'],
           numstudents: courseData['numstudents'],
           units: courseData['units'],
-          type: courseData['type']);
+          type: courseData['type'],
+          program: courseData['program']);
 
       courses.add(newCourse);
       if (newCourse.isactive == true) {
@@ -131,10 +142,15 @@ Future<List<Course>> getCoursesFromFirestore() async {
       if (newCourse.type.toLowerCase().contains('exam')) {
         examcourses.add(newCourse);
       }
+
+      if (newCourse.type.toLowerCase().contains('specialized')) {
+        specializedcourses.add(newCourse);
+      }
+
+      if (newCourse.type.toLowerCase().contains('thesis')) {
+        thesiscourses.add(newCourse);
+      }
     }
-    courses.forEach((user) {
-      print(user.toJson());
-    });
   } catch (e) {
     print("Error fetching courses from Firestore: $e");
   }

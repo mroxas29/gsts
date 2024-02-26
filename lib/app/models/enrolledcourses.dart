@@ -1,18 +1,17 @@
 import 'package:sysadmindb/app/models/courses.dart';
 
 class EnrolledCourseData extends Course {
- 
-  EnrolledCourseData({
-    required String uid,
-    required String coursecode,
-    required String coursename,
-    required bool isactive,
-    required String facultyassigned,
-    required int numstudents,
-    required int units,
-    required String type
-
-  }) : super(
+  EnrolledCourseData(
+      {required String uid,
+      required String coursecode,
+      required String coursename,
+      required bool isactive,
+      required String facultyassigned,
+      required int numstudents,
+      required int units,
+      required String type,
+      required String program})
+      : super(
           uid: uid,
           coursecode: coursecode,
           coursename: coursename,
@@ -20,22 +19,20 @@ class EnrolledCourseData extends Course {
           facultyassigned: facultyassigned,
           numstudents: numstudents,
           units: units,
-          type: type
+          type: type,
+          program: program,
         );
 
   factory EnrolledCourseData.fromJson(Map<String, dynamic> json) {
     return EnrolledCourseData(
-      uid: json['uid'],
-      coursecode: json['coursecode'],
-      coursename: json['coursename'],
-      isactive: json['isactive'],
-      facultyassigned: json['facultyassigned'],
-      numstudents: json['numstudents'],
-      units: json['units'],
-      type: json['type'],
-    );
+        uid: json['uid'],
+        coursecode: json['coursecode'],
+        coursename: json['coursename'],
+        isactive: json['isactive'],
+        facultyassigned: json['facultyassigned'],
+        numstudents: json['numstudents'],
+        units: json['units'],
+        type: json['type'],
+        program: json['program']);
   }
 }
-
-
-

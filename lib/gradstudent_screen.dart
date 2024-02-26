@@ -2,13 +2,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import 'package:side_navigation/side_navigation.dart';
+import 'package:sysadmindb/app/models/AcademicCalendar.dart';
+import 'package:sysadmindb/ui/CircularProgressWidget.dart';
 import 'package:sysadmindb/app/models/coursedemand.dart';
 import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/enrolledcourses.dart';
 import 'package:sysadmindb/app/models/pastcourses.dart';
 import 'package:sysadmindb/app/models/schoolYear.dart';
+import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/app/models/term.dart';
 import 'package:sysadmindb/main.dart';
@@ -32,12 +36,23 @@ class StudentProfileScreen extends StatefulWidget {
   State<StudentProfileScreen> createState() => _StudentProfileScreenState();
 }
 
+int unitsCompleted =
+    currentStudent!.pastCourses.fold(0, (int sum, PastCourse pastCourse) {
+  return sum + pastCourse.units;
+});
+
 class _StudentProfileScreenState extends State<StudentProfileScreen> {
   bool isEditing = false;
 
   TextEditingController firstNameController = TextEditingController();
   TextEditingController lastNameController = TextEditingController();
   TextEditingController idNumberController = TextEditingController();
+
+  TextEditingController currentPasswordController = TextEditingController();
+  TextEditingController newPasswordController = TextEditingController();
+  TextEditingController confirmNewPasswordController = TextEditingController();
+  bool isValidPass = false;
+
   @override
   void initState() {
     super.initState();
@@ -55,9 +70,23 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
     }
   }
 
+  String _capitalize(String input) {
+    if (input.isEmpty) {
+      return '';
+    }
+    return input[0].toUpperCase() + input.substring(1);
+  }
+
   @override
   Widget build(BuildContext context) {
     User? user = FirebaseAuth.instance.currentUser;
+    bool is12chars = is12charslong(newPasswordController.text);
+    bool isAtMost64chars = isatmost64chars(newPasswordController.text);
+    bool hasSpecial = hasSpecialChar(newPasswordController.text);
+    bool hasNum = hasNumber(newPasswordController.text);
+    bool isMatching =
+        confirmNewPasswordController.text == newPasswordController.text;
+    bool curpassinc = false;
 
     if (user == null) {
       // User not logged in
@@ -66,94 +95,349 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
       );
     }
 
-    return Padding(
+    if (is12charslong(curpass) &&
+        isatmost64chars(curpass) &&
+        hasSpecialChar(curpass) &&
+        hasNumber(curpass) &&
+        hasSpecialChar(curpass)) {
+      setState(() {
+        isValidPass = true;
+      });
+    } else {
+      setState(() {
+        isValidPass = false;
+      });
+    }
+
+    return SingleChildScrollView(
         padding: EdgeInsets.all(8.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            Text(
-              'User Profile:',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 25),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                    width: 560,
+                    child: SingleChildScrollView(
+                      child: Card(
+                        color: Colors.white,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8.0)),
+                        elevation: 4.0,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(10, 10, 200, 70),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment
+                                .start, // Align text to the left
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Your profile",
+                                style:
+                                    TextStyle(fontSize: 12, color: Colors.grey),
+                              ),
+                              Text(
+                                "${_capitalize(firstNameController.text)} ${_capitalize(lastNameController.text)} ",
+                                style: TextStyle(
+                                    fontSize: 34,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color.fromARGB(255, 23, 71, 25)),
+                              ),
+                              Text(currentStudent!.degree.endsWith('SIT')
+                                  ? 'Master of Science in Information Technology - ${currentStudent!.idnumber.toString()}'
+                                  : 'Master in Information Technology - ${currentStudent!.idnumber.toString()}'),
+                              Text(currentStudent!.email),
+                              Text('Enrollment Status: ${currentUser.status}'),
+                              Text(
+                                isValidPass
+                                    ? '🔒 Your password is secure'
+                                    : '✖ Your password is not secure',
+                                style: TextStyle(
+                                    color: isValidPass
+                                        ? Colors.green
+                                        : Colors.red),
+                              )
+                            ],
+                          ),
+                        ),
+                      ),
+                    )),
+              ],
             ),
-            SizedBox(height: 16),
-            // Editable fields
-            Container(
-              height: 16,
+            SizedBox(
+              height: 20,
             ),
-            TextField(
-              controller: firstNameController,
-              enabled: isEditing,
-              decoration: InputDecoration(labelText: 'First Name'),
-            ),
-            TextField(
-              controller: lastNameController,
-              enabled: isEditing,
-              decoration: InputDecoration(labelText: 'Last Name'),
-            ),
-            TextField(
-              controller: idNumberController,
-              enabled: isEditing,
-              decoration: InputDecoration(labelText: 'ID Number'),
-            ),
-            // Non-editable fields
-            Container(
-              height: 16,
-            ),
-            Text(
-              'Email: ${user.email}',
-              style: TextStyle(fontSize: 15),
-            ),
-            SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  isEditing = !isEditing;
-                  if (!isEditing) {
-                    // Save changes when editing is done
-                    updateUserProfile();
-                  }
-                });
-              },
-              child: Text(isEditing ? 'Save' : 'Edit'),
-            ),
-            SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 560, // Set your desired width
+                  child: SingleChildScrollView(
+                    child: Card(
+                      color: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                      elevation: 4.0,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(10, 10, 200, 80),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Password Management",
+                              style:
+                                  TextStyle(fontSize: 12, color: Colors.grey),
+                            ),
+                            TextFormField(
+                              controller: currentPasswordController,
+                              enabled: isEditing,
+                              obscureText: true,
+                              decoration: InputDecoration(
+                                labelText: 'Current Password',
+                              ),
+                              validator: (value) {
+                                if (value != curpass) {
+                                  curpassinc = false;
+                                  return 'Current password is incorrect';
+                                }
+                                return null;
+                              },
+                            ),
+                            TextField(
+                              controller: newPasswordController,
+                              enabled: isEditing,
+                              obscureText: true,
+                              decoration: InputDecoration(
+                                labelText: 'New Password',
+                              ),
+                              onChanged: (password) {
+                                setState(() {
+                                  is12chars = is12charslong(password);
+                                  isAtMost64chars = isatmost64chars(password);
+                                  hasSpecial = hasSpecialChar(password);
+                                  hasNum = hasNumber(password);
+                                  isMatching =
+                                      confirmNewPasswordController.text ==
+                                          newPasswordController.text;
+                                });
+                              },
+                            ),
+                            TextField(
+                              controller: confirmNewPasswordController,
+                              enabled: isEditing,
+                              obscureText: true,
+                              decoration: InputDecoration(
+                                labelText: 'Confirm New Password',
+                              ),
+                              onChanged: (passwordTextController) {
+                                setState(() {
+                                  isMatching =
+                                      confirmNewPasswordController.text ==
+                                          newPasswordController.text;
+                                });
+                              },
+                            ),
+                            SizedBox(height: 16),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Password Requirements:',
+                                  style: TextStyle(
+                                    color:
+                                        isEditing ? Colors.black : Colors.grey,
+                                  ),
+                                ),
+                                Text(
+                                  is12chars
+                                      ? '✔ At least 12 characters long'
+                                      : '✖ At least 12 characters long',
+                                  style: TextStyle(
+                                    color: is12chars
+                                        ? Colors.green
+                                        : (isEditing
+                                            ? Colors.red
+                                            : Colors.grey),
+                                  ),
+                                ),
+                                Text(
+                                  isAtMost64chars
+                                      ? '✔ At most 64 characters long'
+                                      : '✖ At most 64 characters long',
+                                  style: TextStyle(
+                                    color: isEditing
+                                        ? (isAtMost64chars
+                                            ? Colors.green
+                                            : Colors.red)
+                                        : Colors.grey,
+                                  ),
+                                ),
+                                Text(
+                                  hasSpecial
+                                      ? '✔ Contains at least one special character'
+                                      : '✖ Contains at least one special character',
+                                  style: TextStyle(
+                                    color: hasSpecial
+                                        ? Colors.green
+                                        : (isEditing
+                                            ? Colors.red
+                                            : Colors.grey),
+                                  ),
+                                ),
+                                Text(
+                                  hasNum
+                                      ? '✔ Contains at least one number'
+                                      : '✖ Contains at least one number',
+                                  style: TextStyle(
+                                    color: hasNum
+                                        ? Colors.green
+                                        : (isEditing
+                                            ? Colors.red
+                                            : Colors.grey),
+                                  ),
+                                ),
+                                Text(
+                                  isMatching
+                                      ? '✔ New passwords match'
+                                      : '✖ Passwords do not match',
+                                  style: TextStyle(
+                                    color: isEditing
+                                        ? (isMatching
+                                            ? Colors.green
+                                            : Colors.red)
+                                        : Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(
+                              height: 10,
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                setState(() {
+                                  isEditing = !isEditing;
+                                  if (!isEditing) {
+                                    // Save changes when editing is done
+                                    //updateUserProfile();
+                                    if (currentPasswordController.text ==
+                                        curpass) {
+                                      curpassinc = true;
+                                    }
+                                    savePasswordChanges(
+                                      newPasswordController.text,
+                                      isMatching,
+                                      isAtMost64chars,
+                                      hasNum,
+                                      hasSpecial,
+                                      curpassinc,
+                                      is12chars,
+                                    );
+                                    // Clear password fields
+                                    currentPasswordController.clear();
+                                    newPasswordController.clear();
+                                    confirmNewPasswordController.clear();
+                                  }
+                                });
+                              },
+                              child: Text(
+                                isEditing ? 'Save Password' : 'Change Password',
+                                style: TextStyle(
+                                    color: isEditing
+                                        ? const Color.fromARGB(255, 23, 71, 25)
+                                        : Colors.grey),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            )
           ],
         ));
   }
 
-  void updateUserProfile() async {
-    try {
-      FirebaseFirestore.instance
-          .collection('users')
-          .doc(currentUser.uid)
-          .update({
-        'displayname': {
-          'firstname': firstNameController.text,
-          'lastname': lastNameController.text,
-        },
-        'idnumber': int.parse(idNumberController.text),
-        // Add other fields as needed
-      });
+  void savePasswordChanges(
+      String newPassword,
+      bool isMatching,
+      bool isatmost64chars,
+      bool hasNum,
+      bool hasSpecial,
+      bool curpassinc,
+      bool is12chars) async {
+    if (isMatching &&
+        isatmost64chars &&
+        hasNum &&
+        hasSpecial &&
+        curpassinc &&
+        is12chars) {
+      try {
+        // Update password if successfully reauthenticated
+        await FirebaseAuth.instance.currentUser!.updatePassword(newPassword);
 
-      // Show a SnackBar or any other feedback
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('User data updated successfully'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    } catch (e) {
-      print('Error updating user data: $e');
-      // Handle the error or show an error message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error updating user data: $e'),
-          duration: Duration(seconds: 2),
-        ),
-      );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Password changed successfully'),
+            duration: Duration(seconds: 5),
+          ),
+        );
+        setState(() {
+          curpass = newPassword;
+        });
+      } catch (updateError) {
+        print('Error updating password: $updateError');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating password: $updateError'),
+            duration: Duration(seconds: 5),
+          ),
+        );
+      }
+    } else {
+      if (!curpassinc) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Current password is incorrect'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('See password requirements'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 }
+
+bool is12charslong(String password) {
+  return password.length >= 12;
+}
+
+bool isatmost64chars(String password) {
+  return password.length <= 64;
+}
+
+bool hasSpecialChar(String password) {
+  // Replace this with your logic to check if password has at least one special character
+  RegExp specialCharRegex = RegExp(r'[!@#\$%^&*(),.?":{}|<>]');
+  return specialCharRegex.hasMatch(password);
+}
+
+bool hasNumber(String password) {
+  // Replace this with your logic to check if password has at least one number
+  RegExp numberRegex = RegExp(r'\d');
+  return numberRegex.hasMatch(password);
+}
+// check if the password meets the specified requirements
 
 class CurriculumAuditScreen extends StatefulWidget {
   @override
@@ -164,7 +448,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
   void _deleteEnrolledCourse(
     EnrolledCourseData enrolledCourse,
   ) async {
-    int indextodelete = currentStudent.enrolledCourses.indexOf(enrolledCourse);
+    int indextodelete = currentStudent!.enrolledCourses.indexOf(enrolledCourse);
     bool confirmDelete = await showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -199,23 +483,21 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
       try {
         // Remove the course from the enrolledCourses list
         setState(() {
-          currentStudent.enrolledCourses.remove(enrolledCourse);
+          currentStudent!.enrolledCourses.remove(enrolledCourse);
         });
 
         // Update Firestore to reflect the changes
         await FirebaseFirestore.instance
             .collection('users')
-            .doc(currentStudent.uid)
+            .doc(currentStudent!.uid)
             .update({
-          'enrolledCourses': currentStudent.enrolledCourses
+          'enrolledCourses': currentStudent!.enrolledCourses
               .map((course) => course.toJson())
               .toList(),
         });
         for (Student student in studentList) {
           if (student.enrolledCourses.any((course) =>
               course.coursecode == activecourses[indextodelete].coursecode)) {
-            print("Student with the same course: ${student.displayname}");
-
             await FirebaseFirestore.instance
                 .collection('users')
                 .doc(student.uid)
@@ -272,6 +554,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
     }
   }
 
+// ADD COURSES IN CURRICULUM AUDIT
   void showAddEnrolledCoursePopup(
     BuildContext context,
     GlobalKey<FormState> formKey,
@@ -281,70 +564,364 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
     Course? selectedCourse = blankCourse;
     int? selectedCourseIndex;
     bool courseAlreadyExists = false;
-    print(currentStudent.enrolledCourses);
+    String selectedRadio = '';
+
+    void handleRadioValueChanged(String coursetype) {
+      setState(() {
+        selectedRadio = coursetype;
+      });
+    }
+
+    Widget radioSelectionButton(String value) {
+      return Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: TextButton(
+          onPressed: () {
+            setState(() {
+              selectedRadio = value;
+            });
+          },
+          style: TextButton.styleFrom(
+            foregroundColor: selectedRadio == value
+                ? const Color.fromARGB(
+                    255, 23, 71, 25) // Text color when selected
+                : null,
+            backgroundColor: null, // Fully transparent background
+            side: BorderSide(
+              color: selectedRadio == value
+                  ? const Color.fromARGB(
+                      255, 23, 71, 25) // Border color when selected
+                  : Colors
+                      .transparent, // Transparent border color when not selected
+            ),
+          ),
+          child: Text(value),
+        ),
+      );
+    }
+
+    // Get the current date
+    DateTime currentDate = DateTime.now();
+
+    // Determine the current term
+    String currentTerm = getCurrentTerm(currentDate, academicCalendars);
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
             return AlertDialog(
-              title: Text('Add Enrolled Course'),
+              backgroundColor: Colors.white,
+              title: Text('Add currently enrolled course for $currentTerm'),
               content: Form(
-                key: formKey,
-                autovalidateMode: AutovalidateMode.always,
-                child: Column(
-                  children: [
-                    DropdownButtonFormField<Course>(
-                      value: selectedCourse,
-                      items: [blankCourse, ...activecourses].map((course) {
-                        return DropdownMenuItem<Course>(
-                          value: course,
-                          child: Text(course.coursecode),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          selectedCourse = value;
-                          // Handle the selection of the blank option here
-                          if (value == blankCourse) {
-                            // Close the popup and show a message
-
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('No course chosen.'),
-                                duration: Duration(seconds: 2),
+                  key: formKey,
+                  autovalidateMode: AutovalidateMode.always,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    selectedRadio = 'Bridging/Remedial';
+                                  });
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.all(20.0),
+                                  foregroundColor:
+                                      selectedRadio == 'Bridging/Remedial'
+                                          ? const Color.fromARGB(255, 23, 71,
+                                              25) // Text color when selected
+                                          : null,
+                                  backgroundColor: selectedRadio ==
+                                          'Bridging/Remedial'
+                                      ? Color.fromARGB(50, 13, 105, 16)
+                                      : null, // Fully transparent background
+                                  side: BorderSide(
+                                    color: selectedRadio == 'Bridging/Remedial'
+                                        ? const Color.fromARGB(255, 23, 71,
+                                            25) // Border color when selected
+                                        : Colors
+                                            .transparent, // Transparent border color when not selected
+                                  ),
+                                ),
+                                child: Text(
+                                  'Bridging/Remedial',
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                  ),
+                                ),
                               ),
-                            );
-                          } else {
-                            // Handle the selection of a valid course
-                            selectedCourseIndex =
-                                activecourses.indexOf(selectedCourse!);
-                            courseAlreadyExists = false;
-                          }
-                        });
-                      },
-                      onSaved: (value) {},
-                      decoration: InputDecoration(labelText: 'Select Course'),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    selectedRadio = 'Foundation';
+                                  });
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.all(20.0),
+                                  foregroundColor: selectedRadio == 'Foundation'
+                                      ? const Color.fromARGB(255, 23, 71,
+                                          25) // Text color when selected
+                                      : null,
+                                  backgroundColor: selectedRadio == 'Foundation'
+                                      ? Color.fromARGB(50, 13, 105, 16)
+                                      : null, // Fully transparent background
+                                  side: BorderSide(
+                                    color: selectedRadio == 'Foundation'
+                                        ? const Color.fromARGB(255, 23, 71,
+                                            25) // Border color when selected
+                                        : Colors
+                                            .transparent, // Transparent border color when not selected
+                                  ),
+                                ),
+                                child: Text(
+                                  'Foundation',
+                                  style: TextStyle(color: Colors.black),
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    selectedRadio = 'Elective';
+                                  });
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.all(20.0),
+                                  foregroundColor: selectedRadio == 'Elective'
+                                      ? const Color.fromARGB(255, 23, 71,
+                                          25) // Text color when selected
+                                      : null,
+                                  backgroundColor: selectedRadio == 'Elective'
+                                      ? Color.fromARGB(50, 13, 105, 16)
+                                      : null, // Fully transparent background
+                                  side: BorderSide(
+                                    color: selectedRadio == 'Elective'
+                                        ? const Color.fromARGB(255, 23, 71,
+                                            25) // Border color when selected
+                                        : Colors
+                                            .transparent, // Transparent border color when not selected
+                                  ),
+                                ),
+                                child: Text(
+                                  'Elective',
+                                  style: TextStyle(color: Colors.black),
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    selectedRadio = 'Specialized';
+                                  });
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.all(20.0),
+                                  foregroundColor:
+                                      selectedRadio == 'Specialized'
+                                          ? Color.fromARGB(255, 0, 0,
+                                              0) // Text color when selected
+                                          : null,
+                                  backgroundColor: selectedRadio ==
+                                          'Specialized'
+                                      ? Color.fromARGB(50, 13, 105, 16)
+                                      : null, // Fully transparent background
+                                  side: BorderSide(
+                                    color: selectedRadio == 'Specialized'
+                                        ? const Color.fromARGB(255, 23, 71,
+                                            25) // Border color when selected
+                                        : Colors
+                                            .transparent, // Transparent border color when not selected
+                                  ),
+                                ),
+                                child: Text(
+                                  'Specialized',
+                                  style: TextStyle(color: Colors.black),
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    selectedRadio = 'Exam';
+                                  });
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.all(20.0),
+                                  foregroundColor: selectedRadio == 'Exam'
+                                      ? const Color.fromARGB(255, 23, 71,
+                                          25) // Text color when selected
+                                      : null,
+                                  backgroundColor: selectedRadio == 'Exam'
+                                      ? Color.fromARGB(50, 13, 105, 16)
+                                      : null, // Fully transparent background
+                                  side: BorderSide(
+                                    color: selectedRadio == 'Exam'
+                                        ? const Color.fromARGB(255, 23, 71,
+                                            25) // Border color when selected
+                                        : Colors
+                                            .transparent, // Transparent border color when not selected
+                                  ),
+                                ),
+                                child: Text(
+                                  'Exam',
+                                  style: TextStyle(color: Colors.black),
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    selectedRadio =
+                                        currentStudent!.degree == 'MIT'
+                                            ? 'Capstone'
+                                            : 'Thesis';
+                                  });
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.all(20.0),
+                                  foregroundColor: selectedRadio ==
+                                          (currentStudent!.degree == 'MIT'
+                                              ? 'Capstone'
+                                              : 'Thesis')
+                                      ? Color.fromARGB(255, 0, 0,
+                                          0) // Text color when selected
+                                      : null,
+                                  backgroundColor: selectedRadio ==
+                                          (currentStudent!.degree == 'MIT'
+                                              ? 'Capstone'
+                                              : 'Thesis')
+                                      ? Color.fromARGB(50, 13, 105, 16)
+                                      : null, // Fully transparent background
+                                  side: BorderSide(
+                                    color: selectedRadio ==
+                                            (currentStudent!.degree == 'MIT'
+                                                ? 'Capstone'
+                                                : 'Thesis')
+                                        ? const Color.fromARGB(255, 23, 71,
+                                            25) // Border color when selected
+                                        : Colors
+                                            .transparent, // Transparent border color when not selected
+                                  ),
+                                ),
+                                child: Text(
+                                  currentStudent!.degree == 'MIT'
+                                      ? 'Capstone'
+                                      : 'Thesis',
+                                  style: TextStyle(color: Colors.black),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(
+                          height: 200,
+                          width: MediaQuery.of(context).size.width / 2,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Color.fromARGB(34, 54, 233,
+                                  60), // Set your desired background color
+                              borderRadius: BorderRadius.circular(
+                                  10), // Set your desired border radius
+                            ),
+                            child: ListView.builder(
+                              itemCount: activecourses
+                                  .where((course) =>
+                                      course.program
+                                          .contains(currentStudent!.degree) &&
+                                      course.type.toLowerCase().contains(
+                                          selectedRadio.toLowerCase()))
+                                  .length,
+                              itemBuilder: (BuildContext context, int index) {
+                                final course = courses
+                                    .where((course) =>
+                                        course.program
+                                            .contains(currentStudent!.degree) &&
+                                        course.type.toLowerCase().contains(
+                                            selectedRadio.toLowerCase()))
+                                    .toList()[index];
+
+                                return ListTile(
+                                  title: Text(
+                                      "${course.coursecode}: ${course.coursename}"),
+                                  onTap: () {
+                                    setState(() {
+                                      selectedCourse = course;
+                                      selectedCourseIndex = activecourses
+                                          .indexOf(selectedCourse!);
+                                      courseAlreadyExists = false;
+                                    });
+                                  },
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          height: 25,
+                        ),
+                        if (courseAlreadyExists)
+                          Text(
+                            'This course is already added',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        if (selectedCourse != null)
+                          Text(
+                            "Course name",
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                        Text(
+                          selectedCourse!.coursename,
+                          style: TextStyle(fontSize: 18),
+                        ),
+                        Text(
+                          "Faculty name",
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                        Text(
+                          selectedCourse?.facultyassigned ==
+                                  'UNASSIGNED UNASSIGNED'
+                              ? 'No faculty assigned'
+                              : '${selectedCourse?.facultyassigned}',
+                          style: TextStyle(fontSize: 18),
+                        ),
+                        Text(
+                          "Units",
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                        Text(
+                          selectedCourse!.units.toString(),
+                          style: TextStyle(fontSize: 18),
+                        ),
+                        Text(
+                          "Number of students",
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                        Text(
+                          selectedCourse!.numstudents.toString(),
+                          style: TextStyle(fontSize: 18),
+                        ),
+                      ],
                     ),
-                    if (courseAlreadyExists)
-                      Text(
-                        'This course is already added',
-                        style: TextStyle(color: Colors.red),
-                      ),
-                    if (selectedCourse != null)
-                      Column(
-                        children: [
-                          Text('Course Name: ${selectedCourse?.coursename}'),
-                          Text(
-                              'Faculty Assigned: ${selectedCourse?.facultyassigned}'),
-                          Text('Units: ${selectedCourse?.units}'),
-                          Text(
-                              'Number of Students: ${selectedCourse?.numstudents}'),
-                        ],
-                      ),
-                  ],
-                ),
-              ),
+                  )),
               actions: [
                 TextButton(
                   onPressed: () {
@@ -359,8 +936,12 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                       formKey.currentState!.save();
 
                       if (selectedCourse != blankCourse) {
-                        if (currentStudent.enrolledCourses.any((course) =>
-                            course.coursecode == selectedCourse?.coursecode)) {
+                        if (currentStudent!.enrolledCourses.any((course) =>
+                                course.coursecode ==
+                                selectedCourse?.coursecode) ||
+                            currentStudent!.pastCourses.any((course) =>
+                                course.coursecode ==
+                                selectedCourse?.coursecode)) {
                           // Check if the course is already in enrolledCourses
                           setState(() {
                             courseAlreadyExists = true;
@@ -369,15 +950,15 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                           late EnrolledCourseData enrolledCourse;
 
                           enrolledCourse = EnrolledCourseData(
-                            uid: generateUID(),
-                            coursecode: selectedCourse!.coursecode,
-                            coursename: selectedCourse!.coursename,
-                            isactive: selectedCourse!.isactive,
-                            facultyassigned: selectedCourse!.facultyassigned,
-                            numstudents: selectedCourse!.numstudents + 1,
-                            units: selectedCourse!.units,
-                            type: selectedCourse!.type,
-                          );
+                              uid: generateUID(),
+                              coursecode: selectedCourse!.coursecode,
+                              coursename: selectedCourse!.coursename,
+                              isactive: selectedCourse!.isactive,
+                              facultyassigned: selectedCourse!.facultyassigned,
+                              numstudents: selectedCourse!.numstudents + 1,
+                              units: selectedCourse!.units,
+                              type: selectedCourse!.type,
+                              program: selectedCourse!.program);
                           onAddEnrolledCourse(enrolledCourse);
 
                           try {
@@ -385,8 +966,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                             String userId = currentUser.uid;
 
                             // Update numstudents in the Courses collection
-                            print(
-                                " NUM STUDENTS 1 ${activecourses[selectedCourseIndex!].numstudents}");
+
                             await FirebaseFirestore.instance
                                 .collection('courses')
                                 .doc(activecourses[selectedCourseIndex!].uid)
@@ -394,16 +974,12 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                                     {'numstudents': FieldValue.increment(1)});
 
                             // Update user data in Firestore
-                            print(studentList.toList());
                             for (Student student in studentList) {
                               print("Checking student: ${student.idnumber}");
                               if (student.enrolledCourses.any((course) =>
                                   course.coursecode ==
                                   activecourses[selectedCourseIndex!]
                                       .coursecode)) {
-                                print(
-                                    "Student with the same course: ${student.displayname}");
-
                                 // Get the student's document reference
                                 final DocumentReference studentDocRef =
                                     FirebaseFirestore.instance
@@ -592,6 +1168,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
     updateCourseData();
   }
 
+// ADD PAST COURSE IN CURRICULUM AUDIT
   void showAddPastCourse(
     BuildContext context,
     GlobalKey<FormState> formKey,
@@ -601,6 +1178,41 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
     int? selectedCourseIndex;
     bool courseAlreadyExists = false;
     double? enteredGrade; // Variable to store the entered grade
+    String selectedRadio = '';
+
+    void handleRadioValueChanged(String coursetype) {
+      setState(() {
+        selectedRadio = coursetype;
+      });
+    }
+
+    Widget radioSelectionButton(String value) {
+      return Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: TextButton(
+          onPressed: () {
+            setState(() {
+              selectedRadio = value;
+            });
+          },
+          style: TextButton.styleFrom(
+            foregroundColor: selectedRadio == value
+                ? const Color.fromARGB(
+                    255, 23, 71, 25) // Text color when selected
+                : null,
+            backgroundColor: null, // Fully transparent background
+            side: BorderSide(
+              color: selectedRadio == value
+                  ? const Color.fromARGB(
+                      255, 23, 71, 25) // Border color when selected
+                  : Colors
+                      .transparent, // Transparent border color when not selected
+            ),
+          ),
+          child: Text(value),
+        ),
+      );
+    }
 
     showDialog(
       context: context,
@@ -610,62 +1222,318 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
             return AlertDialog(
               title: Text('Add Past Course'),
               content: Form(
-                key: formKey,
-                autovalidateMode: AutovalidateMode.always,
-                child: Column(
-                  children: [
-                    DropdownButtonFormField<Course>(
-                      value: selectedCourse,
-                      items: courses.map((course) {
-                        return DropdownMenuItem<Course>(
-                          value: course,
-                          child: Text(course.coursecode),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          selectedCourse = value;
-                          selectedCourseIndex =
-                              courses.indexOf(selectedCourse!);
-                          courseAlreadyExists = false;
-                        });
-                      },
-                      onSaved: (value) {},
-                      decoration: InputDecoration(labelText: 'Select Course'),
-                    ),
-                    if (courseAlreadyExists)
-                      Text(
-                        'This course is already added',
-                        style: TextStyle(color: Colors.red),
-                      ),
-                    if (selectedCourse != null)
-                      Column(
-                        children: [
-                          Text('Course Name: ${selectedCourse?.coursename}'),
-                          Text(
-                              'Faculty Assigned: ${selectedCourse?.facultyassigned}'),
-                          Text('Units: ${selectedCourse?.units}'),
-                          TextFormField(
-                            decoration:
-                                InputDecoration(labelText: 'Enter Grade'),
-                            keyboardType:
-                                TextInputType.numberWithOptions(decimal: true),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter the grade';
-                              }
-                              return null;
-                            },
-                            onSaved: (value) {
-                              // Parse the entered value to double
-                              enteredGrade = double.tryParse(value ?? '');
-                            },
+                  key: formKey,
+                  autovalidateMode: AutovalidateMode.always,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    selectedRadio = 'Bridging/Remedial';
+                                  });
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.all(20.0),
+                                  foregroundColor:
+                                      selectedRadio == 'Bridging/Remedial'
+                                          ? const Color.fromARGB(255, 23, 71,
+                                              25) // Text color when selected
+                                          : null,
+                                  backgroundColor: selectedRadio ==
+                                          'Bridging/Remedial'
+                                      ? Color.fromARGB(50, 13, 105, 16)
+                                      : null, // Fully transparent background
+                                  side: BorderSide(
+                                    color: selectedRadio == 'Bridging/Remedial'
+                                        ? const Color.fromARGB(255, 23, 71,
+                                            25) // Border color when selected
+                                        : Colors
+                                            .transparent, // Transparent border color when not selected
+                                  ),
+                                ),
+                                child: Text(
+                                  'Bridging/Remedial',
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    selectedRadio = 'Foundation';
+                                  });
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.all(20.0),
+                                  foregroundColor: selectedRadio == 'Foundation'
+                                      ? const Color.fromARGB(255, 23, 71,
+                                          25) // Text color when selected
+                                      : null,
+                                  backgroundColor: selectedRadio == 'Foundation'
+                                      ? Color.fromARGB(50, 13, 105, 16)
+                                      : null, // Fully transparent background
+                                  side: BorderSide(
+                                    color: selectedRadio == 'Foundation'
+                                        ? const Color.fromARGB(255, 23, 71,
+                                            25) // Border color when selected
+                                        : Colors
+                                            .transparent, // Transparent border color when not selected
+                                  ),
+                                ),
+                                child: Text(
+                                  'Foundation',
+                                  style: TextStyle(color: Colors.black),
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    selectedRadio = 'Elective';
+                                  });
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.all(20.0),
+                                  foregroundColor: selectedRadio == 'Elective'
+                                      ? const Color.fromARGB(255, 23, 71,
+                                          25) // Text color when selected
+                                      : null,
+                                  backgroundColor: selectedRadio == 'Elective'
+                                      ? Color.fromARGB(50, 13, 105, 16)
+                                      : null, // Fully transparent background
+                                  side: BorderSide(
+                                    color: selectedRadio == 'Elective'
+                                        ? const Color.fromARGB(255, 23, 71,
+                                            25) // Border color when selected
+                                        : Colors
+                                            .transparent, // Transparent border color when not selected
+                                  ),
+                                ),
+                                child: Text(
+                                  'Elective',
+                                  style: TextStyle(color: Colors.black),
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    selectedRadio = 'Specialized';
+                                  });
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.all(20.0),
+                                  foregroundColor:
+                                      selectedRadio == 'Specialized'
+                                          ? Color.fromARGB(255, 0, 0,
+                                              0) // Text color when selected
+                                          : null,
+                                  backgroundColor: selectedRadio ==
+                                          'Specialized'
+                                      ? Color.fromARGB(50, 13, 105, 16)
+                                      : null, // Fully transparent background
+                                  side: BorderSide(
+                                    color: selectedRadio == 'Specialized'
+                                        ? const Color.fromARGB(255, 23, 71,
+                                            25) // Border color when selected
+                                        : Colors
+                                            .transparent, // Transparent border color when not selected
+                                  ),
+                                ),
+                                child: Text(
+                                  'Specialized',
+                                  style: TextStyle(color: Colors.black),
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    selectedRadio = 'Exam';
+                                  });
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.all(20.0),
+                                  foregroundColor: selectedRadio == 'Exam'
+                                      ? const Color.fromARGB(255, 23, 71,
+                                          25) // Text color when selected
+                                      : null,
+                                  backgroundColor: selectedRadio == 'Exam'
+                                      ? Color.fromARGB(50, 13, 105, 16)
+                                      : null, // Fully transparent background
+                                  side: BorderSide(
+                                    color: selectedRadio == 'Exam'
+                                        ? const Color.fromARGB(255, 23, 71,
+                                            25) // Border color when selected
+                                        : Colors
+                                            .transparent, // Transparent border color when not selected
+                                  ),
+                                ),
+                                child: Text(
+                                  'Exam',
+                                  style: TextStyle(color: Colors.black),
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    selectedRadio =
+                                        currentStudent!.degree == 'MIT'
+                                            ? 'Capstone'
+                                            : 'Thesis';
+                                  });
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.all(20.0),
+                                  foregroundColor: selectedRadio ==
+                                          (currentStudent!.degree == 'MIT'
+                                              ? 'Capstone'
+                                              : 'Thesis')
+                                      ? Color.fromARGB(255, 0, 0,
+                                          0) // Text color when selected
+                                      : null,
+                                  backgroundColor: selectedRadio ==
+                                          (currentStudent!.degree == 'MIT'
+                                              ? 'Capstone'
+                                              : 'Thesis')
+                                      ? Color.fromARGB(50, 13, 105, 16)
+                                      : null, // Fully transparent background
+                                  side: BorderSide(
+                                    color: selectedRadio ==
+                                            (currentStudent!.degree == 'MIT'
+                                                ? 'Capstone'
+                                                : 'Thesis')
+                                        ? const Color.fromARGB(255, 23, 71,
+                                            25) // Border color when selected
+                                        : Colors
+                                            .transparent, // Transparent border color when not selected
+                                  ),
+                                ),
+                                child: Text(
+                                  currentStudent!.degree == 'MIT'
+                                      ? 'Capstone'
+                                      : 'Thesis',
+                                  style: TextStyle(color: Colors.black),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(
+                          height: 200,
+                          width: MediaQuery.of(context).size.width / 2,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Color.fromARGB(34, 54, 233,
+                                  60), // Set your desired background color
+                              borderRadius: BorderRadius.circular(
+                                  10), // Set your desired border radius
+                            ),
+                            child: ListView.builder(
+                              itemCount: courses
+                                  .where((course) =>
+                                      course.program
+                                          .contains(currentStudent!.degree) &&
+                                      course.type.toLowerCase().contains(
+                                          selectedRadio.toLowerCase()))
+                                  .length,
+                              itemBuilder: (BuildContext context, int index) {
+                                final course = courses
+                                    .where((course) =>
+                                        course.program
+                                            .contains(currentStudent!.degree) &&
+                                        course.type.toLowerCase().contains(
+                                            selectedRadio.toLowerCase()))
+                                    .toList()[index];
+
+                                return ListTile(
+                                  title: Text(
+                                      "${course.coursecode}: ${course.coursename}"),
+                                  onTap: () {
+                                    setState(() {
+                                      selectedCourse = course;
+                                      selectedCourseIndex = activecourses
+                                          .indexOf(selectedCourse!);
+                                      courseAlreadyExists = false;
+                                    });
+                                  },
+                                );
+                              },
+                            ),
                           ),
-                        ],
-                      ),
-                  ],
-                ),
-              ),
+                        ),
+                        SizedBox(
+                          height: 25,
+                        ),
+                        if (courseAlreadyExists)
+                          Text(
+                            'This course is already added',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        if (selectedCourse != null)
+                          Text(
+                            "Course name",
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                        Text(
+                          selectedCourse!.coursename,
+                          style: TextStyle(fontSize: 18),
+                        ),
+                        Text(
+                          "Units",
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                        Text(
+                          selectedCourse!.units.toString(),
+                          style: TextStyle(fontSize: 18),
+                        ),
+                        Text(
+                          "Enter Grade",
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                        TextFormField(
+                          decoration: InputDecoration(labelText: 'Grade'),
+                          keyboardType:
+                              TextInputType.numberWithOptions(decimal: true),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter the grade';
+                            }
+
+                            if (int.parse(value) > 4.0 ||
+                                int.parse(value) < 0.0) {
+                              return 'Invalid grade';
+                            }
+                            return null;
+                          },
+                          onSaved: (value) {
+                            // Parse the entered value to double
+                            enteredGrade = double.tryParse(value ?? '');
+                          },
+                        ),
+                      ],
+                    ),
+                  )),
               actions: [
                 TextButton(
                   onPressed: () {
@@ -678,25 +1546,30 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                     // Validate and save form data
                     if (formKey.currentState!.validate()) {
                       formKey.currentState!.save();
-                      if (currentStudent.pastCourses.any((course) =>
-                          course.coursecode == selectedCourse?.coursecode)) {
+                      if (currentStudent!.enrolledCourses.any((course) =>
+                              course.coursecode ==
+                              selectedCourse?.coursecode) ||
+                          currentStudent!.pastCourses.any((course) =>
+                              course.coursecode ==
+                              selectedCourse?.coursecode)) {
                         // Check if the course is already in pastCourses
                         setState(() {
                           courseAlreadyExists = true;
                         });
                       } else {
                         final pastCourse = PastCourse(
-                          uid: generateUID(),
-                          coursecode: selectedCourse!.coursecode,
-                          coursename: selectedCourse!.coursename,
-                          facultyassigned: selectedCourse!.facultyassigned,
-                          units: selectedCourse!.units,
-                          numstudents: selectedCourse!.numstudents,
-                          isactive: selectedCourse!.isactive,
-                          grade: enteredGrade!,
-                          type:
-                              selectedCourse!.type, // Assign the entered grade
-                        );
+                            uid: generateUID(),
+                            coursecode: selectedCourse!.coursecode,
+                            coursename: selectedCourse!.coursename,
+                            facultyassigned: selectedCourse!.facultyassigned,
+                            units: selectedCourse!.units,
+                            numstudents: selectedCourse!.numstudents,
+                            isactive: selectedCourse!.isactive,
+                            grade: enteredGrade!,
+                            type: selectedCourse!.type,
+                            program: selectedCourse!
+                                .program // Assign the entered grade
+                            );
 
                         onAddPastCourse(pastCourse);
 
@@ -723,6 +1596,11 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                               duration: Duration(seconds: 2),
                             ),
                           );
+
+                          unitsCompleted = pastCourses.fold(0,
+                              (int sum, PastCourse pastCourse) {
+                            return sum + pastCourse.units;
+                          });
                         } catch (e) {
                           print('Error adding past course: $e');
                           // Handle the error and display a relevant message
@@ -769,7 +1647,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
     // If the user confirms the deletion, proceed
     if (confirmDelete == true) {
       setState(() {
-        currentStudent.pastCourses.remove(pastCourse);
+        currentStudent!.pastCourses.remove(pastCourse);
       });
 
       try {
@@ -845,7 +1723,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                   style: TextStyle(fontWeight: FontWeight.bold),
                 )),
               ],
-              rows: currentStudent.enrolledCourses
+              rows: currentStudent!.enrolledCourses
                   .map(
                     (enrolledCourse) => DataRow(
                       cells: [
@@ -882,7 +1760,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                   showAddEnrolledCoursePopup(context, _formKey, activecourses,
                       (enrolledCourse) {
                     setState(() {
-                      currentStudent.enrolledCourses.add(enrolledCourse);
+                      currentStudent!.enrolledCourses.add(enrolledCourse);
                     });
 
                     // Handle the added enrolled course
@@ -925,12 +1803,12 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                     )),
                     DataColumn(
                         label: Text(
-                      'Units',
+                      'Grade',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     )),
                     DataColumn(
                         label: Text(
-                      'Grade',
+                      'Units',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     )),
                     DataColumn(
@@ -939,7 +1817,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                       style: TextStyle(fontWeight: FontWeight.bold),
                     )),
                   ],
-                  rows: currentStudent.pastCourses
+                  rows: currentStudent!.pastCourses
                       .map(
                         (pastCourse) => DataRow(
                           cells: [
@@ -976,7 +1854,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                           context,
                           _formKey,
                           (pastCourse) => setState(() {
-                                currentStudent.pastCourses.add(pastCourse);
+                                currentStudent!.pastCourses.add(pastCourse);
                               }));
                     },
                     child: Padding(
@@ -1013,7 +1891,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                             // You can replace this with your desired behavior
                             showCourseDemandForm(
                                 context,
-                                currentStudent.idnumber,
+                                currentStudent!.idnumber,
                                 inactivecourses,
                                 courseDemands);
                           },
@@ -1030,11 +1908,23 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
   }
 }
 
+DataCell capstoneCell(PastCourse pastCourse) {
+  for (var i = 0; i < currentStudent!.pastCourses.length;) {
+    if (currentStudent!.pastCourses[i].coursecode.contains('Capstone')) {
+      return DataCell(Text(
+          "${pastCourse.coursecode}: ${pastCourse.coursename}\n${pastCourse.grade}",
+          style: TextStyle(color: Colors.red)));
+    }
+  }
+
+  return DataCell(Text(''));
+}
+
 class CapstoneProjectScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Text('Capstone Project Screen'),
+      child: Text('Capstone Project'),
     );
   }
 }
@@ -1072,6 +1962,7 @@ class _MainViewState extends State<GradStudentscreen>
         setState(() {
           term.termcourses.add(selectedCourse);
         });
+        changeinPOS = true;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Course added'),
@@ -1098,15 +1989,63 @@ class _MainViewState extends State<GradStudentscreen>
     _tabController = TabController(length: 3, vsync: this);
   }
 
+  Color getColorForCourseType(Course course) {
+    if (currentStudent!.pastCourses
+        .any((pastcourse) => pastcourse.coursecode == course.coursecode)) {
+      return Colors.grey;
+    } else {
+      if (course.type.toLowerCase().contains('bridging')) {
+        return Colors.blue;
+      } // Choose the color you want for Bridging
+      else if (course.type.toLowerCase().contains('foundation')) {
+        return Colors.green;
+      } // Choose the color you want for Foundation
+      else if (course.type.toLowerCase().contains('exam')) {
+        return Colors.red;
+      } // Choose the color you want for Exam
+      else if (course.type.toLowerCase().contains('elective')) {
+        return Colors.orange;
+      } // Choose the color you want for Elective
+      else {
+        return Colors.black;
+      } // Default color for unknown types
+    }
+  }
+
+  bool changeinPOS = false;
+  SchoolYear? selectedSchoolYear = studentPOS.schoolYears[1];
   @override
   Widget build(BuildContext context) {
     // print(currentStudent.pastCourses[1]);
     List<Widget> views = [
-      Center(
-        child: Text(
-          'Dashboard',
-          textDirection: TextDirection.ltr,
-          style: TextStyle(fontFamily: 'Inter'),
+      Container(
+        width: 500, // Set the width directly on the Container
+        margin: EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.5),
+              spreadRadius: 5,
+              blurRadius: 7,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Student Progress',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
+            Column(
+              children: [],
+            ),
+          ],
         ),
       ),
       Center(
@@ -1124,321 +2063,119 @@ class _MainViewState extends State<GradStudentscreen>
           SizedBox(
             height: 20,
           ),
-          SingleChildScrollView(
-            child: Table(
-              border: TableBorder.all(),
-              children: schoolyears.map((schoolYear) {
-                return TableRow(
-                  decoration: BoxDecoration(
-                    color: Color.fromARGB(255, 221, 221, 221),
-                  ),
+          Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: studentPOS.schoolYears.map((schoolYear) {
+                return Row(
                   children: [
-                    Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: Row(
-                        children: [
-                          // School Year Info
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                    alignment: Alignment.center,
-                                    decoration: BoxDecoration(
-                                      color: const Color.fromARGB(
-                                          255, 104, 177, 106),
-                                      border: Border.all(),
-                                      borderRadius: BorderRadius.only(
-                                        bottomLeft: Radius.zero,
-                                        bottomRight: Radius.zero,
-                                        topLeft: Radius.circular(10),
-                                        topRight: Radius.circular(10),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Padding(
-                                          padding: EdgeInsets.all(10),
-                                          child: Text(
-                                            schoolYear.name,
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 20,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    )),
-                                // School Year's Terms and Courses
-                                Row(
-                                  children: schoolYear.terms.map((term) {
-                                    return Expanded(
-                                      child: Container(
-                                        padding: EdgeInsets.all(8.0),
-                                        decoration: BoxDecoration(
-                                          border: Border.all(),
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.only(
-                                            bottomLeft: Radius.circular(10),
-                                            bottomRight: Radius.circular(10),
-                                            topLeft: Radius.zero,
-                                            topRight: Radius.zero,
-                                          ),
-                                        ),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Container(
-                                              alignment: Alignment.center,
-                                              child: Text(
-                                                term.name,
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 17,
-                                                ),
-                                              ),
-                                            ),
-                                            Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: term.termcourses
-                                                  .map((termcourse) {
-                                                return Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceBetween,
-                                                  children: [
-                                                    Column(
-                                                      children: [
-                                                        Container(
-                                                          padding:
-                                                              EdgeInsets.all(
-                                                                  8.0),
-                                                          child: Text(
-                                                              "${termcourse.coursecode}: ${termcourse.coursename}"),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    IconButton(
-                                                      icon: Icon(Icons.delete,
-                                                          color: Colors.red),
-                                                      onPressed: () {
-                                                        // Display a confirmation dialog before deleting
-                                                        showDialog(
-                                                          context: context,
-                                                          builder: (BuildContext
-                                                              context) {
-                                                            return AlertDialog(
-                                                              title: Text(
-                                                                  "Delete Course"),
-                                                              content: Text(
-                                                                  "Are you sure you want to delete the course: ${termcourse.coursecode}?"),
-                                                              actions: [
-                                                                TextButton(
-                                                                  child: Text(
-                                                                      "Cancel"),
-                                                                  onPressed:
-                                                                      () {
-                                                                    Navigator.of(
-                                                                            context)
-                                                                        .pop();
-                                                                  },
-                                                                ),
-                                                                TextButton(
-                                                                  child: Text(
-                                                                      "Delete"),
-                                                                  onPressed:
-                                                                      () {
-                                                                    // Identify the course you want to delete
-                                                                    Course
-                                                                        courseToDelete =
-                                                                        termcourse;
-
-                                                                    // Find the index of the course in the term's course list
-                                                                    int courseIndex = term
-                                                                        .termcourses
-                                                                        .indexOf(
-                                                                            courseToDelete);
-
-                                                                    if (courseIndex !=
-                                                                        -1) {
-                                                                      // Remove the course from the term's course list
-                                                                      setState(
-                                                                          () {
-                                                                        term.termcourses
-                                                                            .removeAt(courseIndex);
-                                                                      });
-
-                                                                      // Print a message or perform any additional actions
-                                                                      print(
-                                                                          "Deleted course: ${courseToDelete.coursecode}");
-                                                                    } else {
-                                                                      // Handle the case where the course was not found
-                                                                      print(
-                                                                          "Course not found: ${courseToDelete.coursecode}");
-                                                                    }
-                                                                    // Close the confirmation dialog
-                                                                    print(
-                                                                        "Delete ${schoolYear.name} ${term.name} ${termcourse.coursecode} ${termcourse.coursename}");
-                                                                    Navigator.of(
-                                                                            context)
-                                                                        .pop();
-                                                                  },
-                                                                ),
-                                                              ],
-                                                            );
-                                                          },
-                                                        );
-                                                      },
-                                                    )
-                                                  ],
-                                                );
-                                              }).toList(),
-                                            ),
-                                            TextButton(
-                                              onPressed: () {
-                                                // Handle the click event
-                                                showDialog(
-                                                  context: context,
-                                                  builder: (context) {
-                                                    Course?
-                                                        selectedCourse; // Initialize as nullable
-
-                                                    return StatefulBuilder(
-                                                      builder:
-                                                          (context, setState) {
-                                                        return SimpleDialog(
-                                                          title: Text(
-                                                              'Select a Course to add for ${term.name} AY ${schoolYear.name}'),
-                                                          children: <Widget>[
-                                                            DropdownButton<
-                                                                Course>(
-                                                              items: courses
-                                                                  .map(
-                                                                      (course) {
-                                                                return DropdownMenuItem<
-                                                                    Course>(
-                                                                  value: course,
-                                                                  child: Text(
-                                                                      "${course.coursecode}: ${course.coursename}"), // Replace with the course name attribute
-                                                                );
-                                                              }).toList(),
-                                                              onChanged:
-                                                                  (Course?
-                                                                      course) {
-                                                                setState(() {
-                                                                  selectedCourse =
-                                                                      course;
-                                                                });
-                                                              },
-                                                              value:
-                                                                  selectedCourse,
-                                                            ),
-                                                            if (selectedCourse !=
-                                                                null)
-                                                              Column(
-                                                                mainAxisAlignment:
-                                                                    MainAxisAlignment
-                                                                        .start,
-                                                                children: [
-                                                                  SizedBox(
-                                                                    height: 5,
-                                                                  ),
-                                                                  Text(
-                                                                    'Course Details:',
-                                                                    style: TextStyle(
-                                                                        fontSize:
-                                                                            15),
-                                                                  ),
-                                                                  SizedBox(
-                                                                    height: 5,
-                                                                  ),
-                                                                  Text(
-                                                                    'Course Code: ${selectedCourse!.coursecode}',
-                                                                    style: TextStyle(
-                                                                        fontSize:
-                                                                            15),
-                                                                  ),
-                                                                  SizedBox(
-                                                                    height: 5,
-                                                                  ),
-                                                                  Text(
-                                                                    'Course Name: ${selectedCourse!.coursename}',
-                                                                    style: TextStyle(
-                                                                        fontSize:
-                                                                            15),
-                                                                  ),
-                                                                  SizedBox(
-                                                                    height: 5,
-                                                                  ),
-                                                                  Text(
-                                                                    'Course Type: ${selectedCourse!.type}',
-                                                                    style: TextStyle(
-                                                                        fontSize:
-                                                                            15),
-                                                                  ),
-                                                                  SizedBox(
-                                                                    height: 5,
-                                                                  ),
-                                                                  // Add more course details here
-                                                                ],
-                                                              ),
-                                                            ElevatedButton(
-                                                              onPressed: () {
-                                                                addSelectedCourseToTermAndCloseDialog(
-                                                                    selectedCourse,
-                                                                    term,
-                                                                    schoolyears,
-                                                                    context);
-                                                              },
-                                                              child: Text('OK'),
-                                                            ),
-                                                          ],
-                                                        );
-                                                      },
-                                                    );
-                                                  },
-                                                );
-                                              },
-                                              child: Text(
-                                                'add course for ${term.name} A.Y. ${schoolYear.name}',
-                                                style: TextStyle(
-                                                  decoration:
-                                                      TextDecoration.underline,
-                                                  color: Colors
-                                                      .blue, // You can choose the color you prefer
-                                                ),
-                                              ),
-                                            )
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                                  }).toList(),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                    SizedBox(width: 10), // Add some spacing between buttons
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          selectedSchoolYear =
+                              schoolYear; // Update the selected school year
+                        });
+                      },
+                      style: ButtonStyle(
+                        minimumSize: MaterialStateProperty.all(
+                            Size(120, 50)), // Enlarge the button size
+                        backgroundColor:
+                            MaterialStateProperty.resolveWith<Color?>(
+                                (Set<MaterialState> states) {
+                          return selectedSchoolYear == schoolYear
+                              ? Color.fromARGB(50, 13, 105,
+                                  16) // Background color when selected
+                              : null; // Background color when not selected
+                        }),
+                        side: MaterialStateProperty.resolveWith<BorderSide>(
+                            (Set<MaterialState> states) {
+                          return BorderSide(
+                            color: selectedSchoolYear == schoolYear
+                                ? const Color.fromARGB(255, 23, 71,
+                                    25) // Border color when selected
+                                : Colors
+                                    .transparent, // Transparent border color when not selected
+                          );
+                        }),
+                      ),
+                      child: Text(
+                        schoolYear.name, // Display the name of the school year
+                        style: TextStyle(
+                          fontSize: 16, // Enlarge the text size
+                          color: selectedSchoolYear == schoolYear
+                              ? Color.fromARGB(
+                                  255, 0, 0, 0) // Text color when selected
+                              : null, // Text color when not selected
+                        ),
                       ),
                     ),
+                    SizedBox(width: 10), // Add some spacing between buttons
                   ],
                 );
               }).toList(),
             ),
-          )
+          ),
+          SizedBox(
+            height: 20,
+          ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: selectedSchoolYear!.terms.map((term) {
+              return Expanded(
+                child: Card(
+                  margin: EdgeInsets.all(10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.all(8),
+                        child: Text(
+                          term.name, // Display the name of the term
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      Column(
+                        children: term.termcourses.map((course) {
+                          if (course.type == 'Elective Courses') {
+                            // Increment the elective count for each elective course encountered
+                            return ListTile(
+                              title: Text(
+                                  'Elective Course'), // Display the elective count
+                              subtitle: Text('Enroll in any elective course'),
+                            );
+                          } else {
+                            return ListTile(
+                              title: Text(
+                                  course.coursecode), // Display the course code
+                              subtitle: Text(
+                                  course.coursename), // Display the course name
+                            );
+                          }
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
         ],
       )),
       Center(
-        child: Text(
-          'Calendar',
-          textDirection: TextDirection.ltr,
-          style: TextStyle(fontFamily: 'Inter', fontSize: 100),
-        ),
-      ),
+          child: Column(
+        children: [
+          Text(
+            'Calendar',
+            textDirection: TextDirection.ltr,
+            style: TextStyle(fontFamily: 'Inter', fontSize: 100),
+          ),
+        ],
+      )),
       Center(
         child: Text(
           'Inbox',
@@ -1448,7 +2185,7 @@ class _MainViewState extends State<GradStudentscreen>
       ),
       Scaffold(
         appBar: AppBar(
-          title: Text('Student Hub'),
+          title: Text('Student Hub', style: TextStyle(color: Colors.white)),
           bottom: TabBar(
             controller: _tabController,
             tabs: [
@@ -1462,16 +2199,17 @@ class _MainViewState extends State<GradStudentscreen>
                 text: 'Capstone Project',
               )
             ],
-            indicator: BoxDecoration(
-                color: Color.fromARGB(255, 15, 136, 31),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black,
-                      blurRadius: 10.0,
-                      offset: Offset(0, 3))
-                ]),
+            labelColor: Colors.white,
+            labelPadding: EdgeInsets.only(left: 10),
+            unselectedLabelColor: Colors.white70,
+            indicatorColor: Colors.white,
+            indicatorWeight: 4,
+            indicator: UnderlineTabIndicator(
+                borderSide: BorderSide(width: 4.0, color: Colors.white),
+                insets: EdgeInsets.symmetric(horizontal: 16.0)),
           ),
           backgroundColor: const Color.fromARGB(255, 23, 71, 25),
+          automaticallyImplyLeading: false,
         ),
         body: TabBarView(
           controller: _tabController,
@@ -1500,7 +2238,7 @@ class _MainViewState extends State<GradStudentscreen>
                     style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
                   subtitle: Text(
-                    emailTextController.text,
+                    emailTextController.text.toLowerCase(),
                     style: TextStyle(
                       color: Color(0xFF747475),
                       fontSize: 12,
@@ -1523,18 +2261,70 @@ class _MainViewState extends State<GradStudentscreen>
                       backgroundColor: Colors.transparent,
                     ),
                     onPressed: () {
-                      courses.clear();
-                      studentList.clear();
-                      activecourses.clear();
-                      currentStudent.enrolledCourses.clear();
-                      currentStudent.pastCourses.clear();
-                      wrongCreds = false;
-
-                      correctCreds = false;
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => LoginPage()),
-                      );
+                      if (changeinPOS == true) {
+                        showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: Text('Unsaved Changes'),
+                                content: Text(
+                                    'You have made changes in your POS, are you sure you want to leave without saving?'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      courses.clear();
+                                      studentList.clear();
+                                      activecourses.clear();
+                                      currentStudent!.uid = '';
+                                      currentStudent!.enrolledCourses.clear();
+                                      currentStudent!.pastCourses.clear();
+                                      setState(() {
+                                        studentPOSDefault();
+                                      });
+                                      wrongCreds = false;
+                                      // studentPOS = null;
+                                      correctCreds = false;
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) =>
+                                                LoginPage()), //Leave Page
+                                      );
+                                    },
+                                    child: Text(
+                                      'Leave without saving',
+                                      style: TextStyle(color: Colors.red),
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(context)
+                                          .pop(false); //Stay on Page
+                                    },
+                                    child: Text('Stay'),
+                                  )
+                                ],
+                              );
+                            });
+                      } else {
+                        courses.clear();
+                        studentList.clear();
+                        activecourses.clear();
+                        currentStudent!.uid = '';
+                        currentStudent!.enrolledCourses.clear();
+                        currentStudent!.pastCourses.clear();
+                        setState(() {
+                          studentPOSDefault();
+                        });
+                        wrongCreds = false;
+                        // studentPOS = null;
+                        correctCreds = false;
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => LoginPage()), //Leave Page
+                        );
+                      }
                     },
                   ),
                 ],

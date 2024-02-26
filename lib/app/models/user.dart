@@ -6,14 +6,14 @@ class user {
   String email;
   int idnumber;
   String role;
-
+  String status;
   user(
-      {
-      required this.uid,
+      {required this.uid,
       required this.displayname,
       required this.role,
       required this.email,
-      required this.idnumber});
+      required this.idnumber,
+      required this.status});
 
   toJson() {
     return {
@@ -21,15 +21,10 @@ class user {
       "displayname": displayname,
       "role": role,
       "email": email,
-      "idnumber": idnumber
+      "idnumber": idnumber,
+      "status": status
     };
   }
-
-
-
-
-
-
 }
 
 List<user> users = [];
@@ -38,10 +33,9 @@ String formatMapToString(Map<String, String> map) {
   return map.entries.map((entry) => entry.value).join(' ');
 }
 
-
 Future<void> addUserFromFirestore() async {
   users.clear();
-    print("Add user from FS executed");
+  print("Add user from FS executed");
   try {
     // Access the Firestore instance
     FirebaseFirestore firestore = FirebaseFirestore.instance;
@@ -55,28 +49,18 @@ Future<void> addUserFromFirestore() async {
         in querySnapshot.docs) {
       Map<String, dynamic> userData = document.data();
       user newUser = user(
-        uid: document.id,
-        displayname: Map<String, String>.from(userData['displayname']),
-        role: userData['role'],
-        email: userData['email'],
-        idnumber: userData['idnumber'],
-      );
-      
+          uid: document.id,
+          displayname: Map<String, String>.from(userData['displayname']),
+          role: userData['role'],
+          email: userData['email'],
+          idnumber: userData['idnumber'],
+          status: userData['status']);
+
       users.add(newUser);
     }
-    
-users.sort((a, b) => a.email.compareTo(b.email));
-  
-    // Optional: Print the users to the console
-    users.forEach((user) {
-      print(user.toJson());
-    });
-    
+
+    users.sort((a, b) => a.email.compareTo(b.email));
   } catch (e) {
     print('Error fetching users from Firestore: $e');
   }
 }
-
-
-
-
