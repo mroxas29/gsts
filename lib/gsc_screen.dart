@@ -20,6 +20,7 @@ import 'dart:html' as html;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:flutter/services.dart';
+import 'package:table_calendar/table_calendar.dart';
 
 void main() {
   runApp(
@@ -779,6 +780,10 @@ class _MainViewState extends State<Gscscreen> {
 
   List<Course> recommendedRemedialCourses = [];
   List<Course> recommendedPriorityCourses = [];
+
+
+  // FOR CALENDAR
+  DateTime currentDate = DateTime.now();
 
   @override
   Widget build(BuildContext context) {
@@ -1795,12 +1800,23 @@ class _MainViewState extends State<Gscscreen> {
             )),
       ),
 
-      // CALENDAR PAGE
+      // CALENDAR PAGE || Following guide: https://www.youtube.com/watch?v=6Gxa-v7Zh7I&ab_channel=AIwithFlutter
       Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [Text("Calendar")]),
+          children: [
+            Text("Calendar test"),
 
+            Container(
+              child: TableCalendar(
+                focusedDay: DateTime.now(),
+                firstDay: DateTime.utc(2024, 2, 1),
+                lastDay: DateTime.utc(2030, 12, 30)
+              ),
+            ),
+          ],
+        ),
+
+
+      // INBOX PAGE
       Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,
