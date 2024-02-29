@@ -13,7 +13,9 @@ import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/main.dart';
 import 'package:sysadmindb/app/models/user.dart';
 import 'package:sysadmindb/ui/addcourse.dart';
+import 'package:sysadmindb/ui/calendar.dart';
 import 'package:sysadmindb/ui/form.dart';
+import 'package:sysadmindb/ui/EventDetailsScreen.dart';
 import 'package:sysadmindb/ui/studentInfoPage.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:html' as html;
@@ -69,7 +71,7 @@ class _MainViewState extends State<Gscscreen> {
 
   /// The currently selected index of the bar
   int selectedIndex = 0;
-
+  
   @override
   initState() {
     setState(() {
@@ -1801,19 +1803,7 @@ class _MainViewState extends State<Gscscreen> {
       ),
 
       // CALENDAR PAGE || Following guide: https://www.youtube.com/watch?v=6Gxa-v7Zh7I&ab_channel=AIwithFlutter
-      Column(
-          children: [
-            Text("Calendar test"),
-
-            Container(
-              child: TableCalendar(
-                focusedDay: DateTime.now(),
-                firstDay: DateTime.utc(2024, 2, 1),
-                lastDay: DateTime.utc(2030, 12, 30)
-              ),
-            ),
-          ],
-        ),
+      Calendar(),
 
 
       // INBOX PAGE
