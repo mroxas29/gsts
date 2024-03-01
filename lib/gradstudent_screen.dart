@@ -11,7 +11,7 @@ import 'package:sysadmindb/app/models/coursedemand.dart';
 import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/enrolledcourses.dart';
 import 'package:sysadmindb/app/models/pastcourses.dart';
-import 'package:sysadmindb/app/models/schoolYear.dart';
+import 'package:sysadmindb/app/models/SchoolYear.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/app/models/term.dart';
@@ -495,6 +495,15 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
               .map((course) => course.toJson())
               .toList(),
         });
+
+        await FirebaseFirestore.instance
+            .collection('studentpos')
+            .doc(currentStudent!.uid)
+            .update({
+          'enrolledCourses': currentStudent!.enrolledCourses
+              .map((course) => course.toJson())
+              .toList(),
+        });
         for (Student student in studentList) {
           if (student.enrolledCourses.any((course) =>
               course.coursecode == activecourses[indextodelete].coursecode)) {
@@ -566,45 +575,10 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
     bool courseAlreadyExists = false;
     String selectedRadio = '';
 
-    void handleRadioValueChanged(String coursetype) {
-      setState(() {
-        selectedRadio = coursetype;
-      });
-    }
-
-    Widget radioSelectionButton(String value) {
-      return Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: TextButton(
-          onPressed: () {
-            setState(() {
-              selectedRadio = value;
-            });
-          },
-          style: TextButton.styleFrom(
-            foregroundColor: selectedRadio == value
-                ? const Color.fromARGB(
-                    255, 23, 71, 25) // Text color when selected
-                : null,
-            backgroundColor: null, // Fully transparent background
-            side: BorderSide(
-              color: selectedRadio == value
-                  ? const Color.fromARGB(
-                      255, 23, 71, 25) // Border color when selected
-                  : Colors
-                      .transparent, // Transparent border color when not selected
-            ),
-          ),
-          child: Text(value),
-        ),
-      );
-    }
-
     // Get the current date
-    DateTime currentDate = DateTime.now();
 
     // Determine the current term
-    String currentTerm = getCurrentTerm(currentDate, academicCalendars);
+    String currentTerm = getCurrentSYandTerm();
 
     showDialog(
       context: context,
@@ -851,7 +825,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                                           selectedRadio.toLowerCase()))
                                   .length,
                               itemBuilder: (BuildContext context, int index) {
-                                final course = courses
+                                final course = activecourses
                                     .where((course) =>
                                         course.program
                                             .contains(currentStudent!.degree) &&
@@ -986,6 +960,11 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                                         .collection('users')
                                         .doc(student.uid);
 
+                                final DocumentReference studentPOSRef =
+                                    FirebaseFirestore.instance
+                                        .collection('studentpos')
+                                        .doc(student.uid);
+
                                 // Retrieve the student's data
                                 final DocumentSnapshot studentDoc =
                                     await studentDocRef.get();
@@ -1035,6 +1014,14 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                             // Update user data in Firestore
                             await FirebaseFirestore.instance
                                 .collection('users')
+                                .doc(userId)
+                                .update({
+                              'enrolledCourses': FieldValue.arrayUnion(
+                                  [enrolledCourse.toJson()]),
+                            });
+
+                            await FirebaseFirestore.instance
+                                .collection('studentpos')
                                 .doc(userId)
                                 .update({
                               'enrolledCourses': FieldValue.arrayUnion(
@@ -1588,7 +1575,13 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                             'pastCourses':
                                 FieldValue.arrayUnion([pastCourse.toJson()]),
                           });
-
+                          await FirebaseFirestore.instance
+                              .collection('studentpos')
+                              .doc(userId)
+                              .update({
+                            'pastCourses':
+                                FieldValue.arrayUnion([pastCourse.toJson()]),
+                          });
                           // Display a success message
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -1662,6 +1655,13 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
           'pastCourses': FieldValue.arrayRemove([pastCourse.toJson()]),
         });
         // Display a success message
+
+        await FirebaseFirestore.instance
+            .collection('studentpos')
+            .doc(userId)
+            .update({
+          'pastCourses': FieldValue.arrayRemove([pastCourse.toJson()]),
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Past course deleted successfully'),
@@ -1924,7 +1924,17 @@ class CapstoneProjectScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Text('Capstone Project'),
+      child: Column(
+        children: [
+          if (currentStudent!.degree == 'MIT')
+            for (Course capstoneCourse in capstonecourses)
+              Text(
+                  "${capstoneCourse.coursecode}: ${capstoneCourse.coursename}"),
+          if (currentStudent!.degree == 'MSIT')
+            for (Course thesisCourse in thesiscourses)
+              Text("${thesisCourse.coursecode}: ${thesisCourse.coursename}"),
+        ],
+      ),
     );
   }
 }

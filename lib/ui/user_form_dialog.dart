@@ -9,6 +9,7 @@ import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/app/models/user.dart';
 import 'package:sysadmindb/main.dart';
+import 'package:sysadmindb/ui/studentInfoEditable.dart';
 
 class UserData {
   Map<String, String> displayname = {};
@@ -31,7 +32,49 @@ String generateRandomPassword() {
       .join();
 }
 
-void showAddUserForm(BuildContext context, GlobalKey<FormState> formKey) {
+Future<String?> showStudentTypeDialog(
+    BuildContext context, GlobalKey<FormState> formKey) async {
+  String studentType = '';
+  return showDialog<String>(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Select Student Type'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ElevatedButton(
+              onPressed: () {
+                studentType = 'New';
+                showAddNewUserForm(context, formKey, studentType);
+              },
+              child: Text('New Student'),
+            ),
+            SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                studentType = 'Existing';
+                showAddNewUserForm(context, formKey, studentType);
+              },
+              child: Text('Existing Student'),
+            ),
+            SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                studentType = 'Employee';
+                showAddNewUserForm(context, formKey, studentType);
+              },
+              child: Text('Employee'),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+void showAddNewUserForm(
+    BuildContext context, GlobalKey<FormState> formKey, String studentType) {
   List<String> roles = ['Coordinator', 'Graduate Student', 'Admin'];
   List<String> degrees = ['No degree', 'MIT', 'MSIT'];
   List<String> status = ['Full Time', 'Part Time', 'LOA'];
@@ -42,8 +85,11 @@ void showAddUserForm(BuildContext context, GlobalKey<FormState> formKey) {
   String selectedDegree = degrees[0];
   String selectedRole = roles[0];
   bool isStudent = false;
+  String uid = '';
+  final scaffoldContext = ScaffoldMessenger.of(context);
 
   print("Add user form executed");
+
   showDialog(
     context: context,
     builder: (BuildContext context) {
@@ -219,7 +265,7 @@ void showAddUserForm(BuildContext context, GlobalKey<FormState> formKey) {
                       password: otp);
 */
                   String userID = user!.uid;
-
+                  uid = userID;
                   if (isStudent) {
                     await FirebaseFirestore.instance
                         .collection('users')
@@ -255,32 +301,34 @@ void showAddUserForm(BuildContext context, GlobalKey<FormState> formKey) {
                     final FirebaseFirestore firestore =
                         FirebaseFirestore.instance;
 
-                    Map<String, dynamic>? studentPosData;
-                    if (_userData.degree == 'MIT') {
-                      print('student is MIT');
+                    if (studentType == 'New') {
+                      Map<String, dynamic>? studentPosData;
+                      if (_userData.degree == 'MIT') {
+                        print('student is MIT');
 
-                      studentPosData =
-                          generatePOSforMIT(newStudent, studentPOSList, courses)
-                              .toJson();
-                    }
+                        studentPosData = generatePOSforMIT(
+                                newStudent, studentPOSList, courses)
+                            .toJson();
+                      }
 
-                    if (_userData.degree == 'MSIT') {
-                      print('Student is MSIT');
-                      studentPosData = generatePOSforMSIT(
-                              newStudent, studentPOSList, courses)
-                          .toJson();
-                    }
+                      if (_userData.degree == 'MSIT') {
+                        print('Student is MSIT');
+                        studentPosData = generatePOSforMSIT(
+                                newStudent, studentPOSList, courses)
+                            .toJson();
+                      }
 
-                    try {
-                      firestore
-                          .collection('studentpos')
-                          .doc(newStudent.uid)
-                          .set(studentPosData!);
-                      print('Student POS MADE');
-                      // Update local data after saving changes
-                      retrieveAllPOS();
-                    } catch (error) {
-                      print('Failed to update Program of Study');
+                      try {
+                        firestore
+                            .collection('studentpos')
+                            .doc(newStudent.uid)
+                            .set(studentPosData!);
+                        print('Student POS MADE');
+                        // Update local data after saving changes
+                        retrieveAllPOS();
+                      } catch (error) {
+                        print('Failed to update Program of Study');
+                      }
                     }
                   } else {
                     await FirebaseFirestore.instance
@@ -304,7 +352,7 @@ void showAddUserForm(BuildContext context, GlobalKey<FormState> formKey) {
 
                   addUserFromFirestore();
 
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  scaffoldContext.showSnackBar(
                     SnackBar(
                       content: Text('User added'),
                       duration: Duration(seconds: 2),
@@ -312,12 +360,43 @@ void showAddUserForm(BuildContext context, GlobalKey<FormState> formKey) {
                   );
                 } catch (e) {
                   print('Error creating user: ${e.toString()}');
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  scaffoldContext.showSnackBar(
                     SnackBar(
                       content: Text('Error creating user: $e'),
                     ),
                   );
                 }
+              }
+
+              if (studentType == 'Existing') {
+                studentPOS = StudentPOS(
+                    schoolYears: defaultschoolyears,
+                    uid: uid,
+                    displayname: _userData.displayname,
+                    role: _userData.role,
+                    email: _userData.email,
+                    idnumber: _userData.idnumber,
+                    enrolledCourses: [],
+                    pastCourses: [],
+                    degree: _userData.degree,
+                    status: _userData.status);
+
+                for (var schoolYear in studentPOS.schoolYears) {
+                  for (var term in schoolYear.terms) {
+                    term.termcourses
+                        .clear(); // Clear the list of courses in the term
+                  }
+                }
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => StudentInfoEditablePage(
+                      uid: uid,
+                      studentpos: studentPOS,
+                    ),
+                  ),
+                );
               }
             },
             child: Text('Add'),
@@ -327,3 +406,4 @@ void showAddUserForm(BuildContext context, GlobalKey<FormState> formKey) {
     },
   );
 }
+

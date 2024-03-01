@@ -3,21 +3,33 @@ import 'package:flutter/material.dart';
 import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
+import 'package:sysadmindb/app/models/term.dart';
 import 'package:sysadmindb/ui/addcourse.dart';
 
-class StudentInfoPage extends StatefulWidget {
-  final Student student;
+class StudentInfoEditablePage extends StatefulWidget {
   final StudentPOS studentpos;
-
-  StudentInfoPage({required this.student, required this.studentpos});
+  final String uid;
+  StudentInfoEditablePage({required this.studentpos, required this.uid});
 
   @override
-  _StudentInfoPageState createState() => _StudentInfoPageState();
+  _StudentInfoEditableState createState() => _StudentInfoEditableState();
 }
 
 List<Course> foundCourse = courses;
+List<String> _schoolYearRanges = List.generate(
+  DateTime.now().year - 2015 + 1,
+  (index) {
+    int startYear = 2015 + index;
+    int endYear = startYear + 1;
+    int nextYear = endYear + 1;
+    return '$startYear-$endYear to $endYear-$nextYear to $nextYear-${nextYear + 1}';
+  },
+);
+List<Term> defaultTerm = List<Term>.generate(3, (termIndex) {
+  return Term('Term ${termIndex + 1}', []);
+});
 
-class _StudentInfoPageState extends State<StudentInfoPage> {
+class _StudentInfoEditableState extends State<StudentInfoEditablePage> {
   Student fetchStudentInfo(Student student) {
     // Replace this with your actual data fetching logic
     // For now, dummy data is used for illustration
@@ -72,13 +84,32 @@ class _StudentInfoPageState extends State<StudentInfoPage> {
   }
 
   bool posEdited = false;
+  String selectedSYRange = _schoolYearRanges[_schoolYearRanges.length - 1];
+
+  // Function to extract and store the year ranges from the selectedSYRange list
+  void updateYearRanges(List<String> ranges) {
+    List<String> selectedSYYearRange = selectedSYRange
+        .split(' to ')
+        .map((range) => range.substring(0, 9))
+        .toList();
+
+    setState(() {
+      widget.studentpos.schoolYears[0].name = selectedSYYearRange[0];
+      widget.studentpos.schoolYears[0].terms = defaultTerm;
+
+      widget.studentpos.schoolYears[1].name = selectedSYYearRange[1];
+      widget.studentpos.schoolYears[1].terms = defaultTerm;
+
+      widget.studentpos.schoolYears[2].name = selectedSYYearRange[2];
+      widget.studentpos.schoolYears[2].terms = defaultTerm;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    Student studentInfo = fetchStudentInfo(widget.student);
     return Scaffold(
       appBar: AppBar(
-        title: Text('Student Information'),
+        title: Text('Existing Student POS'),
       ),
       body: SingleChildScrollView(
           padding: EdgeInsets.all(8.0),
@@ -86,145 +117,6 @@ class _StudentInfoPageState extends State<StudentInfoPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                          width: MediaQuery.sizeOf(context).width / 3,
-                          child: SingleChildScrollView(
-                            child: Card(
-                              color: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8.0)),
-                              elevation: 4.0,
-                              child: Padding(
-                                padding:
-                                    const EdgeInsets.fromLTRB(10, 10, 200, 70),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment
-                                      .start, // Align text to the left
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      "Student profile",
-                                      style: TextStyle(
-                                          fontSize: 12, color: Colors.grey),
-                                    ),
-                                    Text(
-                                      "${_capitalize(studentInfo.displayname['firstname']!)} ${_capitalize(studentInfo.displayname['lastname']!)} ",
-                                      style: TextStyle(
-                                          fontSize: 34,
-                                          fontWeight: FontWeight.bold,
-                                          color:
-                                              Color.fromARGB(255, 23, 71, 25)),
-                                    ),
-                                    Text(studentInfo.degree.endsWith('SIT')
-                                        ? 'Master of Science in Information Technology - ${studentInfo.idnumber.toString()}'
-                                        : 'Master in Information Technology - ${studentInfo.idnumber.toString()}'),
-                                    Text(studentInfo.email),
-                                    Text(
-                                        'Enrollment Status: ${studentInfo.status}'),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          )),
-                    ],
-                  ),
-                  SizedBox(
-                    height: 20,
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: MediaQuery.sizeOf(context).width /
-                            3, // Set your desired width
-                        child: SingleChildScrollView(
-                          child: Card(
-                            color: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8.0),
-                            ),
-                            elevation: 4.0,
-                            child: Padding(
-                              padding: const EdgeInsets.all(10),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "Academic Progress",
-                                    style: TextStyle(
-                                        fontSize: 12, color: Colors.grey),
-                                  ),
-                                  SizedBox(height: 10),
-                                  Text(
-                                    "Enrolled courses",
-                                    style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                  SizedBox(
-                                    height: 150, // Set your desired height
-
-                                    child: ListView.builder(
-                                      itemCount:
-                                          studentInfo.enrolledCourses.length,
-                                      itemBuilder:
-                                          (BuildContext context, int index) {
-                                        final enrolledCourse =
-                                            studentInfo.enrolledCourses[index];
-                                        return ListTile(
-                                          title: Text(
-                                            "${enrolledCourse.coursecode}: ${enrolledCourse.coursename}",
-                                            style: TextStyle(fontSize: 14),
-                                          ),
-                                          // Add any other details you want to display
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                  SizedBox(height: 20),
-                                  Text(
-                                    "Past courses",
-                                    style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                  SizedBox(
-                                    height: 150, // Set your desired height
-
-                                    child: ListView.builder(
-                                      itemCount: studentInfo.pastCourses.length,
-                                      itemBuilder:
-                                          (BuildContext context, int index) {
-                                        final pastCourse =
-                                            studentInfo.pastCourses[index];
-                                        return ListTile(
-                                          title: Text(
-                                            "${pastCourse.coursecode}: ${pastCourse.coursename} (Grade:  ${pastCourse.grade.toDouble()})",
-                                            style: TextStyle(fontSize: 14),
-                                          ),
-                                          // Add any other details you want to display
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
-                ],
-              ),
-              SizedBox(
-                width: 10,
-              ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.start,
@@ -242,6 +134,30 @@ class _StudentInfoPageState extends State<StudentInfoPage> {
                         SizedBox(
                           width: 20,
                         ),
+                        DropdownButton<String>(
+                          value: selectedSYRange,
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              List<String> newRange = newValue!
+                                  .split(' to ')
+                                  .map((range) => range.substring(0, 9))
+                                  .toList();
+                              selectedSYRange = newValue;
+                              updateYearRanges(newRange);
+                              // Implement logic to update the program of study based on the selected school year range
+                            });
+                          },
+                          items: _schoolYearRanges
+                              .map<DropdownMenuItem<String>>((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(value),
+                            );
+                          }).toList(),
+                        ),
+                        SizedBox(
+                          width: 20,
+                        ),
                         ElevatedButton(
                           onPressed: posEdited
                               ? () {
@@ -255,7 +171,7 @@ class _StudentInfoPageState extends State<StudentInfoPage> {
                                         widget.studentpos.toJson();
                                     firestore
                                         .collection('studentpos')
-                                        .doc(widget.student.uid)
+                                        .doc(widget.uid)
                                         .set(studentPosData);
 
                                     retrieveAllPOS();

@@ -806,7 +806,7 @@ class _MainViewState extends State<Sysad> {
                     padding: EdgeInsets.all(10.0),
                     child: TextButton(
                       onPressed: () {
-                        showAddUserForm(context, _formKey);
+                        showStudentTypeDialog(context, _formKey);
                       },
                       style: ElevatedButton.styleFrom(
                           padding: EdgeInsets.all(20),

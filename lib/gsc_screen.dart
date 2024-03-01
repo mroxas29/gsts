@@ -1,11 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:side_navigation/side_navigation.dart';
 import 'package:sysadmindb/api/invoice_service.dart';
-import 'package:sysadmindb/app/models/coursedemand.dart';
 import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/faculty.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
@@ -14,11 +11,11 @@ import 'package:sysadmindb/main.dart';
 import 'package:sysadmindb/app/models/user.dart';
 import 'package:sysadmindb/ui/addcourse.dart';
 import 'package:sysadmindb/ui/form.dart';
+import 'package:sysadmindb/ui/responsive/web.dart';
+import 'package:sysadmindb/ui/responsiveLayout.dart';
 import 'package:sysadmindb/ui/studentInfoPage.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:html' as html;
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
 import 'package:flutter/services.dart';
 
 void main() {
@@ -244,7 +241,7 @@ class _MainViewState extends State<Gscscreen> {
   void _editCourseData(BuildContext context, Course course) {
     bool hasStudents = false;
     List<String> status = ['true', 'false'];
-
+    enrolledStudent.clear();
     List<String> programs = ['MIT/MSIT', 'MIT', 'MSIT'];
     List<String> type = [
       'Bridging/Remedial Courses',
@@ -782,53 +779,6 @@ class _MainViewState extends State<Gscscreen> {
 
   @override
   Widget build(BuildContext context) {
-    final selectedDemandData = uniqueCourses.firstWhere(
-      (course) => course['coursecode'] == selectedCourseDemand,
-      orElse: () => {'coursecode': '', 'demandCount': 0, 'uniqueDates': []},
-    );
-    // Extract demand count and unique dates
-    final uniqueDates = selectedDemandData['uniqueDates'];
-
-    // Prepare data for the BarChart
-    final trendData = <BarChartGroupData>[];
-    for (int i = 0; i < uniqueDates.length; i++) {
-      final date = uniqueDates[i];
-      final parts = date.split('/');
-      final month = int.tryParse(parts[0]);
-      // Check if trendData already contains data for this month
-
-      // Determine how many times the current month appears in uniqueDates
-      final monthCount = uniqueDates
-          .where((date) => date.toString().startsWith("$month/"))
-          .length;
-      final existingDataIndex = trendData.indexWhere((data) => data.x == month);
-
-      // Add demandCount to trendData and then subtract 1
-      if (existingDataIndex != -1) {
-      } else {
-        trendData.add(
-          BarChartGroupData(
-            x: month!,
-            barRods: [
-              BarChartRodData(
-                toY: monthCount.toDouble(),
-                width: 15,
-                color: Colors.amber,
-              ),
-            ],
-          ),
-        );
-      }
-    }
-
-    // Convert Set to List and sort it
-    final sortedTrendData = trendData.toList()
-      ..sort((a, b) => a.x.compareTo(b.x));
-
-    // Clear the original Set and add sorted data back to it
-    trendData.clear();
-    trendData.addAll(sortedTrendData);
-
     bool is12chars = is12charslong(newPasswordController.text);
     bool isAtMost64chars = isatmost64chars(newPasswordController.text);
     bool hasSpecial = hasSpecialChar(newPasswordController.text);
@@ -839,13 +789,7 @@ class _MainViewState extends State<Gscscreen> {
 
     /// Views to display
     List<Widget> views = [
-      Scaffold(
-        appBar: AppBar(
-          title: Text("Dashboard", style: TextStyle(color: Colors.white)),
-          backgroundColor: const Color.fromARGB(255, 23, 71, 25),
-        ),
-        body: Row(crossAxisAlignment: CrossAxisAlignment.start, children: []),
-      ),
+      DesktopScaffold(),
 
       //COURSES SCREEN
       MaterialApp(
