@@ -10,13 +10,13 @@ import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/main.dart';
 import 'package:sysadmindb/app/models/user.dart';
 import 'package:sysadmindb/ui/addcourse.dart';
+import 'package:sysadmindb/ui/calendar.dart';
 import 'package:sysadmindb/ui/form.dart';
-import 'package:sysadmindb/ui/responsive/web.dart';
-import 'package:sysadmindb/ui/responsiveLayout.dart';
 import 'package:sysadmindb/ui/studentInfoPage.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:html' as html;
 import 'package:flutter/services.dart';
+import 'package:table_calendar/table_calendar.dart';
 
 void main() {
   runApp(
@@ -65,7 +65,7 @@ class _MainViewState extends State<Gscscreen> {
 
   /// The currently selected index of the bar
   int selectedIndex = 0;
-
+  
   @override
   initState() {
     setState(() {
@@ -776,6 +776,10 @@ class _MainViewState extends State<Gscscreen> {
 
   List<Course> recommendedRemedialCourses = [];
   List<Course> recommendedPriorityCourses = [];
+
+
+  // FOR CALENDAR
+  DateTime currentDate = DateTime.now();
 
   @override
   Widget build(BuildContext context) {
@@ -1739,12 +1743,11 @@ class _MainViewState extends State<Gscscreen> {
             )),
       ),
 
-      // CALENDAR PAGE
-      Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [Text("Calendar")]),
+      // CALENDAR PAGE || Following guide: https://www.youtube.com/watch?v=6Gxa-v7Zh7I&ab_channel=AIwithFlutter
+      Calendar(),
 
+
+      // INBOX PAGE
       Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,

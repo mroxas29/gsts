@@ -17,6 +17,9 @@ import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/app/models/term.dart';
 import 'package:sysadmindb/main.dart';
 import 'package:sysadmindb/ui/form.dart';
+import 'package:sysadmindb/ui/calendar.dart';
+import 'package:sysadmindb/ui/EventDetailsScreen.dart';
+import 'package:table_calendar/table_calendar.dart';
 
 void main() {
   runApp(
@@ -2024,6 +2027,7 @@ class _MainViewState extends State<GradStudentscreen>
 
   bool changeinPOS = false;
   SchoolYear? selectedSchoolYear = studentPOS.schoolYears[1];
+
   @override
   Widget build(BuildContext context) {
     // print(currentStudent.pastCourses[1]);
@@ -2176,16 +2180,10 @@ class _MainViewState extends State<GradStudentscreen>
           ),
         ],
       )),
-      Center(
-          child: Column(
-        children: [
-          Text(
-            'Calendar',
-            textDirection: TextDirection.ltr,
-            style: TextStyle(fontFamily: 'Inter', fontSize: 100),
-          ),
-        ],
-      )),
+      
+      // CALENDAR PAGE || Following guide: https://www.youtube.com/watch?v=6Gxa-v7Zh7I&ab_channel=AIwithFlutter
+      Calendar(),
+
       Center(
         child: Text(
           'Inbox',
