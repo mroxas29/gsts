@@ -9,7 +9,6 @@ import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/app/models/term.dart';
 import 'package:sysadmindb/app/models/user.dart';
-import 'package:sysadmindb/main.dart';
 import 'package:sysadmindb/ui/form.dart';
 import 'package:sysadmindb/ui/studentInfoPage.dart';
 import 'package:sysadmindb/ui/utils/profileBox.dart';
