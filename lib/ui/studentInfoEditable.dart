@@ -46,12 +46,7 @@ class _StudentInfoEditableState extends State<StudentInfoEditablePage> {
         status: student.status);
   }
 
-  String _capitalize(String input) {
-    if (input.isEmpty) {
-      return '';
-    }
-    return input[0].toUpperCase() + input.substring(1);
-  }
+ 
 
   void runCourseFilter(String query) {
     List<Course> results = [];
@@ -175,7 +170,13 @@ class _StudentInfoEditableState extends State<StudentInfoEditablePage> {
                                         .set(studentPosData);
 
                                     retrieveAllPOS();
-
+                                      for (var schoolYear
+                                        in widget.studentpos.schoolYears) {
+                                      for (var term in schoolYear.terms) {
+                                        term.termcourses
+                                            .clear(); // Clear the list of courses in the term
+                                      }
+                                    }
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content:
