@@ -1924,6 +1924,7 @@ DataCell capstoneCell(PastCourse pastCourse) {
 }
 
 class CapstoneProjectScreen extends StatelessWidget {
+
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -2032,36 +2033,6 @@ class _MainViewState extends State<GradStudentscreen>
   Widget build(BuildContext context) {
     // print(currentStudent.pastCourses[1]);
     List<Widget> views = [
-      Container(
-        width: 500, // Set the width directly on the Container
-        margin: EdgeInsets.all(16),
-        padding: EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.5),
-              spreadRadius: 5,
-              blurRadius: 7,
-              offset: Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Student Progress',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 16),
-            Column(
-              children: [],
-            ),
-          ],
-        ),
-      ),
       Center(
           child: Column(
         children: [
@@ -2339,10 +2310,6 @@ class _MainViewState extends State<GradStudentscreen>
               )),
               selectedIndex: selectedIndex,
               items: const [
-                SideNavigationBarItem(
-                  icon: Icons.dashboard,
-                  label: 'Dashboard',
-                ),
                 SideNavigationBarItem(
                   icon: Icons.book,
                   label: 'Program of Study',

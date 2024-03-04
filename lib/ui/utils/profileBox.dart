@@ -59,7 +59,7 @@ class ProfileBox extends StatelessWidget {
                     Spacer(),
                     Text(
                       'Total Students',
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(color: Colors.white, fontSize: 25),
                     ),
                     Spacer(),
                     Text(
@@ -102,7 +102,7 @@ class ProfileBox extends StatelessWidget {
                     Spacer(),
                     Text(
                       'New Students',
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(color: Colors.white, fontSize: 25),
                     ),
                     Spacer(),
                     Text(
@@ -145,7 +145,7 @@ class ProfileBox extends StatelessWidget {
                     Spacer(),
                     Text(
                       'Deviated Students',
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(color: Colors.white, fontSize: 25),
                     ),
                     Spacer(),
                     Text(
