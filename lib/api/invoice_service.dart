@@ -865,17 +865,13 @@ class PdfInvoiceService {
                                     fontSize: 10,
                                     decoration: TextDecoration.underline),
                               ),
-
-                            
                           ],
                         ),
                       ],
                     ),
-
-                    
                   ],
                 ),
-                 pw.SizedBox(height: 10),
+                pw.SizedBox(height: 10),
                 pw.Text(
                   "CHAIR/PROGRAM COORDINATOR's REMARKS (IF ANY):",
                   style: pw.TextStyle(fontSize: 10),

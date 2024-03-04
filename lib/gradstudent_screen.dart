@@ -1926,18 +1926,51 @@ DataCell capstoneCell(PastCourse pastCourse) {
 class CapstoneProjectScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        children: [
-          if (currentStudent!.degree == 'MIT')
-            for (Course capstoneCourse in capstonecourses)
-              Text(
-                  "${capstoneCourse.coursecode}: ${capstoneCourse.coursename}"),
-          if (currentStudent!.degree == 'MSIT')
-            for (Course thesisCourse in thesiscourses)
-              Text("${thesisCourse.coursecode}: ${thesisCourse.coursename}"),
-        ],
-      ),
+    List<DataColumn> columns = [
+      DataColumn(label: Text('Course Code')),
+      DataColumn(label: Text('Course Name')),
+      DataColumn(label: Text('Status')),
+    ];
+
+    List<DataRow> rows = [];
+
+    if (currentStudent!.degree == 'MIT') {
+      rows = capstonecourses.map((capstoneCourse) {
+        return DataRow(cells: [
+          DataCell(Text(capstoneCourse.coursecode)),
+          DataCell(Text(capstoneCourse.coursename)),
+          DataCell(Text('Passed')),
+        ]);
+      }).toList();
+    } else if (currentStudent!.degree == 'MSIT') {
+      rows = thesiscourses.map((thesisCourse) {
+        return DataRow(cells: [
+          DataCell(Text(thesisCourse.coursecode)),
+          DataCell(Text(thesisCourse.coursename)),
+          DataCell(Text('Passed')),
+        ]);
+      }).toList();
+    }
+
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          'Thesis Courses List',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        SizedBox(height: 8), // Optional: Adjust the space from top if needed
+        Center(
+          child: DataTable(
+            columns: columns,
+            rows: rows,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -2180,7 +2213,7 @@ class _MainViewState extends State<GradStudentscreen>
           ),
         ],
       )),
-      
+
       // CALENDAR PAGE || Following guide: https://www.youtube.com/watch?v=6Gxa-v7Zh7I&ab_channel=AIwithFlutter
       Calendar(),
 
