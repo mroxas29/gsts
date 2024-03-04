@@ -494,66 +494,12 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                       Row(
                         children: [
                           Text(
-                            "New Students",
+                            "Updates",
                             textAlign: TextAlign.left,
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.grey,
                             ),
-                          ),
-                          Spacer(),
-                          Text(
-                            "Filter: ",
-                            textAlign: TextAlign.left,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          TextButton(
-                            style: ButtonStyle(
-                              backgroundColor: filter == 'MIT'
-                                  ? MaterialStateProperty.all(Colors.blue)
-                                  : null, // Change background color based on selection
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                filter = 'MIT';
-                                filteredStudents = studentList
-                                    .where(
-                                        (student) => student.degree == filter)
-                                    .toList();
-                              });
-                            },
-                            child: Text(
-                              'MIT',
-                              style: TextStyle(
-                                color: filter == 'MIT' ? Colors.white : null,
-                              ),
-                            ),
-                          ),
-                          TextButton(
-                            style: ButtonStyle(
-                              backgroundColor: filter == 'MSIT'
-                                  ? MaterialStateProperty.all(Colors.blue)
-                                  : null, // Change background color based on selection
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                filter = 'MSIT';
-                                filteredStudents = studentList
-                                    .where(
-                                        (student) => student.degree == filter)
-                                    .toList();
-                              });
-                            },
-                            child: Text('MSIT',
-                                style: TextStyle(
-                                  color: filter == 'MSIT' ? Colors.white : null,
-                                )),
-                          ),
-                          SizedBox(
-                            width: 10,
                           ),
                         ],
                       ),
@@ -562,29 +508,38 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(0, 0, 8, 0),
                           child: SizedBox(
-                            width: double.infinity,
-                            child: GridView.builder(
+                              width: double.infinity,
+                              child: GridView.builder(
                                 scrollDirection: Axis.horizontal,
                                 physics: const PageScrollPhysics(),
                                 gridDelegate:
                                     const SliverGridDelegateWithFixedCrossAxisCount(
-                                        mainAxisSpacing: 20.0,
-                                        crossAxisSpacing: 4.0,
-                                        crossAxisCount: 1,
-                                        childAspectRatio: 1),
-                                itemCount: filteredStudents.length,
-                                itemBuilder: ((context, index) {
-                                  StudentPOS filteredStudentPOS =
-                                      studentPOSList.firstWhere(
-                                    (pos) =>
-                                        pos.uid == filteredStudents[index].uid,
-                                  );
+                                  mainAxisSpacing: 20.0,
+                                  crossAxisSpacing: 4.0,
+                                  crossAxisCount: 1,
+                                  childAspectRatio: 1,
+                                ),
+                                itemCount: 3,
+                                itemBuilder: (context, index) {
+                                  // Dummy data for counts (replace with actual data)
+                                  int totalStudents = studentList
+                                      .length; // Total number of students
+                                  int newStudents = studentList
+                                      .where((student) => student.idnumber
+                                          .toString()
+                                          .startsWith('124'))
+                                      .length; // Number of new students
+                                  int deviatedStudents = deviatedStudentList
+                                      .length; // Number of deviated students
+
                                   return ProfileBox(
-                                    student: filteredStudents[index],
-                                    pos: filteredStudentPOS,
+                                    totalStudents: totalStudents,
+                                    newStudents: newStudents,
+                                    deviatedStudents: deviatedStudents,
+                                    cardCount: index,
                                   );
-                                })),
-                          ),
+                                },
+                              )),
                         ),
                       ),
                     ],
