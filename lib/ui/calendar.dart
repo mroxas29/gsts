@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:sysadmindb/ui/EventDetailsScreen.dart';
 
+// CALENDAR PAGE || Following guide: https://www.youtube.com/watch?v=6Gxa-v7Zh7I&ab_channel=AIwithFlutter
 class Calendar extends StatefulWidget {
   @override
   _CalendarState createState() => _CalendarState();
@@ -15,6 +16,7 @@ class _CalendarState extends State<Calendar> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Google Calendar'),
+        backgroundColor: const Color.fromARGB(255, 23, 71, 25),
       ),
       body: Center(
         child: Column(
@@ -22,7 +24,7 @@ class _CalendarState extends State<Calendar> {
             Text(
               'Calendar',
               textDirection: TextDirection.ltr,
-              style: TextStyle(fontFamily: 'Inter', fontSize: 30),
+              style: TextStyle(fontFamily: 'Segoe UI', fontSize: 30),
             ),
             TableCalendar(
               headerStyle: HeaderStyle(titleCentered: true),
