@@ -53,14 +53,6 @@ Future<String?> showStudentTypeDialog(
             SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
-                studentType = 'Existing';
-                showAddNewUserForm(context, formKey, studentType);
-              },
-              child: Text('Existing Student'),
-            ),
-            SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
                 studentType = 'Employee';
                 showAddNewUserForm(context, formKey, studentType);
               },
@@ -406,4 +398,3 @@ void showAddNewUserForm(
     },
   );
 }
-

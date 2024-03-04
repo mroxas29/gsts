@@ -66,7 +66,7 @@ class _MainViewState extends State<Gscscreen> {
 
   /// The currently selected index of the bar
   int selectedIndex = 0;
-  
+
   @override
   initState() {
     setState(() {
@@ -777,7 +777,6 @@ class _MainViewState extends State<Gscscreen> {
 
   List<Course> recommendedRemedialCourses = [];
   List<Course> recommendedPriorityCourses = [];
-
 
   // FOR CALENDAR
   DateTime currentDate = DateTime.now();
@@ -1746,7 +1745,6 @@ class _MainViewState extends State<Gscscreen> {
 
       // CALENDAR PAGE || Following guide: https://www.youtube.com/watch?v=6Gxa-v7Zh7I&ab_channel=AIwithFlutter
       Calendar(),
-
 
       // INBOX PAGE
       Column(
