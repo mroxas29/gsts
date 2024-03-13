@@ -11,6 +11,10 @@ class Calendar extends StatefulWidget {
 class _CalendarState extends State<Calendar> {
   DateTime today = DateTime.now();
 
+  // Store Events created
+  //Map<DateTime, List<Event>> events = {};
+  TextEditingController _eventController = TextEditingController();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -41,17 +45,41 @@ class _CalendarState extends State<Calendar> {
           ],
         ),
       ),
+
+      // GUIDE: https://www.youtube.com/watch?v=ASCs_g8RJ9s&ab_channel=AIwithFlutter
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => EventDetailsScreen(selectedDate: today),
-            ),
+          showDialog(
+            context: context,
+            builder: (context)
+            {
+              return AlertDialog(
+                scrollable: true,title: Text ("Event Details"),
+                content: Padding(
+                  padding: EdgeInsets.all(8),
+                  child: TextField(
+                    controller: _eventController,
+                  ),
+                ),
+                actions: [
+                  ElevatedButton(
+                    onPressed: () {},
+                    child: Text("Submit"),
+                  )
+                ],
+              );
+            }
           );
         },
         child: Icon(Icons.add),
       ),
+      // OLD CODE @ 48
+      //    Navigator.push(
+      //      context,
+      //      MaterialPageRoute(
+      //        builder: (context) => EventDetailsScreen(selectedDate: today),
+      //      ),
+      //    );
     );
   }
 }
