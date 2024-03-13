@@ -73,7 +73,6 @@ class Student extends user {
 Future<List<EnrolledCourseData>> getEnrolledCoursesForStudent(
     String studentUid) async {
   try {
-    print('Fetching enrolled courses for student: $studentUid');
     final DocumentSnapshot studentSnapshot = await FirebaseFirestore.instance
         .collection('users')
         .doc(studentUid)
@@ -128,8 +127,10 @@ Future<List<PastCourse>> getPastCoursesForStudent(String studentUid) async {
 }
 
 List<Student> studentList = [];
+List<Student> newStudentList = [];
 Future<List<Student>> convertToStudentList(List<user> users) async {
   studentList.clear();
+  newStudentList.clear();
   for (var user in users) {
     if (user.role == 'Graduate Student') {
       List<EnrolledCourseData> enrolledCourses =
@@ -150,6 +151,19 @@ Future<List<Student>> convertToStudentList(List<user> users) async {
         degree: degree,
         status: status,
       ));
+      if (user.idnumber.toString().startsWith('124')) {
+        newStudentList.add(Student(
+          uid: user.uid,
+          displayname: user.displayname,
+          role: user.role,
+          email: user.email,
+          idnumber: user.idnumber,
+          enrolledCourses: enrolledCourses,
+          pastCourses: pastCourses,
+          degree: degree,
+          status: status,
+        ));
+      }
     }
   }
 

@@ -8,14 +8,13 @@ import 'package:sysadmindb/app/models/pastcourses.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/app/models/user.dart';
-import 'package:sysadmindb/gradstudent_screen.dart';
-import 'package:sysadmindb/gsc_screen.dart';
+import 'package:sysadmindb/screens/gradstudent_screen.dart';
+import 'package:sysadmindb/screens/gsc_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:sysadmindb/sysad.dart';
+import 'package:sysadmindb/screens/sysad.dart';
 import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sysadmindb/ui/reusable_widgets.dart';
-
 
 // ignore: implementation_imports
 import 'package:flutter/src/widgets/container.dart' as contain;
@@ -459,9 +458,8 @@ class _LoginPageState extends State<LoginPage> {
           print(
               "Current student uid: ${currentStudent!.uid}\nCurrent User uid: ${currentUser.uid}");
 
-          setState(() {
-            retrieveStudentPOS(currentStudent!.uid);
-          });
+          await retrieveStudentPOS(currentStudent!.uid);
+
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(

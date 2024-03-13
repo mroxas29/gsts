@@ -189,7 +189,6 @@ class PdfInvoiceService {
                       ),
                       pw.Text(studentPOS.email),
                       pw.Text(studentPOS.degree),
-                      pw.Text(studentPOS.status),
                     ],
                   )
                 ],

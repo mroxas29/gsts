@@ -1,11 +1,12 @@
-import 'dart:developer';
-
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:googleapis/calendar/v3.dart';
-import 'package:intl/intl.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis_auth/auth_io.dart';
+import 'package:intl/intl.dart';
+import 'package:sysadmindb/api/calendar_client.dart';
+import 'package:sysadmindb/app/models/secrets.dart';
+import 'package:googleapis/calendar/v3.dart' as cal;
 import 'package:url_launcher/url_launcher.dart';
-import 'package:googleapis_auth/googleapis_auth.dart' as auth;
 
 class EventDetailsScreen extends StatefulWidget {
   final DateTime selectedDate;
@@ -14,11 +15,6 @@ class EventDetailsScreen extends StatefulWidget {
   @override
   _EventDetailsScreenState createState() => _EventDetailsScreenState();
 }
-
-const _scopes = [CalendarApi.calendarScope];
-
-var _credentials = ClientId(
-    "703443900752-bm9ft9siccts76cs44tgj6p4966lieq8.apps.googleusercontent.com");
 
 class _EventDetailsScreenState extends State<EventDetailsScreen> {
   late TextEditingController titleController;
@@ -34,7 +30,6 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    
     return Scaffold(
       appBar: AppBar(
         title: Text('Event Details'),
@@ -100,19 +95,54 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
             SizedBox(height: 16.0),
             // Add Confirm Button
             ElevatedButton(
-              onPressed: () {
-                // Create a new event object
-                EventDateTime _eventDateTime =
-                    EventDateTime(dateTime: selectedTime);
+              onPressed: () async {
+                try {
+                  final GoogleSignInAccount? googleUser =
+                      await GoogleSignIn().signIn();
 
-                Event event = Event()
-                  ..summary = titleController.text
-                  ..description = descriptionController.text
-                  ..start = _eventDateTime;
-                  
+                  if (googleUser != null) {
+                    final GoogleSignInAuthentication googleAuth =
+                        await googleUser.authentication;
 
-                // Call insertEvent with the created event
-                insertEvent(event);
+                    final credential = GoogleAuthProvider.credential(
+                      accessToken: googleAuth.accessToken,
+                      idToken: googleAuth.idToken,
+                    );
+
+                    await FirebaseAuth.instance
+                        .signInWithCredential(credential);
+
+                    CalendarClient client =
+                        CalendarClient(); // Create an instance of CalendarClient
+
+                    // Insert the event
+                    final eventData = await client.insert(
+                      title: "TEST",
+                      description: "DESCRIPTION TEST",
+                      location: "ONLINE",
+                      attendeeEmailList: [],
+                      shouldNotifyAttendees: false,
+                      hasConferenceSupport: false,
+                      startTime: DateTime.now(),
+                      endTime: DateTime.now(),
+                    );
+
+                    String? eventId = eventData['id'];
+                    String? eventLink = eventData['link'];
+                    // Handle eventId and eventLink as needed
+
+                    // Show success message
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Event created successfully!')),
+                    );
+                  }
+                } catch (error) {
+                  // Show error message
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error creating event: $error')),
+                  );
+                  print('Error creating event: $error');
+                }
               },
               child: Text('Confirm Event'),
             ),
@@ -121,39 +151,13 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
       ),
     );
   }
+}
 
-  insertEvent(event) async {
-    try {
-      final client = auth.clientViaApiKey(
-        "AIzaSyD_e5JNG5j59-pHqT9sL_0tLfIeMbvFcc4",
-      );
-      var calendar = CalendarApi(client);
-      String calendarId = "primary";
-      var value = await calendar.events.insert(event, calendarId);
-      print("ADDEDDD_________________${value.status}");
-      if (value.status == "confirmed") {
-        log('Event added in google calendar');
-      } else {
-        log("Unable to add event in google calendar");
-      }
-    } catch (e, stackTrace) {
-      log('Error creating event: $e');
-      print('Stack trace: $stackTrace');
-    }
-
-    void prompt(String url) async {
-      if (await canLaunch(url)) {
-        await launch(url);
-      } else {
-        throw 'Could not launch $url';
-      }
-    }
-
-    @override
-    void dispose() {
-      titleController.dispose();
-      descriptionController.dispose();
-      super.dispose();
-    }
+void prompt(String url) async {
+  Uri uri = Uri.parse(url);
+  if (await canLaunchUrl(uri)) {
+    await launchUrl(uri);
+  } else {
+    throw 'Could not launch $url';
   }
 }

@@ -12,7 +12,7 @@ import 'package:sysadmindb/app/models/user.dart';
 import 'package:sysadmindb/ui/addcourse.dart';
 import 'package:sysadmindb/ui/calendar.dart';
 import 'package:sysadmindb/ui/form.dart';
-import 'package:sysadmindb/ui/responsive/web.dart';
+import 'package:sysadmindb/ui/responsive/gsc_dash.dart';
 import 'package:sysadmindb/ui/studentInfoPage.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:html' as html;
@@ -1076,6 +1076,7 @@ class _MainViewState extends State<Gscscreen> {
                                   ? () async {
                                       setState(() {
                                         posEdited = false;
+                                        getDeviatedStudents();
                                       });
 
                                       final FirebaseFirestore firestore =

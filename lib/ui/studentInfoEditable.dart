@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:sysadmindb/app/models/DeviatedStudents.dart';
+import 'package:sysadmindb/app/models/SchoolYear.dart';
 import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
@@ -46,6 +48,15 @@ class _StudentInfoEditableState extends State<StudentInfoEditablePage> {
         status: student.status);
   }
 
+  bool isStudentDeviated() {
+    if (deviatedStudentList.any((devStudent) =>
+        devStudent.studentPOS.idnumber == widget.studentpos.idnumber)) {
+      return true;
+    }
+
+    return false;
+  }
+
  
 
   void runCourseFilter(String query) {
@@ -80,7 +91,7 @@ class _StudentInfoEditableState extends State<StudentInfoEditablePage> {
 
   bool posEdited = false;
   String selectedSYRange = _schoolYearRanges[_schoolYearRanges.length - 1];
-
+  bool studentDeviated = false;
   // Function to extract and store the year ranges from the selectedSYRange list
   void updateYearRanges(List<String> ranges) {
     List<String> selectedSYYearRange = selectedSYRange
@@ -97,6 +108,7 @@ class _StudentInfoEditableState extends State<StudentInfoEditablePage> {
 
       widget.studentpos.schoolYears[2].name = selectedSYYearRange[2];
       widget.studentpos.schoolYears[2].terms = defaultTerm;
+      studentDeviated = isStudentDeviated();
     });
   }
 
@@ -170,7 +182,7 @@ class _StudentInfoEditableState extends State<StudentInfoEditablePage> {
                                         .set(studentPosData);
 
                                     retrieveAllPOS();
-                                      for (var schoolYear
+                                    for (var schoolYear
                                         in widget.studentpos.schoolYears) {
                                       for (var term in schoolYear.terms) {
                                         term.termcourses
@@ -189,6 +201,7 @@ class _StudentInfoEditableState extends State<StudentInfoEditablePage> {
                               : null, // Disable the button when no course is added
                           child: Text("Save changes"),
                         ),
+                       
                       ],
                     ),
                   ),

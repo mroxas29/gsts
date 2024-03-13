@@ -1,9 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:sysadmindb/app/models/DeviatedStudents.dart';
+import 'package:sysadmindb/app/models/SchoolYear.dart';
 import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
+import 'package:sysadmindb/app/models/term.dart';
 import 'package:sysadmindb/ui/addcourse.dart';
+import 'package:sysadmindb/ui/responsive/gsc_dash.dart';
 
 class StudentInfoPage extends StatefulWidget {
   final Student student;
@@ -18,6 +22,8 @@ class StudentInfoPage extends StatefulWidget {
 List<Course> foundCourse = courses;
 
 class _StudentInfoPageState extends State<StudentInfoPage> {
+  bool studentDeviated = false;
+
   Student fetchStudentInfo(Student student) {
     // Replace this with your actual data fetching logic
     // For now, dummy data is used for illustration
@@ -39,6 +45,32 @@ class _StudentInfoPageState extends State<StudentInfoPage> {
       return '';
     }
     return input[0].toUpperCase() + input.substring(1);
+  }
+
+  bool isStudentDeviated() {
+    if (deviatedStudentList.any((devStudent) =>
+        devStudent.studentPOS.idnumber == widget.studentpos.idnumber)) {
+      setState(() {
+        studentDeviated = true;
+      });
+      return true;
+    }
+
+    return false;
+  }
+  String findSYTerm(Course course) {
+    for (int i = 0; i < widget.studentpos.schoolYears.length; i++) {
+      SchoolYear sy = widget.studentpos.schoolYears[i];
+      for (int j = 0; j < sy.terms.length; j++) {
+        Term term = sy.terms[j];
+
+        if (term.termcourses.any((c) => c.coursecode == course.coursecode)) {
+    
+          return '${sy.name} ${term.name}';
+        }
+      }
+    }
+    return '(not found on POS)';
   }
 
   void runCourseFilter(String query) {
@@ -248,7 +280,8 @@ class _StudentInfoPageState extends State<StudentInfoPage> {
                                   // Implement logic to save studentPOS
                                   setState(() {
                                     posEdited = false;
-
+                                    getDeviatedStudents();
+                                    isStudentDeviated();
                                     final FirebaseFirestore firestore =
                                         FirebaseFirestore.instance;
                                     Map<String, dynamic> studentPosData =
@@ -272,6 +305,38 @@ class _StudentInfoPageState extends State<StudentInfoPage> {
                               : null, // Disable the button when no course is added
                           child: Text("Save changes"),
                         ),
+                        isStudentDeviated()
+                            ? Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Student enrolled in:",
+                                    style: TextStyle(fontSize: 14),
+                                  ),
+                                  for (Course course
+                                      in widget.studentpos.enrolledCourses)
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          "${course.coursecode}: ${course.coursename}",
+                                          style: TextStyle(fontSize: 14),
+                                        ),
+                                        Text(
+                                          "Course is supposed to be taken on ${findSYTerm(course)}",
+                                          style: TextStyle(
+                                              fontSize: 14, color: Colors.red),
+                                        ),
+                                        SizedBox(
+                                          height: 5,
+                                        ),
+                                      ],
+                                    ),
+                                ],
+                              )
+                            : SizedBox(height: 0),
                       ],
                     ),
                   ),
@@ -334,31 +399,9 @@ class _StudentInfoPageState extends State<StudentInfoPage> {
                                                           color: Colors.red,
                                                         ),
                                                         onPressed: () {
-                                                          // Implement logic to delete the course
-                                                          // For example:
-                                                          // setState(() {
-                                                          //   // Assuming term.termcourses is a List<Course>
-                                                          //   term.termcourses.remove(course);
-                                                          // });
                                                           setState(() {
-                                                            int syIndex =
-                                                                studentPOS
-                                                                    .schoolYears
-                                                                    .indexOf(
-                                                                        year);
-                                                            int termIndex =
-                                                                studentPOS
-                                                                    .schoolYears[
-                                                                        syIndex]
-                                                                    .terms
-                                                                    .indexOf(
-                                                                        term);
-                                                            studentPOS
-                                                                .schoolYears[
-                                                                    syIndex]
-                                                                .terms[
-                                                                    termIndex]
-                                                                .termcourses
+                                                            getDeviatedStudents();
+                                                            term.termcourses
                                                                 .remove(course);
                                                             posEdited = true;
                                                           });
@@ -372,7 +415,7 @@ class _StudentInfoPageState extends State<StudentInfoPage> {
                                                         fontSize: 12.0),
                                                   ),
                                                 );
-                                              }).toList(),
+                                              }),
                                               SizedBox(
                                                   height:
                                                       8.0), // Add space between course tiles
@@ -394,6 +437,7 @@ class _StudentInfoPageState extends State<StudentInfoPage> {
                                                         .termcourses
                                                         .add(course);
                                                     posEdited = true;
+                                                    getDeviatedStudents();
                                                   });
                                                 },
                                                 allCourses: courses,

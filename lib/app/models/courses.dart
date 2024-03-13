@@ -148,7 +148,6 @@ Future<List<Course>> getCoursesFromFirestore() async {
       }
 
       if (newCourse.type.toLowerCase().contains('thesis')) {
-        print(newCourse.coursename);
         thesiscourses.add(newCourse);
       }
     }

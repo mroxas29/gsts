@@ -19,7 +19,7 @@ class StudentTile extends StatelessWidget {
         }
       }
     }
-    return '';
+    return '(not found on POS)';
   }
 
   @override
@@ -38,13 +38,14 @@ class StudentTile extends StatelessWidget {
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Icon(Icons.person), // Icon on the left
                 ),
                 Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
@@ -69,7 +70,8 @@ class StudentTile extends StatelessWidget {
                   children: [
                     Text(
                       "Student enrolled in:",
-                      style: TextStyle(fontSize: 14),
+                      style:
+                          TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                     ),
                     for (Course course in student.deviatedCourses)
                       Column(

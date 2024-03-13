@@ -7,8 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/faculty.dart';
 import 'package:sysadmindb/app/models/user.dart';
-import 'package:sysadmindb/gsc_screen.dart';
-import 'package:sysadmindb/sysad.dart';
+import 'package:sysadmindb/screens/gsc_screen.dart';
+import 'package:sysadmindb/screens/sysad.dart';
 
 class UserData {
   Map<String, String> displayname = {};

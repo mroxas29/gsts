@@ -6,7 +6,6 @@ import 'package:flutter/rendering.dart';
 
 import 'package:side_navigation/side_navigation.dart';
 import 'package:sysadmindb/app/models/AcademicCalendar.dart';
-import 'package:sysadmindb/ui/CircularProgressWidget.dart';
 import 'package:sysadmindb/app/models/coursedemand.dart';
 import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/enrolledcourses.dart';
@@ -435,6 +434,8 @@ bool hasSpecialChar(String password) {
   return specialCharRegex.hasMatch(password);
 }
 
+void addEnrollEdCourse() {}
+
 bool hasNumber(String password) {
   // Replace this with your logic to check if password has at least one number
   RegExp numberRegex = RegExp(r'\d');
@@ -576,6 +577,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
     Course? selectedCourse = blankCourse;
     int? selectedCourseIndex;
     bool courseAlreadyExists = false;
+    bool hasPreReq = false;
     String selectedRadio = '';
 
     // Get the current date
@@ -858,6 +860,11 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                         if (courseAlreadyExists)
                           Text(
                             'This course is already added',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        if (hasPreReq)
+                          Text(
+                            'This course is has a pre-requisite course which you have not taken',
                             style: TextStyle(color: Colors.red),
                           ),
                         if (selectedCourse != null)
@@ -1871,39 +1878,6 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                 )
               ],
             )),
-            Align(
-              alignment: Alignment.bottomLeft,
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text.rich(
-                  TextSpan(
-                    text:
-                        "Wish to demand for a course that isn't offered? Click ",
-                    style: TextStyle(fontSize: 13, color: Colors.grey),
-                    children: [
-                      TextSpan(
-                        text: "here",
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.blue, // You can customize the color
-                          decoration: TextDecoration.underline,
-                        ),
-                        recognizer: TapGestureRecognizer()
-                          ..onTap = () {
-                            // Handle the click action, e.g., navigate to a new screen or show a dialog
-                            // You can replace this with your desired behavior
-                            showCourseDemandForm(
-                                context,
-                                currentStudent!.idnumber,
-                                inactivecourses,
-                                courseDemands);
-                          },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            )
           ],
         ),
       ),
@@ -1923,55 +1897,148 @@ DataCell capstoneCell(PastCourse pastCourse) {
   return DataCell(Text(''));
 }
 
-class CapstoneProjectScreen extends StatelessWidget {
+DataRow isCoursePassed(Course course) {
+  if (currentStudent!.pastCourses.any((pastCourse) =>
+      pastCourse.coursecode == course.coursecode && pastCourse.grade > 0)) {
+    return DataRow(cells: [
+      DataCell(Text(
+        course.coursecode,
+        style: TextStyle(color: Colors.green),
+      )),
+      DataCell(Text(course.coursename, style: TextStyle(color: Colors.green))),
+      DataCell(Row(
+        children: [
+          Icon(
+            Icons.check,
+            color: Colors.green,
+          ),
+          SizedBox(
+            width: 5,
+          ),
+          Text('Passed', style: TextStyle(color: Colors.green)),
+        ],
+      )),
+    ]);
+  } else if (currentStudent!.pastCourses.any((pastCourse) =>
+      pastCourse.coursecode == course.coursecode && pastCourse.grade <= 0)) {
+    return DataRow(cells: [
+      DataCell(Text(
+        course.coursecode,
+        style: TextStyle(color: Colors.red),
+      )),
+      DataCell(Text(course.coursename, style: TextStyle(color: Colors.red))),
+      DataCell(Row(
+        children: [
+          Icon(
+            Icons.running_with_errors_outlined,
+            color: Colors.red,
+          ),
+          SizedBox(
+            width: 5,
+          ),
+          Text('Not Passed', style: TextStyle(color: Colors.red)),
+        ],
+      )),
+    ]);
+  } else if (currentStudent!.enrolledCourses.any(
+      (enrolledCourse) => enrolledCourse.coursecode == course.coursecode)) {
+    return DataRow(cells: [
+      DataCell(Text(
+        course.coursecode,
+        style: TextStyle(color: Colors.orange),
+      )),
+      DataCell(Text(course.coursename, style: TextStyle(color: Colors.orange))),
+      DataCell(Row(
+        children: [
+          Icon(
+            Icons.incomplete_circle,
+            color: Colors.orange,
+          ),
+          SizedBox(
+            width: 5,
+          ),
+          Text('In Progress', style: TextStyle(color: Colors.orange)),
+        ],
+      )),
+    ]);
+  } else {
+    return DataRow(cells: [
+      DataCell(Text(
+        course.coursecode,
+        style: TextStyle(color: Colors.grey),
+      )),
+      DataCell(Text(course.coursename, style: TextStyle(color: Colors.grey))),
+      DataCell(Row(
+        children: [
+          Icon(
+            Icons.error,
+            color: Colors.grey,
+          ),
+          SizedBox(
+            width: 5,
+          ),
+          Text('Not enrolled', style: TextStyle(color: Colors.grey)),
+        ],
+      )),
+    ]);
+  }
+}
 
+class CapstoneProjectScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     List<DataColumn> columns = [
-      DataColumn(label: Text('Course Code')),
-      DataColumn(label: Text('Course Name')),
-      DataColumn(label: Text('Status')),
+      DataColumn(
+          label: Text(
+        'Course Code',
+        style: TextStyle(fontWeight: FontWeight.bold),
+      )),
+      DataColumn(
+          label: Text(
+        'Course Name',
+        style: TextStyle(fontWeight: FontWeight.bold),
+      )),
+      DataColumn(
+          label: Text(
+        'Status',
+        style: TextStyle(fontWeight: FontWeight.bold),
+      )),
     ];
 
     List<DataRow> rows = [];
 
     if (currentStudent!.degree == 'MIT') {
       rows = capstonecourses.map((capstoneCourse) {
-        return DataRow(cells: [
-          DataCell(Text(capstoneCourse.coursecode)),
-          DataCell(Text(capstoneCourse.coursename)),
-          DataCell(Text('Passed')),
-        ]);
+        return isCoursePassed(capstoneCourse);
       }).toList();
     } else if (currentStudent!.degree == 'MSIT') {
       rows = thesiscourses.map((thesisCourse) {
-        return DataRow(cells: [
-          DataCell(Text(thesisCourse.coursecode)),
-          DataCell(Text(thesisCourse.coursename)),
-          DataCell(Text('Passed')),
-        ]);
+        return isCoursePassed(thesisCourse);
       }).toList();
     }
 
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.start,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(
-          'Thesis Courses List',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            'Thesis Courses List',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
-        SizedBox(height: 8), // Optional: Adjust the space from top if needed
-        Center(
-          child: DataTable(
-            columns: columns,
-            rows: rows,
+          SizedBox(height: 8), // Optional: Adjust the space from top if needed
+          Center(
+            child: DataTable(
+              columns: columns,
+              rows: rows,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -2067,122 +2134,113 @@ class _MainViewState extends State<GradStudentscreen>
     // print(currentStudent.pastCourses[1]);
     List<Widget> views = [
       Center(
+          child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
           child: Column(
-        children: [
-          Text(
-            'Program of Study',
-            textDirection: TextDirection.ltr,
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          SizedBox(
-            height: 20,
-          ),
-          Center(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: studentPOS.schoolYears.map((schoolYear) {
-                return Row(
-                  children: [
-                    SizedBox(width: 10), // Add some spacing between buttons
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          selectedSchoolYear =
-                              schoolYear; // Update the selected school year
-                        });
-                      },
-                      style: ButtonStyle(
-                        minimumSize: MaterialStateProperty.all(
-                            Size(120, 50)), // Enlarge the button size
-                        backgroundColor:
-                            MaterialStateProperty.resolveWith<Color?>(
-                                (Set<MaterialState> states) {
-                          return selectedSchoolYear == schoolYear
-                              ? Color.fromARGB(50, 13, 105,
-                                  16) // Background color when selected
-                              : null; // Background color when not selected
-                        }),
-                        side: MaterialStateProperty.resolveWith<BorderSide>(
-                            (Set<MaterialState> states) {
-                          return BorderSide(
-                            color: selectedSchoolYear == schoolYear
-                                ? const Color.fromARGB(255, 23, 71,
-                                    25) // Border color when selected
-                                : Colors
-                                    .transparent, // Transparent border color when not selected
-                          );
-                        }),
-                      ),
-                      child: Text(
-                        schoolYear.name, // Display the name of the school year
-                        style: TextStyle(
-                          fontSize: 16, // Enlarge the text size
-                          color: selectedSchoolYear == schoolYear
-                              ? Color.fromARGB(
-                                  255, 0, 0, 0) // Text color when selected
-                              : null, // Text color when not selected
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 10), // Add some spacing between buttons
-                  ],
-                );
-              }).toList(),
-            ),
-          ),
-          SizedBox(
-            height: 20,
-          ),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.start,
-            children: selectedSchoolYear!.terms.map((term) {
-              return Expanded(
-                child: Card(
-                  margin: EdgeInsets.all(10),
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Program of Study',
+                textDirection: TextDirection.ltr,
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(
+                height: 20,
+              ),
+              Center(
+                child: SingleChildScrollView(
                   child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: EdgeInsets.all(8),
-                        child: Text(
-                          term.name, // Display the name of the term
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                    children: studentPOS.schoolYears.map((schoolYear) {
+                      return SingleChildScrollView(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text(
+                                schoolYear
+                                    .name, // Display the name of the school year
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 5),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: schoolYear.terms.map((term) {
+                                return Expanded(
+                                  child: Card(
+                                    margin: EdgeInsets.all(5),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Padding(
+                                          padding: EdgeInsets.all(8),
+                                          child: Text(
+                                            term.name, // Display the name of the term
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                        Column(
+                                          children:
+                                              term.termcourses.map((course) {
+                                            if (course.type ==
+                                                'Elective Courses') {
+                                              // Increment the elective count for each elective course encountered
+                                              return ListTile(
+                                                title: Text(
+                                                  'Elective Course',
+                                                  style: TextStyle(
+                                                      color: Colors.grey),
+                                                ), // Display the elective count
+                                                subtitle: Text(
+                                                    'Enroll in any elective course',
+                                                    style: TextStyle(
+                                                        color: Colors.grey)),
+                                              );
+                                            } else {
+                                              return ListTile(
+                                                title: Text(course
+                                                    .coursecode), // Display the course code
+                                                subtitle: Text(course
+                                                    .coursename), // Display the course name
+                                              );
+                                            }
+                                          }).toList(),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                            SizedBox(height: 20),
+                          ],
                         ),
-                      ),
-                      Column(
-                        children: term.termcourses.map((course) {
-                          if (course.type == 'Elective Courses') {
-                            // Increment the elective count for each elective course encountered
-                            return ListTile(
-                              title: Text(
-                                  'Elective Course'), // Display the elective count
-                              subtitle: Text('Enroll in any elective course'),
-                            );
-                          } else {
-                            return ListTile(
-                              title: Text(
-                                  course.coursecode), // Display the course code
-                              subtitle: Text(
-                                  course.coursename), // Display the course name
-                            );
-                          }
-                        }).toList(),
-                      ),
-                    ],
+                      );
+                    }).toList(),
                   ),
                 ),
-              );
-            }).toList(),
+              )
+            ],
           ),
-        ],
+        ),
       )),
 
       // CALENDAR PAGE || Following guide: https://www.youtube.com/watch?v=6Gxa-v7Zh7I&ab_channel=AIwithFlutter
