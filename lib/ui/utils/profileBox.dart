@@ -2,17 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:sysadmindb/ui/responsive/gsc_dash.dart';
 import 'package:sysadmindb/ui/studentInfoPage.dart';
 
+
+
+
+
 class ProfileBox extends StatefulWidget {
   final int totalStudents;
   final int newStudents;
   final int deviatedStudents;
+  final int ineligibleStudents;
   final int cardCount;
   const ProfileBox(
       {super.key,
       required this.totalStudents,
       required this.newStudents,
       required this.deviatedStudents,
-      required this.cardCount});
+      required this.cardCount, 
+      required this.ineligibleStudents});
 
   @override
   State<ProfileBox> createState() => _ProfileBoxState();
@@ -193,7 +199,7 @@ class _ProfileBoxState extends State<ProfileBox> {
                     ),
                     Spacer(),
                     Text(
-                      widget.deviatedStudents.toString(),
+                      widget.ineligibleStudents.toString(),
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,

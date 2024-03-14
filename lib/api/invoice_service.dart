@@ -44,11 +44,11 @@ class PdfInvoiceService {
         .buffer
         .asUint8List();
 
-    final degree = studentPOS.degree == 'MIT'
+    final degree = studentPOS.degree.contains('MIT')
         ? 'Master in Information Technology'
         : 'Master of Science in Information Technology';
 
-    final finale = studentPOS.degree == 'MIT'
+    final finale = studentPOS.degree.contains('MIT')
         ? 'Capstone Project Proposal (3 units)\nCapstone Project Final (3 units)'
         : 'Methods of Research (3 units)\nThesis Proposal Defense (3 units)\nThesis Final Defense (3 units)';
 
@@ -249,7 +249,7 @@ class PdfInvoiceService {
       ),
     );
 
-    if (studentPOS.degree == 'MIT') {
+    if (studentPOS.degree.contains('MIT')) {
       pdf.addPage(pw.Page(
           pageFormat: PdfPageFormat.a4,
           build: (pw.Context context) {

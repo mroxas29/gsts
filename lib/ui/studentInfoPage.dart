@@ -152,7 +152,7 @@ class _StudentInfoPageState extends State<StudentInfoPage> {
                                           color:
                                               Color.fromARGB(255, 23, 71, 25)),
                                     ),
-                                    Text(studentInfo.degree.endsWith('SIT')
+                                    Text(studentInfo.degree.contains('MSIT')
                                         ? 'Master of Science in Information Technology - ${studentInfo.idnumber.toString()}'
                                         : 'Master in Information Technology - ${studentInfo.idnumber.toString()}'),
                                     Text(studentInfo.email),

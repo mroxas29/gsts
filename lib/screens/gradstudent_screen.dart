@@ -146,7 +146,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                                     fontWeight: FontWeight.bold,
                                     color: Color.fromARGB(255, 23, 71, 25)),
                               ),
-                              Text(currentStudent!.degree.endsWith('SIT')
+                              Text(currentStudent!.degree.contains('MSIT')
                                   ? 'Master of Science in Information Technology - ${currentStudent!.idnumber.toString()}'
                                   : 'Master in Information Technology - ${currentStudent!.idnumber.toString()}'),
                               Text(currentStudent!.email),
@@ -583,7 +583,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
   }
 
   bool checkPrerequisites(Course selectedCourse, Student student) {
-    if (student.degree == 'MIT') {
+    if (student.degree.contains('MIT')) {
       if (selectedCourse.coursecode == 'CIS411M') {
         return true; // No prerequisites for CIS801M in MSIT
       } else if (selectedCourse.coursecode == 'CAPROP') {
@@ -605,7 +605,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
             course.grade <= 4);
         return hasCIS411M && hasProposal;
       }
-    } else if (student.degree == 'MSIT') {
+    } else if (student.degree.contains('MSIT')) {
       if (selectedCourse.coursecode == 'CIS801M') {
         return true; // No prerequisites for CIS801M in MSIT
       } else if (selectedCourse.coursecode == 'THWR1') {
@@ -844,7 +844,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                                 onPressed: () {
                                   setState(() {
                                     selectedRadio =
-                                        currentStudent!.degree == 'MIT'
+                                        currentStudent!.degree.contains('MIT')
                                             ? 'Capstone'
                                             : 'Thesis';
                                   });
@@ -852,21 +852,23 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                                 style: TextButton.styleFrom(
                                   padding: const EdgeInsets.all(20.0),
                                   foregroundColor: selectedRadio ==
-                                          (currentStudent!.degree == 'MIT'
+                                          (currentStudent!.degree.contains('MIT')
                                               ? 'Capstone'
                                               : 'Thesis')
                                       ? Color.fromARGB(255, 0, 0,
                                           0) // Text color when selected
                                       : null,
                                   backgroundColor: selectedRadio ==
-                                          (currentStudent!.degree == 'MIT'
+                                          (currentStudent!.degree
+                                                  .contains('MIT')
                                               ? 'Capstone'
                                               : 'Thesis')
                                       ? Color.fromARGB(50, 13, 105, 16)
                                       : null, // Fully transparent background
                                   side: BorderSide(
                                     color: selectedRadio ==
-                                            (currentStudent!.degree == 'MIT'
+                                            (currentStudent!.degree
+                                                    .contains('MIT')
                                                 ? 'Capstone'
                                                 : 'Thesis')
                                         ? const Color.fromARGB(255, 23, 71,
@@ -876,7 +878,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                                   ),
                                 ),
                                 child: Text(
-                                  currentStudent!.degree == 'MIT'
+                                 currentStudent!.degree.contains('MIT')
                                       ? 'Capstone'
                                       : 'Thesis',
                                   style: TextStyle(color: Colors.black),
@@ -1489,7 +1491,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                                 onPressed: () {
                                   setState(() {
                                     selectedRadio =
-                                        currentStudent!.degree == 'MIT'
+                                        currentStudent!.degree.contains('MIT')
                                             ? 'Capstone'
                                             : 'Thesis';
                                   });
@@ -1497,21 +1499,24 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                                 style: TextButton.styleFrom(
                                   padding: const EdgeInsets.all(20.0),
                                   foregroundColor: selectedRadio ==
-                                          (currentStudent!.degree == 'MIT'
+                                          (currentStudent!.degree
+                                                  .contains('MIT')
                                               ? 'Capstone'
                                               : 'Thesis')
                                       ? Color.fromARGB(255, 0, 0,
                                           0) // Text color when selected
                                       : null,
                                   backgroundColor: selectedRadio ==
-                                          (currentStudent!.degree == 'MIT'
+                                          (currentStudent!.degree
+                                                  .contains('MIT')
                                               ? 'Capstone'
                                               : 'Thesis')
                                       ? Color.fromARGB(50, 13, 105, 16)
                                       : null, // Fully transparent background
                                   side: BorderSide(
                                     color: selectedRadio ==
-                                            (currentStudent!.degree == 'MIT'
+                                            (currentStudent!.degree
+                                                    .contains('MIT')
                                                 ? 'Capstone'
                                                 : 'Thesis')
                                         ? const Color.fromARGB(255, 23, 71,
@@ -1521,7 +1526,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                                   ),
                                 ),
                                 child: Text(
-                                  currentStudent!.degree == 'MIT'
+                                  currentStudent!.degree.contains('MIT')
                                       ? 'Capstone'
                                       : 'Thesis',
                                   style: TextStyle(color: Colors.black),
@@ -2162,11 +2167,11 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
 
     List<DataRow> rows = [];
 
-    if (currentStudent!.degree == 'MIT') {
+    if (currentStudent!.degree.contains('MIT')) {
       rows = capstonecourses.map((capstoneCourse) {
         return isCoursePassed(capstoneCourse);
       }).toList();
-    } else if (currentStudent!.degree == 'MSIT') {
+    } else if (currentStudent!.degree.contains('MSIT')) {
       rows = thesiscourses.map((thesisCourse) {
         return isCoursePassed(thesisCourse);
       }).toList();
@@ -2426,12 +2431,12 @@ class _MainViewState extends State<GradStudentscreen>
                 text: 'Curriculum Audit',
               ),
               Tab(
-                text: currentStudent!.degree == 'MIT'
+                text: currentStudent!.degree.contains('MIT')
                     ? 'Capstone Progress'
                     : 'Thesis Progress',
               ),
               Tab(
-                text: 'Capstone Project',
+                text: 'Profile',
               )
             ],
             labelColor: Colors.white,

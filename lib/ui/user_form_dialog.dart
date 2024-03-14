@@ -9,7 +9,6 @@ import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/app/models/user.dart';
 import 'package:sysadmindb/main.dart';
-import 'package:sysadmindb/ui/studentInfoEditable.dart';
 
 class UserData {
   Map<String, String> displayname = {};
@@ -68,7 +67,7 @@ Future<String?> showStudentTypeDialog(
 void showAddNewUserForm(
     BuildContext context, GlobalKey<FormState> formKey, String studentType) {
   List<String> roles = ['Coordinator', 'Graduate Student', 'Admin'];
-  List<String> degrees = ['No degree', 'MIT', 'MSIT'];
+  List<String> degrees = ['No degree', 'MIT', 'MSIT', 'MIT-Masters', 'MIT-Doctorate', 'MSIT-Masters', 'MSIT-Doctorate'];
   List<String> status = ['Full Time', 'Part Time', 'LOA'];
 
   final UserData _userData = UserData();
@@ -295,7 +294,7 @@ void showAddNewUserForm(
 
                     if (studentType == 'New') {
                       Map<String, dynamic>? studentPosData;
-                      if (_userData.degree == 'MIT') {
+                      if (_userData.degree.contains('MIT')) {
                         print('student is MIT');
 
                         studentPosData = generatePOSforMIT(
@@ -303,7 +302,7 @@ void showAddNewUserForm(
                             .toJson();
                       }
 
-                      if (_userData.degree == 'MSIT') {
+                      if (_userData.degree.contains('MSIT')) {
                         print('Student is MSIT');
                         studentPosData = generatePOSforMSIT(
                                 newStudent, studentPOSList, courses)
@@ -360,36 +359,6 @@ void showAddNewUserForm(
                 }
               }
 
-              if (studentType == 'Existing') {
-                studentPOS = StudentPOS(
-                    schoolYears: defaultschoolyears,
-                    uid: uid,
-                    displayname: _userData.displayname,
-                    role: _userData.role,
-                    email: _userData.email,
-                    idnumber: _userData.idnumber,
-                    enrolledCourses: [],
-                    pastCourses: [],
-                    degree: _userData.degree,
-                    status: _userData.status);
-
-                for (var schoolYear in studentPOS.schoolYears) {
-                  for (var term in schoolYear.terms) {
-                    term.termcourses
-                        .clear(); // Clear the list of courses in the term
-                  }
-                }
-
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => StudentInfoEditablePage(
-                      uid: uid,
-                      studentpos: studentPOS,
-                    ),
-                  ),
-                );
-              }
             },
             child: Text('Add'),
           ),

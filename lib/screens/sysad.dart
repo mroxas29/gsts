@@ -76,7 +76,6 @@ class _MainViewState extends State<Sysad> {
 
   void _editUserData(BuildContext context, user user) {
     List<String> roles = ['Coordinator', 'Graduate Student', 'Admin'];
-    List<String> degree = ['MIT', 'MSIT', 'No degree'];
     String selectedRole = user.role;
     List<String> status = ['Full Time', 'Part Time', 'LOA'];
     String selectedStatus = user.status;
@@ -307,7 +306,6 @@ class _MainViewState extends State<Sysad> {
   void _editCourseData(BuildContext context, Course course) {
     bool hasStudents = false;
     List<String> status = ['true', 'false'];
-    List<String> degrees = ['No degree', 'MIT', 'MSIT'];
     List<String> programs = ['MIT/MSIT', 'MIT', 'MSIT'];
     List<String> type = [
       'Bridging/Remedial Courses',

@@ -11,6 +11,7 @@ import 'package:sysadmindb/app/models/term.dart';
 import 'package:sysadmindb/app/models/user.dart';
 import 'package:sysadmindb/ui/form.dart';
 import 'package:sysadmindb/ui/studentInfoPage.dart';
+import 'package:sysadmindb/ui/utils/ineligible_list.dart';
 import 'package:sysadmindb/ui/utils/profileBox.dart';
 import 'package:sysadmindb/ui/utils/studentList.dart';
 import 'package:sysadmindb/ui/utils/studentTile.dart';
@@ -714,6 +715,14 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                           deviatedStudentsClicked = true;
                                         });
                                       }
+                                      if (index == 3) {
+                                        print('Ineligible Students Clicked');
+                                        setState(() {
+                                          totalStudentsClicked = false;
+                                          newStudentsClicked = false;
+                                          deviatedStudentsClicked = false;
+                                        });
+                                      }
                                     },
                                     child: MouseRegion(
                                       cursor: SystemMouseCursors.click,
@@ -721,6 +730,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                         totalStudents: totalStudents,
                                         newStudents: newStudentList.length,
                                         deviatedStudents: deviatedStudents,
+                                        ineligibleStudents: ineligibleStudentList.length,
                                         cardCount: index,
                                       ),
                                     ),
@@ -741,7 +751,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                             ? "New Students (${getCurrentSYandTerm()})"
                             : deviatedStudentsClicked
                                 ? "Deviated Students (${getCurrentSYandTerm()})"
-                                : "", // Empty string if none of the buttons are clicked
+                                : "Ineligible Students (${getCurrentSYandTerm()})", // Empty string if none of the buttons are clicked
                     textAlign: TextAlign.left,
                     style: TextStyle(
                       fontSize: 12,
@@ -879,6 +889,58 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                   )
                                 ],
                               )),
+                  if(!deviatedStudentsClicked && !newStudentsClicked && !totalStudentsClicked)
+                  Expanded(
+                        child: ineligibleStudentList.isNotEmpty
+                            ? ListView.builder(
+                                itemCount: ineligibleStudentList.length,
+                                itemBuilder: (context, index) {
+                                  return GestureDetector(
+                                    onTap: () async {
+                                       await retrieveStudentPOS(
+                                          ineligibleStudentList[index].uid);
+
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => StudentInfoPage(
+                                            student: ineligibleStudentList[index]
+                                              ,
+                                            studentpos: studentPOS
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    child: MouseRegion(
+                                      cursor: SystemMouseCursors.click,
+                                      child: IneligibleList(
+                                        student: ineligibleStudentList[index],
+                                      ),
+                                    ),
+                                  );
+                                })
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.error_outline,
+                                    color: Colors.grey,
+                                  ),
+                                  SizedBox(
+                                    width: 20,
+                                  ),
+                                  Text(
+                                    'No ineligible Students',
+                                    style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold),
+                                  )
+                                ],
+                              )),
+
+
                 ],
               ),
             ),
