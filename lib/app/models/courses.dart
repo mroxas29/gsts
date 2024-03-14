@@ -181,6 +181,15 @@ Future<List<Course>> getCoursesFromFirestore() async {
   capstonecourses.sort((a, b) {
     int indexA = desiredCapstoneOrder.indexOf(a.coursecode);
     int indexB = desiredCapstoneOrder.indexOf(b.coursecode);
+
+    // If either course is CIS411M, prioritize it
+    if (a.coursecode == 'CIS411M') {
+      return -1; // Put a before b
+    } else if (b.coursecode == 'CIS411M') {
+      return 1; // Put b before a
+    }
+
+    // Otherwise, sort based on their index in desiredCapstoneOrder
     return indexA.compareTo(indexB);
   });
 
