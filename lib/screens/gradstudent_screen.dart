@@ -2336,7 +2336,7 @@ class _MainViewState extends State<GradStudentscreen>
                               padding: const EdgeInsets.all(8.0),
                               child: Text(
                                 schoolYear
-                                    .name+'DOG', // Display the name of the school year
+                                    .name, // Display the name of the school year
                                 style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
