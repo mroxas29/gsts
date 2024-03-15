@@ -64,14 +64,14 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                 // Split the pattern into individual recipient email patterns
                 List<String> emailPatterns = pattern.split(',').map((e) => e.trim()).toList();
                 
-                // Filter users based on individual email patterns
-                List<user> filteredUsers = [];
-                for (String emailPattern in emailPatterns) {
-                  filteredUsers.addAll(users.where((user) =>
-                    user.email.contains(emailPattern) ||
-                    formatMapToString(user.displayname).contains(emailPattern)
-                  ));
-                }
+                // Get the last email pattern
+                String lastEmailPattern = emailPatterns.isNotEmpty ? emailPatterns.last : '';
+                
+                // Filter users based on the last email pattern
+                List<user> filteredUsers = users.where((suggesteduser) =>
+                  suggesteduser.email.contains(lastEmailPattern) ||
+                  formatMapToString(suggesteduser.displayname).contains(lastEmailPattern)
+                ).toList();
               
               return Future.value(filteredUsers);
             },
