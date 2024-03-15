@@ -30,17 +30,24 @@ class _CalendarState extends State<Calendar> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Google Calendar Page', selectionColor: Color.fromARGB(255, 255, 255, 255),),
+        
+        title: 
+          Text(
+            'Google Calendar Page', 
+            textDirection: TextDirection.ltr,
+            style: TextStyle(fontFamily: 'Outfit', fontSize: 30, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 255, 255, 255)),
+          ),
         
         backgroundColor: Color(0xFF174719),
       ),
       body: Center(
         child: Column(
           children: [
+            
             Text(
               'Calendar',
               textDirection: TextDirection.ltr,
-              style: TextStyle(fontFamily: 'Segoe UI', fontSize: 30),
+              style: TextStyle(fontFamily: 'Outfit', fontSize: 30, fontWeight: FontWeight.bold, color: Color(0xFF174719)),
             ),
             TableCalendar(
               headerStyle: HeaderStyle(titleCentered: true),
