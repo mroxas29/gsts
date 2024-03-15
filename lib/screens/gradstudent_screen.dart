@@ -2336,7 +2336,7 @@ class _MainViewState extends State<GradStudentscreen>
                               padding: const EdgeInsets.all(8.0),
                               child: Text(
                                 schoolYear
-                                    .name, // Display the name of the school year
+                                    .name+'DOG', // Display the name of the school year
                                 style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
@@ -2474,8 +2474,8 @@ class _MainViewState extends State<GradStudentscreen>
               header: SideNavigationBarHeader(
                   image: CircleAvatar(),
                   title: Text(
-                    "${currentUser.displayname['firstname']} ${currentUser.displayname['lastname']!}",
-                    style: TextStyle(color: Colors.white, fontSize: 16),
+                    "${currentUser.displayname['firstname']} ${currentUser.displayname['lastname']!} (${currentUser.idnumber})",
+                    style: TextStyle(color: Colors.white, fontSize: 20),
                   ),
                   subtitle: Text(
                     emailTextController.text.toLowerCase(),
