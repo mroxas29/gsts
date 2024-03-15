@@ -8,15 +8,29 @@ class AcademicCalendar {
   AcademicCalendar(this.term, this.startDate, this.endDate);
 }
 
-String getCurrentTerm(
-    DateTime currentDate, List<AcademicCalendar> academicCalendars) {
-  for (var academicCalendar in academicCalendars) {
-    if (currentDate.isAfter(academicCalendar.startDate) &&
-        currentDate.isBefore(academicCalendar.endDate)) {
-      return academicCalendar.term;
+String getCurrentSYandTerm() {
+  DateTime now = DateTime.now();
+  for (AcademicCalendar calendar in academicCalendars) {
+    if (now.isAfter(calendar.startDate) && now.isBefore(calendar.endDate)) {
+      return "${now.year - 1}-${now.year} ${calendar.term}";
     }
   }
-  return "Unknown"; // Return "Unknown" if no matching term is found
+  return "No current term found";
+}
+
+String getNextSYandTerm() {
+  DateTime now = DateTime.now();
+  for (int i = 0; i < academicCalendars.length; i++) {
+    AcademicCalendar calendar = academicCalendars[i];
+    if (now.isAfter(calendar.startDate) && now.isBefore(calendar.endDate)) {
+      // If the current date is within the current term, return the next term
+      if (i + 1 < academicCalendars.length) {
+        AcademicCalendar nextCalendar = academicCalendars[i + 1];
+        return "${nextCalendar.startDate.year - 1}-${nextCalendar.endDate.year} ${nextCalendar.term}";
+      }
+    }
+  }
+  return "No next term found";
 }
 
 List<AcademicCalendar> academicCalendars = [
@@ -27,4 +41,3 @@ List<AcademicCalendar> academicCalendars = [
   AcademicCalendar("Term 3", DateTime(DateTime.now().year, 5, 1),
       DateTime(DateTime.now().year, 8, 31)),
 ];
-

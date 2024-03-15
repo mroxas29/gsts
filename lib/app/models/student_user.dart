@@ -73,7 +73,6 @@ class Student extends user {
 Future<List<EnrolledCourseData>> getEnrolledCoursesForStudent(
     String studentUid) async {
   try {
-    print('Fetching enrolled courses for student: $studentUid');
     final DocumentSnapshot studentSnapshot = await FirebaseFirestore.instance
         .collection('users')
         .doc(studentUid)
@@ -128,8 +127,12 @@ Future<List<PastCourse>> getPastCoursesForStudent(String studentUid) async {
 }
 
 List<Student> studentList = [];
+List<Student> newStudentList = [];
+List<Student> ineligibleStudentList = [];
 Future<List<Student>> convertToStudentList(List<user> users) async {
   studentList.clear();
+  ineligibleStudentList.clear();
+  newStudentList.clear();
   for (var user in users) {
     if (user.role == 'Graduate Student') {
       List<EnrolledCourseData> enrolledCourses =
@@ -150,10 +153,59 @@ Future<List<Student>> convertToStudentList(List<user> users) async {
         degree: degree,
         status: status,
       ));
+      if (user.idnumber.toString().startsWith('124')) {
+        newStudentList.add(Student(
+          uid: user.uid,
+          displayname: user.displayname,
+          role: user.role,
+          email: user.email,
+          idnumber: user.idnumber,
+          enrolledCourses: enrolledCourses,
+          pastCourses: pastCourses,
+          degree: degree,
+          status: status,
+        ));
+      }
+      if (!isGraduatingWithinTimeFrame(degree, user.idnumber.toString())) {
+        ineligibleStudentList.add(Student(
+          uid: user.uid,
+          displayname: user.displayname,
+          role: user.role,
+          email: user.email,
+          idnumber: user.idnumber,
+          enrolledCourses: enrolledCourses,
+          pastCourses: pastCourses,
+          degree: degree,
+          status: status,
+        ));
+      }
     }
   }
 
   return studentList;
+}
+
+bool isGraduatingWithinTimeFrame(String degree, String idNumber) {
+  // Extract the year from the ID number
+  int idYear =
+      int.parse(idNumber.substring(1, 2)) + 2000; // Convert to full year
+
+  // Get the current year
+  int currentYear = DateTime.now().year;
+
+  // Calculate the maximum graduation year based on degree
+  int maxGraduationYear;
+  if (degree.toLowerCase().contains('doctorate')) {
+    maxGraduationYear = idYear + 12;
+  } else if (degree.toLowerCase().contains('masters')) {
+    maxGraduationYear = idYear + 8;
+  } else {
+    // For other degrees, return true (no specific time frame)
+    return true;
+  }
+
+  // Check if the current year is within the time frame
+  return currentYear <= maxGraduationYear;
 }
 
 Future<String> getStudentStatus(String studentUid) async {

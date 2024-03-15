@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/enrolledcourses.dart';
 import 'package:sysadmindb/app/models/pastcourses.dart';
-import 'package:sysadmindb/app/models/schoolYear.dart';
+import 'package:sysadmindb/app/models/SchoolYear.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/app/models/term.dart';
 import 'package:sysadmindb/main.dart';
@@ -85,7 +85,7 @@ void studentPOSDefault() {
 
 List<SchoolYear> defaultschoolyears = List.generate(3, (index) {
   var currentYear = DateTime.now().year;
-  String schoolYearName = '${currentYear + index} - ${currentYear + index + 1}';
+  String schoolYearName = '${currentYear + index - 1}-${currentYear + index}';
   List<Term> terms = List<Term>.generate(3, (termIndex) {
     return Term('Term ${termIndex + 1}', []);
   }).toList();
@@ -388,7 +388,6 @@ StudentPOS generatePOSforMSIT(
       }
     }
   }
-
   for (var i = 0; i < newStudentPOS.schoolYears.length; i++) {
     var currentSchoolYear = newStudentPOS.schoolYears[i];
     for (var termIndex = 0;
@@ -436,7 +435,7 @@ StudentPOS generatePOSforMSIT(
           (course) => course.coursecode == "OEX",
         );
         term.termcourses.clear();
-        term.termcourses.addAll([capProjW,elec3, oex]);
+        term.termcourses.addAll([capProjW, elec3, oex]);
       } else if (i == 1 && term.name == 'Term 3') {
         // Adjust for SchoolYear[1] Term 3
         Course THWR1 = courses.firstWhere(

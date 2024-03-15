@@ -1,22 +1,25 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:side_navigation/side_navigation.dart';
+import 'package:sysadmindb/api/google_drive.dart';
 import 'package:sysadmindb/app/models/AcademicCalendar.dart';
-import 'package:sysadmindb/ui/CircularProgressWidget.dart';
 import 'package:sysadmindb/app/models/coursedemand.dart';
 import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/enrolledcourses.dart';
 import 'package:sysadmindb/app/models/pastcourses.dart';
-import 'package:sysadmindb/app/models/schoolYear.dart';
+import 'package:sysadmindb/app/models/SchoolYear.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/app/models/term.dart';
 import 'package:sysadmindb/main.dart';
 import 'package:sysadmindb/ui/form.dart';
+import 'package:sysadmindb/ui/calendar.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:googleapis/drive/v3.dart' as drive;
+import 'package:googleapis_auth/googleapis_auth.dart' as auth;
 
 void main() {
   runApp(
@@ -143,7 +146,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                                     fontWeight: FontWeight.bold,
                                     color: Color.fromARGB(255, 23, 71, 25)),
                               ),
-                              Text(currentStudent!.degree.endsWith('SIT')
+                              Text(currentStudent!.degree.contains('MSIT')
                                   ? 'Master of Science in Information Technology - ${currentStudent!.idnumber.toString()}'
                                   : 'Master in Information Technology - ${currentStudent!.idnumber.toString()}'),
                               Text(currentStudent!.email),
@@ -432,6 +435,8 @@ bool hasSpecialChar(String password) {
   return specialCharRegex.hasMatch(password);
 }
 
+void addEnrollEdCourse() {}
+
 bool hasNumber(String password) {
   // Replace this with your logic to check if password has at least one number
   RegExp numberRegex = RegExp(r'\d');
@@ -447,31 +452,45 @@ class CurriculumAuditScreen extends StatefulWidget {
 class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
   void _deleteEnrolledCourse(
     EnrolledCourseData enrolledCourse,
+    bool fromEnrolled,
   ) async {
-    int indextodelete = currentStudent!.enrolledCourses.indexOf(enrolledCourse);
-    bool confirmDelete = await showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Confirm Delete'),
-          content: Text('Are you sure you want to delete this course?'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context, false); // No, do not delete
-              },
-              child: Text('No'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context, true); // Yes, delete
-              },
-              child: Text('Yes'),
-            ),
-          ],
-        );
-      },
-    );
+    int indextodelete = 0;
+
+    for (int i = 0; i < currentStudent!.enrolledCourses.length; i++) {
+      if (currentStudent!.enrolledCourses[i].coursecode ==
+          enrolledCourse.coursecode) {
+        indextodelete = i;
+      }
+    }
+    bool confirmDelete = true;
+    if (!fromEnrolled) {
+      confirmDelete = await showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Confirm Delete'),
+            content: Text('Are you sure you want to delete this course?'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  confirmDelete = false;
+                  Navigator.pop(context, false); // No, do not delete
+                },
+                child: Text('No'),
+              ),
+              TextButton(
+                onPressed: () {
+                  confirmDelete = true;
+                  Navigator.pop(context, true); // Yes, delete
+                },
+                child: Text('Yes'),
+              ),
+            ],
+          );
+        },
+      );
+    }
+
     String coursetoDeleteuid = '';
     for (var course in courses) {
       if (course.coursecode == enrolledCourse.coursecode) {
@@ -483,12 +502,21 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
       try {
         // Remove the course from the enrolledCourses list
         setState(() {
-          currentStudent!.enrolledCourses.remove(enrolledCourse);
+          currentStudent!.enrolledCourses.removeAt(indextodelete);
         });
 
         // Update Firestore to reflect the changes
         await FirebaseFirestore.instance
             .collection('users')
+            .doc(currentStudent!.uid)
+            .update({
+          'enrolledCourses': currentStudent!.enrolledCourses
+              .map((course) => course.toJson())
+              .toList(),
+        });
+
+        await FirebaseFirestore.instance
+            .collection('studentpos')
             .doc(currentStudent!.uid)
             .update({
           'enrolledCourses': currentStudent!.enrolledCourses
@@ -554,6 +582,65 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
     }
   }
 
+  bool checkPrerequisites(Course selectedCourse, Student student) {
+    if (student.degree.contains('MIT')) {
+      if (selectedCourse.coursecode == 'CIS411M') {
+        return true; // No prerequisites for CIS801M in MSIT
+      } else if (selectedCourse.coursecode == 'CAPROP') {
+        // Check for CIS411M in past courses with a passing grade
+        bool hasCIS411M = student.pastCourses.any((course) =>
+            course.coursecode == 'CIS411M' &&
+            course.grade > 0 &&
+            course.grade <= 4);
+        return hasCIS411M;
+      } else if (selectedCourse.coursecode == 'CAPFIND') {
+        // Check for CIS411M and Capstone Project Proposal in past courses
+        bool hasCIS411M = student.pastCourses.any((course) =>
+            course.coursecode == 'CIS411M' &&
+            course.grade > 0 &&
+            course.grade <= 4);
+        bool hasProposal = student.pastCourses.any((course) =>
+            course.coursename == 'Capstone Project Proposal' &&
+            course.grade > 0 &&
+            course.grade <= 4);
+        return hasCIS411M && hasProposal;
+      }
+    } else if (student.degree.contains('MSIT')) {
+      if (selectedCourse.coursecode == 'CIS801M') {
+        return true; // No prerequisites for CIS801M in MSIT
+      } else if (selectedCourse.coursecode == 'THWR1') {
+        // Check for CIS801M in past courses with a passing grade
+        bool hasCIS801M = student.pastCourses.any((course) =>
+            course.coursecode == 'CIS801M' &&
+            course.grade > 0 &&
+            course.grade <= 4);
+        return hasCIS801M;
+      } else if (selectedCourse.coursecode == 'THPROD') {
+        // Check for THWR1 in past courses with a passing grade
+        bool hasTHWR1 = student.pastCourses.any((course) =>
+            course.coursecode == 'THWR1' &&
+            course.grade > 0 &&
+            course.grade <= 4);
+        return hasTHWR1;
+      } else if (selectedCourse.coursecode == 'THWR2') {
+        // Check for THPROD in past courses with a passing grade
+        bool hasTHPROD = student.pastCourses.any((course) =>
+            course.coursecode == 'THPROD' &&
+            course.grade > 0 &&
+            course.grade <= 4);
+        return hasTHPROD;
+      } else if (selectedCourse.coursecode == 'THFIND') {
+        // Check for THWR2 in past courses with a passing grade
+        bool hasTHWR2 = student.pastCourses.any((course) =>
+            course.coursecode == 'THWR2' &&
+            course.grade > 0 &&
+            course.grade <= 4);
+        return hasTHWR2;
+      }
+    }
+    return false; // Return false if prerequisites are not fulfilled
+  }
+
 // ADD COURSES IN CURRICULUM AUDIT
   void showAddEnrolledCoursePopup(
     BuildContext context,
@@ -564,47 +651,13 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
     Course? selectedCourse = blankCourse;
     int? selectedCourseIndex;
     bool courseAlreadyExists = false;
+    bool hasPreReq = true;
     String selectedRadio = '';
 
-    void handleRadioValueChanged(String coursetype) {
-      setState(() {
-        selectedRadio = coursetype;
-      });
-    }
-
-    Widget radioSelectionButton(String value) {
-      return Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: TextButton(
-          onPressed: () {
-            setState(() {
-              selectedRadio = value;
-            });
-          },
-          style: TextButton.styleFrom(
-            foregroundColor: selectedRadio == value
-                ? const Color.fromARGB(
-                    255, 23, 71, 25) // Text color when selected
-                : null,
-            backgroundColor: null, // Fully transparent background
-            side: BorderSide(
-              color: selectedRadio == value
-                  ? const Color.fromARGB(
-                      255, 23, 71, 25) // Border color when selected
-                  : Colors
-                      .transparent, // Transparent border color when not selected
-            ),
-          ),
-          child: Text(value),
-        ),
-      );
-    }
-
     // Get the current date
-    DateTime currentDate = DateTime.now();
 
     // Determine the current term
-    String currentTerm = getCurrentTerm(currentDate, academicCalendars);
+    String currentTerm = getCurrentSYandTerm();
 
     showDialog(
       context: context,
@@ -791,7 +844,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                                 onPressed: () {
                                   setState(() {
                                     selectedRadio =
-                                        currentStudent!.degree == 'MIT'
+                                        currentStudent!.degree.contains('MIT')
                                             ? 'Capstone'
                                             : 'Thesis';
                                   });
@@ -799,21 +852,23 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                                 style: TextButton.styleFrom(
                                   padding: const EdgeInsets.all(20.0),
                                   foregroundColor: selectedRadio ==
-                                          (currentStudent!.degree == 'MIT'
+                                          (currentStudent!.degree.contains('MIT')
                                               ? 'Capstone'
                                               : 'Thesis')
                                       ? Color.fromARGB(255, 0, 0,
                                           0) // Text color when selected
                                       : null,
                                   backgroundColor: selectedRadio ==
-                                          (currentStudent!.degree == 'MIT'
+                                          (currentStudent!.degree
+                                                  .contains('MIT')
                                               ? 'Capstone'
                                               : 'Thesis')
                                       ? Color.fromARGB(50, 13, 105, 16)
                                       : null, // Fully transparent background
                                   side: BorderSide(
                                     color: selectedRadio ==
-                                            (currentStudent!.degree == 'MIT'
+                                            (currentStudent!.degree
+                                                    .contains('MIT')
                                                 ? 'Capstone'
                                                 : 'Thesis')
                                         ? const Color.fromARGB(255, 23, 71,
@@ -823,7 +878,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                                   ),
                                 ),
                                 child: Text(
-                                  currentStudent!.degree == 'MIT'
+                                 currentStudent!.degree.contains('MIT')
                                       ? 'Capstone'
                                       : 'Thesis',
                                   style: TextStyle(color: Colors.black),
@@ -851,7 +906,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                                           selectedRadio.toLowerCase()))
                                   .length,
                               itemBuilder: (BuildContext context, int index) {
-                                final course = courses
+                                final course = activecourses
                                     .where((course) =>
                                         course.program
                                             .contains(currentStudent!.degree) &&
@@ -883,11 +938,25 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                             'This course is already added',
                             style: TextStyle(color: Colors.red),
                           ),
+                        if (!hasPreReq)
+                          Text(
+                            'This course is has a pre-requisite course which you have not taken',
+                            style: TextStyle(color: Colors.red),
+                          ),
                         if (selectedCourse != null)
                           Text(
-                            "Course name",
+                            "Course code",
                             style: TextStyle(fontSize: 12, color: Colors.grey),
                           ),
+                        Text(
+                          selectedCourse!.coursecode,
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          "Course name",
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
                         Text(
                           selectedCourse!.coursename,
                           style: TextStyle(fontSize: 18),
@@ -936,20 +1005,29 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                       formKey.currentState!.save();
 
                       if (selectedCourse != blankCourse) {
+                        // Check if the course is already enrolled or in past courses
                         if (currentStudent!.enrolledCourses.any((course) =>
                                 course.coursecode ==
                                 selectedCourse?.coursecode) ||
                             currentStudent!.pastCourses.any((course) =>
                                 course.coursecode ==
                                 selectedCourse?.coursecode)) {
-                          // Check if the course is already in enrolledCourses
                           setState(() {
                             courseAlreadyExists = true;
                           });
+                          return;
                         } else {
-                          late EnrolledCourseData enrolledCourse;
+                          // Check prerequisites
+                          if (!checkPrerequisites(
+                              selectedCourse!, currentStudent!)) {
+                            setState(() {
+                              hasPreReq = false;
+                            });
+                            return;
+                          } else {
+                            late EnrolledCourseData enrolledCourse;
 
-                          enrolledCourse = EnrolledCourseData(
+                            enrolledCourse = EnrolledCourseData(
                               uid: generateUID(),
                               coursecode: selectedCourse!.coursecode,
                               coursename: selectedCourse!.coursename,
@@ -958,101 +1036,116 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                               numstudents: selectedCourse!.numstudents + 1,
                               units: selectedCourse!.units,
                               type: selectedCourse!.type,
-                              program: selectedCourse!.program);
-                          onAddEnrolledCourse(enrolledCourse);
+                              program: selectedCourse!.program,
+                            );
 
-                          try {
-                            // Get the current user ID (replace with your method to get the user ID)
-                            String userId = currentUser.uid;
+                            onAddEnrolledCourse(enrolledCourse);
 
-                            // Update numstudents in the Courses collection
+                            try {
+                              // Get the current user ID
+                              String userId = currentUser.uid;
 
-                            await FirebaseFirestore.instance
-                                .collection('courses')
-                                .doc(activecourses[selectedCourseIndex!].uid)
-                                .update(
-                                    {'numstudents': FieldValue.increment(1)});
+                              // Update numstudents in the Courses collection
+                              await FirebaseFirestore.instance
+                                  .collection('courses')
+                                  .doc(activecourses[selectedCourseIndex!].uid)
+                                  .update(
+                                      {'numstudents': FieldValue.increment(1)});
 
-                            // Update user data in Firestore
-                            for (Student student in studentList) {
-                              print("Checking student: ${student.idnumber}");
-                              if (student.enrolledCourses.any((course) =>
-                                  course.coursecode ==
-                                  activecourses[selectedCourseIndex!]
-                                      .coursecode)) {
-                                // Get the student's document reference
-                                final DocumentReference studentDocRef =
-                                    FirebaseFirestore.instance
-                                        .collection('users')
-                                        .doc(student.uid);
+                              // Update user data in Firestore
+                              for (Student student in studentList) {
+                                if (student.enrolledCourses.any((course) =>
+                                    course.coursecode ==
+                                    activecourses[selectedCourseIndex!]
+                                        .coursecode)) {
+                                  final DocumentReference studentDocRef =
+                                      FirebaseFirestore.instance
+                                          .collection('users')
+                                          .doc(student.uid);
 
-                                // Retrieve the student's data
-                                final DocumentSnapshot studentDoc =
-                                    await studentDocRef.get();
+                                  final DocumentReference studentPOSRef =
+                                      FirebaseFirestore.instance
+                                          .collection('studentpos')
+                                          .doc(student.uid);
 
-                                if (studentDoc.exists) {
-                                  final Map<String, dynamic>? studentData =
-                                      studentDoc.data()
-                                          as Map<String, dynamic>?;
+                                  final DocumentSnapshot studentDoc =
+                                      await studentDocRef.get();
 
-                                  if (studentData != null) {
-                                    final List<dynamic>? enrolledCoursesData =
-                                        studentData['enrolledCourses']
-                                            as List<dynamic>?;
+                                  if (studentDoc.exists) {
+                                    final Map<String, dynamic>? studentData =
+                                        studentDoc.data()
+                                            as Map<String, dynamic>?;
 
-                                    if (enrolledCoursesData != null) {
-                                      // Update the numstudents field within enrolledCourses
-                                      enrolledCoursesData
-                                          .forEach((enrolledCourseData) {
-                                        if (enrolledCourseData
-                                                is Map<String, dynamic> &&
-                                            enrolledCourseData['coursecode'] ==
-                                                activecourses[
-                                                        selectedCourseIndex!]
-                                                    .coursecode) {
-                                          if (enrolledCourseData['numstudents']
-                                              is int) {
-                                            enrolledCourseData['numstudents'] =
-                                                (enrolledCourseData[
-                                                        'numstudents'] as int) +
-                                                    1;
+                                    if (studentData != null) {
+                                      final List<dynamic>? enrolledCoursesData =
+                                          studentData['enrolledCourses']
+                                              as List<dynamic>?;
+
+                                      if (enrolledCoursesData != null) {
+                                        enrolledCoursesData
+                                            .forEach((enrolledCourseData) {
+                                          if (enrolledCourseData
+                                                  is Map<String, dynamic> &&
+                                              enrolledCourseData[
+                                                      'coursecode'] ==
+                                                  activecourses[
+                                                          selectedCourseIndex!]
+                                                      .coursecode) {
+                                            if (enrolledCourseData[
+                                                'numstudents'] is int) {
+                                              enrolledCourseData[
+                                                      'numstudents'] =
+                                                  (enrolledCourseData[
+                                                              'numstudents']
+                                                          as int) +
+                                                      1;
+                                            }
                                           }
-                                        }
-                                      });
+                                        });
 
-                                      // Update the enrolledCourses field in the Firestore document
-                                      await studentDocRef.update({
-                                        'enrolledCourses': enrolledCoursesData
-                                      });
+                                        await studentDocRef.update({
+                                          'enrolledCourses': enrolledCoursesData
+                                        });
+                                      }
                                     }
                                   }
                                 }
                               }
+
+                              getCoursesFromFirestore();
+
+                              // Update user data in Firestore
+                              await FirebaseFirestore.instance
+                                  .collection('users')
+                                  .doc(userId)
+                                  .update({
+                                'enrolledCourses': FieldValue.arrayUnion(
+                                    [enrolledCourse.toJson()]),
+                              });
+
+                              await FirebaseFirestore.instance
+                                  .collection('studentpos')
+                                  .doc(userId)
+                                  .update({
+                                'enrolledCourses': FieldValue.arrayUnion(
+                                    [enrolledCourse.toJson()]),
+                              });
+
+                              Navigator.pop(context);
+                              // Display a success message
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content:
+                                      Text('Enrolled in course successfully'),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            } catch (e) {
+                              print('Error enrolling in course: $e');
+                              // Handle the error and display a relevant message
                             }
-
-                            getCoursesFromFirestore();
-
-                            // Update user data in Firestore
-                            await FirebaseFirestore.instance
-                                .collection('users')
-                                .doc(userId)
-                                .update({
-                              'enrolledCourses': FieldValue.arrayUnion(
-                                  [enrolledCourse.toJson()]),
-                            });
-                            Navigator.pop(context);
-                            // Display a success message
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content:
-                                    Text('Enrolled in course successfully'),
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
-                          } catch (e) {
-                            print('Error enrolling in course: $e');
-                            // Handle the error and display a relevant message
                           }
+                          // Proceed to add the course
                         }
                       } else {
                         Navigator.pop(context);
@@ -1170,16 +1263,16 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
 
 // ADD PAST COURSE IN CURRICULUM AUDIT
   void showAddPastCourse(
-    BuildContext context,
-    GlobalKey<FormState> formKey,
-    Function(PastCourse) onAddPastCourse,
-  ) {
-    Course? selectedCourse = courses.isNotEmpty ? courses[0] : null;
+      BuildContext context,
+      GlobalKey<FormState> formKey,
+      Course? selectedCourse,
+      Function(PastCourse) onAddPastCourse,
+      bool fromEnrolled) {
     int? selectedCourseIndex;
     bool courseAlreadyExists = false;
     double? enteredGrade; // Variable to store the entered grade
     String selectedRadio = '';
-
+    bool hasPreReq = true;
     void handleRadioValueChanged(String coursetype) {
       setState(() {
         selectedRadio = coursetype;
@@ -1398,7 +1491,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                                 onPressed: () {
                                   setState(() {
                                     selectedRadio =
-                                        currentStudent!.degree == 'MIT'
+                                        currentStudent!.degree.contains('MIT')
                                             ? 'Capstone'
                                             : 'Thesis';
                                   });
@@ -1406,21 +1499,24 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                                 style: TextButton.styleFrom(
                                   padding: const EdgeInsets.all(20.0),
                                   foregroundColor: selectedRadio ==
-                                          (currentStudent!.degree == 'MIT'
+                                          (currentStudent!.degree
+                                                  .contains('MIT')
                                               ? 'Capstone'
                                               : 'Thesis')
                                       ? Color.fromARGB(255, 0, 0,
                                           0) // Text color when selected
                                       : null,
                                   backgroundColor: selectedRadio ==
-                                          (currentStudent!.degree == 'MIT'
+                                          (currentStudent!.degree
+                                                  .contains('MIT')
                                               ? 'Capstone'
                                               : 'Thesis')
                                       ? Color.fromARGB(50, 13, 105, 16)
                                       : null, // Fully transparent background
                                   side: BorderSide(
                                     color: selectedRadio ==
-                                            (currentStudent!.degree == 'MIT'
+                                            (currentStudent!.degree
+                                                    .contains('MIT')
                                                 ? 'Capstone'
                                                 : 'Thesis')
                                         ? const Color.fromARGB(255, 23, 71,
@@ -1430,7 +1526,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                                   ),
                                 ),
                                 child: Text(
-                                  currentStudent!.degree == 'MIT'
+                                  currentStudent!.degree.contains('MIT')
                                       ? 'Capstone'
                                       : 'Thesis',
                                   style: TextStyle(color: Colors.black),
@@ -1474,6 +1570,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                                       selectedCourse = course;
                                       selectedCourseIndex = activecourses
                                           .indexOf(selectedCourse!);
+
                                       courseAlreadyExists = false;
                                     });
                                   },
@@ -1490,11 +1587,25 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                             'This course is already added',
                             style: TextStyle(color: Colors.red),
                           ),
+                        if (!hasPreReq)
+                          Text(
+                            'This course is has a pre-requisite course which you have not taken',
+                            style: TextStyle(color: Colors.red),
+                          ),
                         if (selectedCourse != null)
                           Text(
-                            "Course name",
+                            "Course code",
                             style: TextStyle(fontSize: 12, color: Colors.grey),
                           ),
+                        Text(
+                          selectedCourse!.coursecode,
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          "Course name",
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
                         Text(
                           selectedCourse!.coursename,
                           style: TextStyle(fontSize: 18),
@@ -1546,64 +1657,89 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                     // Validate and save form data
                     if (formKey.currentState!.validate()) {
                       formKey.currentState!.save();
-                      if (currentStudent!.enrolledCourses.any((course) =>
-                              course.coursecode ==
-                              selectedCourse?.coursecode) ||
-                          currentStudent!.pastCourses.any((course) =>
-                              course.coursecode ==
-                              selectedCourse?.coursecode)) {
+                      if ((currentStudent!.enrolledCourses.any((course) =>
+                                  course.coursecode ==
+                                  selectedCourse?.coursecode) ||
+                              currentStudent!.pastCourses.any((course) =>
+                                  course.coursecode ==
+                                  selectedCourse?.coursecode)) &&
+                          !fromEnrolled) {
                         // Check if the course is already in pastCourses
                         setState(() {
                           courseAlreadyExists = true;
                         });
                       } else {
-                        final pastCourse = PastCourse(
-                            uid: generateUID(),
-                            coursecode: selectedCourse!.coursecode,
-                            coursename: selectedCourse!.coursename,
-                            facultyassigned: selectedCourse!.facultyassigned,
-                            units: selectedCourse!.units,
-                            numstudents: selectedCourse!.numstudents,
-                            isactive: selectedCourse!.isactive,
-                            grade: enteredGrade!,
-                            type: selectedCourse!.type,
-                            program: selectedCourse!
-                                .program // Assign the entered grade
+                        if (!checkPrerequisites(
+                            selectedCourse!, currentStudent!)) {
+                          setState(() {
+                            hasPreReq = false;
+                          });
+                          return;
+                        } else {
+                          final pastCourse = PastCourse(
+                              uid: generateUID(),
+                              coursecode: selectedCourse!.coursecode,
+                              coursename: selectedCourse!.coursename,
+                              facultyassigned: selectedCourse!.facultyassigned,
+                              units: selectedCourse!.units,
+                              numstudents: selectedCourse!.numstudents,
+                              isactive: selectedCourse!.isactive,
+                              grade: enteredGrade!,
+                              type: selectedCourse!.type,
+                              program: selectedCourse!
+                                  .program // Assign the entered grade
+                              );
+
+                          onAddPastCourse(pastCourse);
+
+                          // Close the popup
+                          Navigator.pop(context);
+
+                          try {
+                            // Get the current user ID (replace with your method to get the user ID)
+                            String userId = currentUser.uid;
+
+                            // Update user data in Firestore
+                            await FirebaseFirestore.instance
+                                .collection('users')
+                                .doc(userId)
+                                .update({
+                              'pastCourses':
+                                  FieldValue.arrayUnion([pastCourse.toJson()]),
+                            });
+                            await FirebaseFirestore.instance
+                                .collection('studentpos')
+                                .doc(userId)
+                                .update({
+                              'pastCourses':
+                                  FieldValue.arrayUnion([pastCourse.toJson()]),
+                            });
+                            // Display a success message
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Past course added successfully'),
+                                duration: Duration(seconds: 2),
+                              ),
                             );
+                          } catch (e) {
+                            print('Error adding past course: $e');
+                            // Handle the error and display a relevant message
+                          }
 
-                        onAddPastCourse(pastCourse);
-
-                        // Close the popup
-                        Navigator.pop(context);
-
-                        try {
-                          // Get the current user ID (replace with your method to get the user ID)
-                          String userId = currentUser.uid;
-
-                          // Update user data in Firestore
-                          await FirebaseFirestore.instance
-                              .collection('users')
-                              .doc(userId)
-                              .update({
-                            'pastCourses':
-                                FieldValue.arrayUnion([pastCourse.toJson()]),
-                          });
-
-                          // Display a success message
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Past course added successfully'),
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
-
-                          unitsCompleted = pastCourses.fold(0,
-                              (int sum, PastCourse pastCourse) {
-                            return sum + pastCourse.units;
-                          });
-                        } catch (e) {
-                          print('Error adding past course: $e');
-                          // Handle the error and display a relevant message
+                          if (fromEnrolled) {
+                            _deleteEnrolledCourse(
+                                EnrolledCourseData(
+                                    uid: pastCourse.uid,
+                                    coursecode: pastCourse.coursecode,
+                                    coursename: pastCourse.coursename,
+                                    isactive: pastCourse.isactive,
+                                    facultyassigned: pastCourse.facultyassigned,
+                                    numstudents: pastCourse.numstudents,
+                                    units: pastCourse.units,
+                                    type: pastCourse.type,
+                                    program: pastCourse.program),
+                                fromEnrolled);
+                          }
                         }
                       }
                     }
@@ -1662,6 +1798,13 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
           'pastCourses': FieldValue.arrayRemove([pastCourse.toJson()]),
         });
         // Display a success message
+
+        await FirebaseFirestore.instance
+            .collection('studentpos')
+            .doc(userId)
+            .update({
+          'pastCourses': FieldValue.arrayRemove([pastCourse.toJson()]),
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Past course deleted successfully'),
@@ -1731,20 +1874,39 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                         DataCell(Text(enrolledCourse.coursename)),
                         DataCell(Text(enrolledCourse.units.toString())),
                         DataCell(Text(enrolledCourse.numstudents.toString())),
-                        DataCell(Row(
-                          children: [
-                            IconButton(
-                              icon: Icon(
-                                Icons.delete,
-                                color: Colors.red,
+                        DataCell(
+                          Row(
+                            children: [
+                              TextButton(
+                                onPressed: () {
+                                  showAddPastCourse(
+                                      context,
+                                      _formKey,
+                                      enrolledCourse,
+                                      (enrolledCourse) => setState(() {
+                                            currentStudent!.pastCourses
+                                                .add(enrolledCourse);
+                                          }),
+                                      true);
+                                },
+                                child: Icon(
+                                  Icons.done_all,
+                                  color: const Color.fromARGB(255, 32, 102, 34),
+                                ),
                               ),
-                              onPressed: () {
-                                // Handle delete action
-                                _deleteEnrolledCourse(enrolledCourse);
-                              },
-                            ),
-                          ],
-                        )),
+                              IconButton(
+                                icon: Icon(
+                                  Icons.delete,
+                                  color: Colors.red,
+                                ),
+                                onPressed: () {
+                                  // Handle delete action
+                                  _deleteEnrolledCourse(enrolledCourse, false);
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   )
@@ -1853,9 +2015,11 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                       showAddPastCourse(
                           context,
                           _formKey,
+                          courses.isNotEmpty ? courses[0] : null,
                           (pastCourse) => setState(() {
                                 currentStudent!.pastCourses.add(pastCourse);
-                              }));
+                              }),
+                          false);
                     },
                     child: Padding(
                       padding: const EdgeInsets.all(8.0),
@@ -1868,39 +2032,6 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                 )
               ],
             )),
-            Align(
-              alignment: Alignment.bottomLeft,
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text.rich(
-                  TextSpan(
-                    text:
-                        "Wish to demand for a course that isn't offered? Click ",
-                    style: TextStyle(fontSize: 13, color: Colors.grey),
-                    children: [
-                      TextSpan(
-                        text: "here",
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.blue, // You can customize the color
-                          decoration: TextDecoration.underline,
-                        ),
-                        recognizer: TapGestureRecognizer()
-                          ..onTap = () {
-                            // Handle the click action, e.g., navigate to a new screen or show a dialog
-                            // You can replace this with your desired behavior
-                            showCourseDemandForm(
-                                context,
-                                currentStudent!.idnumber,
-                                inactivecourses,
-                                courseDemands);
-                          },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            )
           ],
         ),
       ),
@@ -1920,11 +2051,162 @@ DataCell capstoneCell(PastCourse pastCourse) {
   return DataCell(Text(''));
 }
 
-class CapstoneProjectScreen extends StatelessWidget {
+DataRow isCoursePassed(Course course) {
+  if (currentStudent!.pastCourses.any((pastCourse) =>
+      pastCourse.coursecode == course.coursecode && pastCourse.grade > 0)) {
+    return DataRow(cells: [
+      DataCell(Text(
+        course.coursecode,
+        style: TextStyle(color: Colors.green),
+      )),
+      DataCell(Text(course.coursename, style: TextStyle(color: Colors.green))),
+      DataCell(Row(
+        children: [
+          Icon(
+            Icons.check,
+            color: Colors.green,
+          ),
+          SizedBox(
+            width: 5,
+          ),
+          Text('Passed', style: TextStyle(color: Colors.green)),
+        ],
+      )),
+    ]);
+  } else if (currentStudent!.pastCourses.any((pastCourse) =>
+      pastCourse.coursecode == course.coursecode && pastCourse.grade <= 0)) {
+    return DataRow(cells: [
+      DataCell(Text(
+        course.coursecode,
+        style: TextStyle(color: Colors.red),
+      )),
+      DataCell(Text(course.coursename, style: TextStyle(color: Colors.red))),
+      DataCell(Row(
+        children: [
+          Icon(
+            Icons.running_with_errors_outlined,
+            color: Colors.red,
+          ),
+          SizedBox(
+            width: 5,
+          ),
+          Text('Not Passed', style: TextStyle(color: Colors.red)),
+        ],
+      )),
+    ]);
+  } else if (currentStudent!.enrolledCourses.any(
+      (enrolledCourse) => enrolledCourse.coursecode == course.coursecode)) {
+    return DataRow(cells: [
+      DataCell(Text(
+        course.coursecode,
+        style: TextStyle(color: Colors.orange),
+      )),
+      DataCell(Text(course.coursename, style: TextStyle(color: Colors.orange))),
+      DataCell(Row(
+        children: [
+          Icon(
+            Icons.incomplete_circle,
+            color: Colors.orange,
+          ),
+          SizedBox(
+            width: 5,
+          ),
+          Text('In Progress', style: TextStyle(color: Colors.orange)),
+        ],
+      )),
+    ]);
+  } else {
+    return DataRow(cells: [
+      DataCell(Text(
+        course.coursecode,
+        style: TextStyle(color: Colors.grey),
+      )),
+      DataCell(Text(course.coursename, style: TextStyle(color: Colors.grey))),
+      DataCell(Row(
+        children: [
+          Icon(
+            Icons.error,
+            color: Colors.grey,
+          ),
+          SizedBox(
+            width: 5,
+          ),
+          Text('Not enrolled', style: TextStyle(color: Colors.grey)),
+        ],
+      )),
+    ]);
+  }
+}
+
+
+class CapstoneProjectScreen extends StatefulWidget {
+  @override
+  State<CapstoneProjectScreen> createState() => _CapstoneProjectScreenState();
+}
+
+class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Text('Capstone Project'),
+    List<DataColumn> columns = [
+      DataColumn(
+          label: Text(
+        'Course Code',
+        style: TextStyle(fontWeight: FontWeight.bold),
+      )),
+      DataColumn(
+          label: Text(
+        'Course Name',
+        style: TextStyle(fontWeight: FontWeight.bold),
+      )),
+      DataColumn(
+          label: Text(
+        'Status',
+        style: TextStyle(fontWeight: FontWeight.bold),
+      )),
+    ];
+
+    List<DataRow> rows = [];
+
+    if (currentStudent!.degree.contains('MIT')) {
+      rows = capstonecourses.map((capstoneCourse) {
+        return isCoursePassed(capstoneCourse);
+      }).toList();
+    } else if (currentStudent!.degree.contains('MSIT')) {
+      rows = thesiscourses.map((thesisCourse) {
+        return isCoursePassed(thesisCourse);
+      }).toList();
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+       
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                'Thesis Courses List',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(
+                  height: 8), // Optional: Adjust the space from top if needed
+              Center(
+                child: DataTable(
+                  columns: columns,
+                  rows: rows,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -2014,168 +2296,124 @@ class _MainViewState extends State<GradStudentscreen>
 
   bool changeinPOS = false;
   SchoolYear? selectedSchoolYear = studentPOS.schoolYears[1];
+
   @override
   Widget build(BuildContext context) {
     // print(currentStudent.pastCourses[1]);
     List<Widget> views = [
-      Container(
-        width: 500, // Set the width directly on the Container
-        margin: EdgeInsets.all(16),
-        padding: EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.5),
-              spreadRadius: 5,
-              blurRadius: 7,
-              offset: Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Student Progress',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 16),
-            Column(
-              children: [],
-            ),
-          ],
-        ),
-      ),
       Center(
+          child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
           child: Column(
-        children: [
-          Text(
-            'Program of Study',
-            textDirection: TextDirection.ltr,
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          SizedBox(
-            height: 20,
-          ),
-          Center(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: studentPOS.schoolYears.map((schoolYear) {
-                return Row(
-                  children: [
-                    SizedBox(width: 10), // Add some spacing between buttons
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          selectedSchoolYear =
-                              schoolYear; // Update the selected school year
-                        });
-                      },
-                      style: ButtonStyle(
-                        minimumSize: MaterialStateProperty.all(
-                            Size(120, 50)), // Enlarge the button size
-                        backgroundColor:
-                            MaterialStateProperty.resolveWith<Color?>(
-                                (Set<MaterialState> states) {
-                          return selectedSchoolYear == schoolYear
-                              ? Color.fromARGB(50, 13, 105,
-                                  16) // Background color when selected
-                              : null; // Background color when not selected
-                        }),
-                        side: MaterialStateProperty.resolveWith<BorderSide>(
-                            (Set<MaterialState> states) {
-                          return BorderSide(
-                            color: selectedSchoolYear == schoolYear
-                                ? const Color.fromARGB(255, 23, 71,
-                                    25) // Border color when selected
-                                : Colors
-                                    .transparent, // Transparent border color when not selected
-                          );
-                        }),
-                      ),
-                      child: Text(
-                        schoolYear.name, // Display the name of the school year
-                        style: TextStyle(
-                          fontSize: 16, // Enlarge the text size
-                          color: selectedSchoolYear == schoolYear
-                              ? Color.fromARGB(
-                                  255, 0, 0, 0) // Text color when selected
-                              : null, // Text color when not selected
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 10), // Add some spacing between buttons
-                  ],
-                );
-              }).toList(),
-            ),
-          ),
-          SizedBox(
-            height: 20,
-          ),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.start,
-            children: selectedSchoolYear!.terms.map((term) {
-              return Expanded(
-                child: Card(
-                  margin: EdgeInsets.all(10),
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Program of Study',
+                textDirection: TextDirection.ltr,
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(
+                height: 20,
+              ),
+              Center(
+                child: SingleChildScrollView(
                   child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: EdgeInsets.all(8),
-                        child: Text(
-                          term.name, // Display the name of the term
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                    children: studentPOS.schoolYears.map((schoolYear) {
+                      return SingleChildScrollView(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text(
+                                schoolYear
+                                    .name, // Display the name of the school year
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 5),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: schoolYear.terms.map((term) {
+                                return Expanded(
+                                  child: Card(
+                                    margin: EdgeInsets.all(5),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Padding(
+                                          padding: EdgeInsets.all(8),
+                                          child: Text(
+                                            term.name, // Display the name of the term
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                        Column(
+                                          children:
+                                              term.termcourses.map((course) {
+                                            if (course.type ==
+                                                'Elective Courses') {
+                                              // Increment the elective count for each elective course encountered
+                                              return ListTile(
+                                                title: Text(
+                                                  'Elective Course',
+                                                  style: TextStyle(
+                                                      color: Colors.grey),
+                                                ), // Display the elective count
+                                                subtitle: Text(
+                                                    'Enroll in any elective course',
+                                                    style: TextStyle(
+                                                        color: Colors.grey)),
+                                              );
+                                            } else {
+                                              return ListTile(
+                                                title: Text(course
+                                                    .coursecode), // Display the course code
+                                                subtitle: Text(course
+                                                    .coursename), // Display the course name
+                                              );
+                                            }
+                                          }).toList(),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                            SizedBox(height: 20),
+                          ],
                         ),
-                      ),
-                      Column(
-                        children: term.termcourses.map((course) {
-                          if (course.type == 'Elective Courses') {
-                            // Increment the elective count for each elective course encountered
-                            return ListTile(
-                              title: Text(
-                                  'Elective Course'), // Display the elective count
-                              subtitle: Text('Enroll in any elective course'),
-                            );
-                          } else {
-                            return ListTile(
-                              title: Text(
-                                  course.coursecode), // Display the course code
-                              subtitle: Text(
-                                  course.coursename), // Display the course name
-                            );
-                          }
-                        }).toList(),
-                      ),
-                    ],
+                      );
+                    }).toList(),
                   ),
                 ),
-              );
-            }).toList(),
+              )
+            ],
           ),
-        ],
+        ),
       )),
-      Center(
-          child: Column(
-        children: [
-          Text(
-            'Calendar',
-            textDirection: TextDirection.ltr,
-            style: TextStyle(fontFamily: 'Inter', fontSize: 100),
-          ),
-        ],
-      )),
+
+      // CALENDAR PAGE || Following guide: https://www.youtube.com/watch?v=6Gxa-v7Zh7I&ab_channel=AIwithFlutter
+      Calendar(),
+
       Center(
         child: Text(
           'Inbox',
@@ -2190,13 +2428,15 @@ class _MainViewState extends State<GradStudentscreen>
             controller: _tabController,
             tabs: [
               Tab(
-                text: 'Student Profile',
-              ),
-              Tab(
                 text: 'Curriculum Audit',
               ),
               Tab(
-                text: 'Capstone Project',
+                text: currentStudent!.degree.contains('MIT')
+                    ? 'Capstone Progress'
+                    : 'Thesis Progress',
+              ),
+              Tab(
+                text: 'Profile',
               )
             ],
             labelColor: Colors.white,
@@ -2214,9 +2454,9 @@ class _MainViewState extends State<GradStudentscreen>
         body: TabBarView(
           controller: _tabController,
           children: [
-            StudentProfileScreen(),
             CurriculumAuditScreen(),
             CapstoneProjectScreen(),
+            StudentProfileScreen(),
           ],
         ),
       ),
@@ -2331,10 +2571,6 @@ class _MainViewState extends State<GradStudentscreen>
               )),
               selectedIndex: selectedIndex,
               items: const [
-                SideNavigationBarItem(
-                  icon: Icons.dashboard,
-                  label: 'Dashboard',
-                ),
                 SideNavigationBarItem(
                   icon: Icons.book,
                   label: 'Program of Study',
