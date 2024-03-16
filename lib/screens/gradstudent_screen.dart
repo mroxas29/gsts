@@ -2296,120 +2296,106 @@ class _MainViewState extends State<GradStudentscreen>
 
   bool changeinPOS = false;
   SchoolYear? selectedSchoolYear = studentPOS.schoolYears[1];
-
+  int electiveCount = 0;
+  
   @override
   Widget build(BuildContext context) {
     // print(currentStudent.pastCourses[1]);
     List<Widget> views = [
       Center(
-          child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Program of Study',
-                textDirection: TextDirection.ltr,
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              SizedBox(
-                height: 20,
-              ),
-              Center(
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: studentPOS.schoolYears.map((schoolYear) {
-                      return SingleChildScrollView(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Text(
-                                schoolYear
-                                    .name, // Display the name of the school year
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            SizedBox(height: 5),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: schoolYear.terms.map((term) {
-                                return Expanded(
-                                  child: Card(
-                                    margin: EdgeInsets.all(5),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Padding(
-                                          padding: EdgeInsets.all(8),
-                                          child: Text(
-                                            term.name, // Display the name of the term
-                                            style: TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                        Column(
-                                          children:
-                                              term.termcourses.map((course) {
-                                            if (course.type ==
-                                                'Elective Courses') {
-                                              // Increment the elective count for each elective course encountered
-                                              return ListTile(
-                                                title: Text(
-                                                  'Elective Course',
-                                                  style: TextStyle(
-                                                      color: Colors.grey),
-                                                ), // Display the elective count
-                                                subtitle: Text(
-                                                    'Enroll in any elective course',
-                                                    style: TextStyle(
-                                                        color: Colors.grey)),
-                                              );
-                                            } else {
-                                              return ListTile(
-                                                title: Text(course
-                                                    .coursecode), // Display the course code
-                                                subtitle: Text(course
-                                                    .coursename), // Display the course name
-                                              );
-                                            }
-                                          }).toList(),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                            SizedBox(height: 20),
-                          ],
-                        ),
-                      );
-                    }).toList(),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Program of Study',
+                  textDirection: TextDirection.ltr,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              )
-            ],
+                SizedBox(height: 20),
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    color:
+                        Colors.white, // Set the background color of the table
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.5),
+                        spreadRadius: 2,
+                        blurRadius: 5,
+                        offset: Offset(0, 3), // changes position of shadow
+                      ),
+                    ],
+                  ),
+                  child: DataTable(
+                    headingTextStyle: TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                    dataRowColor: MaterialStateColor.resolveWith(
+                      (states) => Colors.white,
+                    ),
+                    columns: [
+                      DataColumn(
+                        label: Text(
+                          'Course Code',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      DataColumn(
+                        label: Text(
+                          'Course Name',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      DataColumn(
+                        label: Text(
+                          'Units',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      DataColumn(
+                        label: Text(
+                          'Course Type',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                    rows: [
+                      for (var year in studentPOS.schoolYears)
+                        for (var term in year.terms)
+                          for (var course in term.termcourses)
+                            DataRow(cells: [
+                              DataCell(Text(course.coursecode)),
+                              DataCell(
+                                Row(
+                                  children: [
+                                    Text(course.coursename),
+                                    if (course.type == 'Elective Courses')
+                                      Text(
+                                        ' (ELEC${++electiveCount})',
+                                        style: TextStyle(color: Colors.grey),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              DataCell(Text('${course.units}')),
+                              DataCell(Text(course.type)),
+                            ]),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-      )),
+      ),
 
       // CALENDAR PAGE || Following guide: https://www.youtube.com/watch?v=6Gxa-v7Zh7I&ab_channel=AIwithFlutter
       Calendar(),
