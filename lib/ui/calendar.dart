@@ -9,18 +9,31 @@ import 'package:googleapis/calendar/v3.dart' as cal;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:sysadmindb/ui/EventDetailsScreen.dart';
+import 'package:intl/intl.dart';
 
 // CALENDAR PAGE || Following guide: https://www.youtube.com/watch?v=6Gxa-v7Zh7I&ab_channel=AIwithFlutter
 class Calendar extends StatefulWidget {
-  @override
-  _CalendarState createState() => _CalendarState();
   //final DateTime selectedDate;
   //Calendar({required this.selectedDate});
+  @override
+  _CalendarState createState() => _CalendarState();
+  
 }
 
+// Event Type Choices
+enum EventTypeRadio { online, f2f }
+
+// Today's Date
+DateTime today = DateTime.now();
+
 class _CalendarState extends State<Calendar> {
-  DateTime today = DateTime.now();
   DateTime selectedTime = DateTime.now();
+  TimeOfDay? pickedStartTime;
+  TimeOfDay? pickedEndTime;
+  String currentDate = 
+      "Today is: ${DateFormat('MMMM').format(today)} ${today.day}, ${today.year} ${today.hour}:${today.minute}";
+
+  EventTypeRadio? _eventtype = EventTypeRadio.online;
 
   // Store Events created
   //Map<DateTime, List<Event>> events = {};
@@ -31,24 +44,38 @@ class _CalendarState extends State<Calendar> {
     return Scaffold(
       appBar: AppBar(
         
+        // PAGE HEADER
         title: 
           Text(
             'Google Calendar Page', 
-            textDirection: TextDirection.ltr,
-            style: TextStyle(fontFamily: 'Outfit', fontSize: 30, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 255, 255, 255)),
+            style: TextStyle(
+              fontFamily: 'Outfit', 
+              fontSize: 30, 
+              fontWeight: FontWeight.bold, 
+              color: Color.fromARGB(255, 255, 255, 255)
+            ),
           ),
         
         backgroundColor: Color(0xFF174719),
       ),
+
+      
       body: Center(
         child: Column(
           children: [
             
+            // PAGE LANDING TITLE
             Text(
-              'Calendar',
-              textDirection: TextDirection.ltr,
-              style: TextStyle(fontFamily: 'Outfit', fontSize: 30, fontWeight: FontWeight.bold, color: Color(0xFF174719)),
+              currentDate,
+              style: TextStyle(
+                fontFamily: 'Outfit', 
+                fontSize: 30, 
+                fontWeight: FontWeight.bold, 
+                color: Color(0xFF174719)
+              ),
             ),
+
+            // CALENDAR
             TableCalendar(
               headerStyle: HeaderStyle(titleCentered: true),
               focusedDay: today,
@@ -78,11 +105,16 @@ class _CalendarState extends State<Calendar> {
             builder: (context)
             {
               return AlertDialog(
-                scrollable: true,title: Text ("Event Details"),
-                content: Padding(
+                scrollable: true,
+
+                title: Text ("Set Event Details for ${DateFormat('MMMM').format(today)} ${today.day}, ${today.year}"),
+                content: Container(
                   padding: EdgeInsets.all(8),
+
                   child: Column(
                     children: [
+
+                      // EVENT NAME
                       TextFormField(
                         decoration: InputDecoration(labelText: 'Event Name'),
                         validator: (value) {
@@ -92,6 +124,8 @@ class _CalendarState extends State<Calendar> {
                           return null;
                         },
                       ),
+
+                      // EVENT DESCRIPTION
                       TextFormField(
                         decoration: InputDecoration(labelText: 'Event Description'),
                         validator: (value) {
@@ -100,11 +134,57 @@ class _CalendarState extends State<Calendar> {
                           }
                           return null;
                         },
+                        keyboardType: TextInputType.multiline,
+                      minLines: 1,
+                      maxLines: 20,
+                      maxLength: 1000,
                       ),
+
+                      // EVENT TYPE (Online or Face-to-Face || Make into radio buttons: https://api.flutter.dev/flutter/material/Radio-class.html)
+                      ListTile(
+                        title: const Text('Online'),
+                        leading: Radio<EventTypeRadio>(
+                          value: EventTypeRadio.online,
+                          groupValue: _eventtype,
+                          onChanged: (EventTypeRadio? value) {
+                            setState(() {
+                              _eventtype = value;
+                            });
+                          },
+                        ),
+                      ),
+
+                      ListTile(
+                        title: const Text('Face to Face'),
+                        leading: Radio<EventTypeRadio>(
+                          value: EventTypeRadio.f2f,
+                          groupValue: _eventtype,
+                          onChanged: (EventTypeRadio? value) {
+                            setState(() {
+                              _eventtype = value;
+                            });
+                          },
+                        ),
+                      ),
+
+
+                      // LOCATION PICKER 
+                      TextFormField(
+                        decoration: InputDecoration(labelText: 'Location'),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter the Event Name';
+                          }
+                          return null;
+                        },
+                      ),
+
+                      // TIME PICKER
                       Text(
-                        'Time:',
+                        'Event Time:',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
+
                       ElevatedButton(
                         onPressed: () async {
                           // Show time picker
@@ -125,8 +205,33 @@ class _CalendarState extends State<Calendar> {
                             });
                           }
                         },
-                        child: Text('Select Time'),
+                        child: Text('Select Start Time'),
                       ),
+
+                       ElevatedButton(
+                        onPressed: () async {
+                          // Show time picker
+                          TimeOfDay? pickedTime = await showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay.fromDateTime(selectedTime),
+                          );
+
+                          if (pickedTime != null) {
+                            setState(() {
+                              selectedTime = DateTime(
+                                //widget.selectedDate.year,
+                                //widget.selectedDate.month,
+                                //widget.selectedDate.day,
+                                pickedTime.hour,
+                                pickedTime.minute,
+                              );
+                            });
+                          }
+                        },
+                        child: Text('Select End Time'),
+                      ),
+
+
                     ],
                   ),
                 ),
