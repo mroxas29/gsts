@@ -17,7 +17,6 @@ class Calendar extends StatefulWidget {
   //Calendar({required this.selectedDate});
   @override
   _CalendarState createState() => _CalendarState();
-  
 }
 
 // Event Type Choices
@@ -30,8 +29,8 @@ class _CalendarState extends State<Calendar> {
   DateTime selectedTime = DateTime.now();
   TimeOfDay? pickedStartTime;
   TimeOfDay? pickedEndTime;
-  String currentDate = 
-      "Today is: ${DateFormat('MMMM').format(today)} ${today.day}, ${today.year} ${today.hour}:${today.minute}";
+  String currentDate =
+      "Today is: ${DateFormat('MMMM').format(today)} ${today.day}, ${today.year}";
 
   EventTypeRadio? _eventtype = EventTypeRadio.online;
 
@@ -43,36 +42,30 @@ class _CalendarState extends State<Calendar> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        
         // PAGE HEADER
-        title: 
-          Text(
-            'Google Calendar Page', 
-            style: TextStyle(
-              fontFamily: 'Outfit', 
-              fontSize: 30, 
-              fontWeight: FontWeight.bold, 
-              color: Color.fromARGB(255, 255, 255, 255)
-            ),
-          ),
-        
+        title: Text(
+          'Google Calendar Page',
+          style: TextStyle(
+              fontFamily: 'Outfit',
+              fontSize: 30,
+              fontWeight: FontWeight.bold,
+              color: Color.fromARGB(255, 255, 255, 255)),
+        ),
+
         backgroundColor: Color(0xFF174719),
       ),
 
-      
       body: Center(
         child: Column(
           children: [
-            
             // PAGE LANDING TITLE
             Text(
               currentDate,
               style: TextStyle(
-                fontFamily: 'Outfit', 
-                fontSize: 30, 
-                fontWeight: FontWeight.bold, 
-                color: Color(0xFF174719)
-              ),
+                  fontFamily: 'Outfit',
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF174719)),
             ),
 
             // CALENDAR
@@ -92,7 +85,7 @@ class _CalendarState extends State<Calendar> {
         ),
       ),
 
-      // GUIDES: 
+      // GUIDES:
       // https://www.youtube.com/watch?v=6yY-VHZiG5k (Flutter to GCal)
       // https://www.youtube.com/watch?v=JiQmjt5ta9Y (GCal to Flutter)
       // https://www.youtube.com/watch?v=HQ_ytw58tC4 (Flutter Basics)
@@ -102,158 +95,177 @@ class _CalendarState extends State<Calendar> {
         onPressed: () {
           showDialog(
             context: context,
-            builder: (context)
-            {
-              return AlertDialog(
-                scrollable: true,
+            builder: (context) {
+              return StatefulBuilder(
+                builder: (BuildContext context, StateSetter setState) {
+                  return AlertDialog(
+                    scrollable: true,
+                    title: Text(
+                      "Set Event Details for ${DateFormat('MMMM').format(today)} ${today.day}, ${today.year}",
+                    ),
+                    content: Container(
+                      padding: EdgeInsets.all(8),
+                      child: Column(
+                        children: [
+                          // EVENT NAME
+                          TextFormField(
+                            decoration:
+                                InputDecoration(labelText: 'Event Name'),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter the Event Name';
+                              }
+                              return null;
+                            },
+                          ),
 
-                title: Text ("Set Event Details for ${DateFormat('MMMM').format(today)} ${today.day}, ${today.year}"),
-                content: Container(
-                  padding: EdgeInsets.all(8),
+                          // EVENT DESCRIPTION
+                          TextFormField(
+                            decoration:
+                                InputDecoration(labelText: 'Event Description'),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter the Event Description';
+                              }
+                              return null;
+                            },
+                            keyboardType: TextInputType.multiline,
+                            minLines: 1,
+                            maxLines: 20,
+                            maxLength: 1000,
+                          ),
 
-                  child: Column(
-                    children: [
+                          // EVENT TYPE (Online or Face-to-Face || Make into radio buttons: https://api.flutter.dev/flutter/material/Radio-class.html)
+                          ListTile(
+                            title: const Text('Online'),
+                            leading: Radio<EventTypeRadio>(
+                              value: EventTypeRadio.online,
+                              groupValue: _eventtype,
+                              onChanged: (EventTypeRadio? value) {
+                                setState(() {
+                                  _eventtype = value;
+                                });
+                              },
+                            ),
+                          ),
 
-                      // EVENT NAME
-                      TextFormField(
-                        decoration: InputDecoration(labelText: 'Event Name'),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter the Event Name';
-                          }
-                          return null;
-                        },
+                          ListTile(
+                            title: const Text('Face to Face'),
+                            leading: Radio<EventTypeRadio>(
+                              value: EventTypeRadio.f2f,
+                              groupValue: _eventtype,
+                              onChanged: (EventTypeRadio? value) {
+                                setState(() {
+                                  _eventtype = value;
+                                });
+                              },
+                            ),
+                          ),
+
+                          // LOCATION PICKER
+                          TextFormField(
+                            decoration: InputDecoration(labelText: 'Location'),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter the Event Name';
+                              }
+                              return null;
+                            },
+                          ),
+
+                          // TIME PICKER
+
+                          Text(
+                            (pickedStartTime == null)
+                                ? 'Start Time: Select start time'
+                                : 'Start Time: ${pickedStartTime!.hour}:${pickedStartTime!.minute}',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+
+                          Text(
+                            (pickedEndTime == null)
+                                ? 'End Time: end time'
+                                : (pickedStartTime!.hour >
+                                            pickedEndTime!.hour ||
+                                        (pickedStartTime!.hour ==
+                                                pickedEndTime!.hour &&
+                                            pickedStartTime!.minute >=
+                                                pickedEndTime!.minute))
+                                    ? 'End Time: Start time must be earlier than end time  ${pickedStartTime!.hour}:${pickedStartTime!.minute} - ${pickedEndTime!.hour}:${pickedEndTime!.minute}'
+                                    : 'End Time: ${pickedEndTime!.hour}:${pickedEndTime!.minute}',
+                            style: (pickedEndTime == null)
+                                ? TextStyle(fontWeight: FontWeight.bold)
+                                : (pickedStartTime!.hour >
+                                            pickedEndTime!.hour ||
+                                        (pickedStartTime!.hour ==
+                                                pickedEndTime!.hour &&
+                                            pickedStartTime!.minute >=
+                                                pickedEndTime!.minute))
+                                    ? TextStyle(
+                                        color: Colors.red,
+                                        fontWeight: FontWeight.bold)
+                                    : TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          ElevatedButton(
+                            onPressed: () async {
+                              // Show time picker
+                              TimeOfDay? pickedTime = await showTimePicker(
+                                context: context,
+                                initialTime: pickedStartTime ?? TimeOfDay.now(),
+                              );
+
+                              if (pickedTime != null) {
+                                setState(() {
+                                  pickedStartTime = pickedTime;
+                                });
+                              }
+                            },
+                            child: Text('Select Start Time'),
+                          ),
+
+                          ElevatedButton(
+                            onPressed: () async {
+                              // Show time picker
+                              TimeOfDay? pickedTime = await showTimePicker(
+                                context: context,
+                                initialTime: pickedEndTime ?? TimeOfDay.now(),
+                              );
+
+                              if (pickedTime != null) {
+                                setState(() {
+                                  pickedEndTime = pickedTime;
+                                });
+                              }
+                            },
+                            child: Text('Select End Time'),
+                          ),
+                        ],
                       ),
-
-                      // EVENT DESCRIPTION
-                      TextFormField(
-                        decoration: InputDecoration(labelText: 'Event Description'),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter the Event Description';
-                          }
-                          return null;
-                        },
-                        keyboardType: TextInputType.multiline,
-                      minLines: 1,
-                      maxLines: 20,
-                      maxLength: 1000,
-                      ),
-
-                      // EVENT TYPE (Online or Face-to-Face || Make into radio buttons: https://api.flutter.dev/flutter/material/Radio-class.html)
-                      ListTile(
-                        title: const Text('Online'),
-                        leading: Radio<EventTypeRadio>(
-                          value: EventTypeRadio.online,
-                          groupValue: _eventtype,
-                          onChanged: (EventTypeRadio? value) {
-                            setState(() {
-                              _eventtype = value;
-                            });
-                          },
-                        ),
-                      ),
-
-                      ListTile(
-                        title: const Text('Face to Face'),
-                        leading: Radio<EventTypeRadio>(
-                          value: EventTypeRadio.f2f,
-                          groupValue: _eventtype,
-                          onChanged: (EventTypeRadio? value) {
-                            setState(() {
-                              _eventtype = value;
-                            });
-                          },
-                        ),
-                      ),
-
-
-                      // LOCATION PICKER 
-                      TextFormField(
-                        decoration: InputDecoration(labelText: 'Location'),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter the Event Name';
-                          }
-                          return null;
-                        },
-                      ),
-
-                      // TIME PICKER
-                      Text(
-                        'Event Time:',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-
+                    ),
+                    actions: [
                       ElevatedButton(
-                        onPressed: () async {
-                          // Show time picker
-                          TimeOfDay? pickedTime = await showTimePicker(
-                            context: context,
-                            initialTime: TimeOfDay.fromDateTime(selectedTime),
-                          );
-
-                          if (pickedTime != null) {
-                            setState(() {
-                              selectedTime = DateTime(
-                                //widget.selectedDate.year,
-                                //widget.selectedDate.month,
-                                //widget.selectedDate.day,
-                                pickedTime.hour,
-                                pickedTime.minute,
-                              );
-                            });
-                          }
-                        },
-                        child: Text('Select Start Time'),
-                      ),
-
-                       ElevatedButton(
-                        onPressed: () async {
-                          // Show time picker
-                          TimeOfDay? pickedTime = await showTimePicker(
-                            context: context,
-                            initialTime: TimeOfDay.fromDateTime(selectedTime),
-                          );
-
-                          if (pickedTime != null) {
-                            setState(() {
-                              selectedTime = DateTime(
-                                //widget.selectedDate.year,
-                                //widget.selectedDate.month,
-                                //widget.selectedDate.day,
-                                pickedTime.hour,
-                                pickedTime.minute,
-                              );
-                            });
-                          }
-                        },
-                        child: Text('Select End Time'),
-                      ),
-
-
+                        onPressed: (pickedStartTime == null ||
+                                pickedEndTime == null ||
+                                (pickedStartTime!.hour > pickedEndTime!.hour ||
+                                    (pickedStartTime!.hour ==
+                                            pickedEndTime!.hour &&
+                                        pickedStartTime!.minute >=
+                                            pickedEndTime!.minute)))
+                            ? null
+                            : () {
+                                // Handle submission
+                              },
+                        child: Text("Submit"),
+                      )
                     ],
-                  ),
-                ),
-                actions: [
-                  ElevatedButton(
-                    onPressed: () {},
-                    child: Text("Submit"),
-                  )
-                ],
+                  );
+                },
               );
-            }
+            },
           );
         },
         child: Icon(Icons.add),
       ),
-      // OLD CODE @ 48
-      //    Navigator.push(
-      //      context,
-      //      MaterialPageRoute(
-      //        builder: (context) => EventDetailsScreen(selectedDate: today),
-      //      ),
-      //    );
     );
   }
 }
