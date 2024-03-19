@@ -18,7 +18,7 @@ class Calendar extends StatefulWidget {
   @override
   _CalendarState createState() => _CalendarState();
 }
-
+ 
 // Event Type Choices
 enum EventTypeRadio { online, f2f }
 
@@ -29,8 +29,8 @@ class _CalendarState extends State<Calendar> {
   DateTime selectedTime = DateTime.now();
   TimeOfDay? pickedStartTime;
   TimeOfDay? pickedEndTime;
-  String currentDate =
-      "Today is: ${DateFormat('MMMM').format(today)} ${today.day}, ${today.year}";
+  String currentDate = 
+      "Today is: ${DateFormat('MMMM').format(today)} ${today.day}, ${today.year} - ${DateFormat("h:mma").format(today)}";
 
   EventTypeRadio? _eventtype = EventTypeRadio.online;
 
@@ -43,15 +43,17 @@ class _CalendarState extends State<Calendar> {
     return Scaffold(
       appBar: AppBar(
         // PAGE HEADER
-        title: Text(
-          'Google Calendar Page',
-          style: TextStyle(
-              fontFamily: 'Outfit',
-              fontSize: 30,
-              fontWeight: FontWeight.bold,
-              color: Color.fromARGB(255, 255, 255, 255)),
-        ),
-
+        title: 
+          Text(
+            'Google Calendar Page', 
+            style: TextStyle(
+              fontFamily: 'Outfit', 
+              fontSize: 30, 
+              fontWeight: FontWeight.bold, 
+              color: Color.fromARGB(255, 255, 255, 255)
+            ),
+          ),
+        
         backgroundColor: Color(0xFF174719),
       ),
 
@@ -91,7 +93,7 @@ class _CalendarState extends State<Calendar> {
       // https://www.youtube.com/watch?v=HQ_ytw58tC4 (Flutter Basics)
       // https://www.youtube.com/watch?v=ASCs_g8RJ9s&ab_channel=AIwithFlutter (Add Event to Calendar)
       // https://m2.material.io/components/time-pickers/flutter#mobile-time-input-pickers (Time Picker)
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           showDialog(
             context: context,
@@ -264,8 +266,17 @@ class _CalendarState extends State<Calendar> {
             },
           );
         },
-        child: Icon(Icons.add),
+        
+        icon: Icon(Icons.add), 
+        label: Text("Add New Event"),
       ),
+      // OLD CODE @ 48
+      //    Navigator.push(
+      //      context,
+      //      MaterialPageRoute(
+      //        builder: (context) => EventDetailsScreen(selectedDate: today),
+      //      ),
+      //    );
     );
   }
 }
