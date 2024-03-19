@@ -30,7 +30,7 @@ class _CalendarState extends State<Calendar> {
   TimeOfDay? pickedStartTime;
   TimeOfDay? pickedEndTime;
   String currentDate = 
-      "Today is: ${DateFormat('MMMM').format(today)} ${today.day}, ${today.year} - ${DateFormat("h:mma").format(today)}";
+      "Today is: ${DateFormat('MMMM').format(today)} ${today.day}, ${today.year}]";
 
   EventTypeRadio? _eventtype = EventTypeRadio.online;
 
@@ -45,7 +45,7 @@ class _CalendarState extends State<Calendar> {
         // PAGE HEADER
         title: 
           Text(
-            'Google Calendar Page', 
+            'Calendar', 
             style: TextStyle(
               fontFamily: 'Outfit', 
               fontSize: 30, 
