@@ -30,7 +30,7 @@ class _CalendarState extends State<Calendar> {
   TimeOfDay? pickedStartTime;
   TimeOfDay? pickedEndTime;
   String currentDate = 
-      "Today is: ${DateFormat('MMMM').format(today)} ${today.day}, ${today.year}]";
+      "Today is: ${DateFormat('MMMM').format(today)} ${today.day}, ${today.year}";
 
   EventTypeRadio? _eventtype = EventTypeRadio.online;
 
@@ -109,7 +109,9 @@ class _CalendarState extends State<Calendar> {
                       padding: EdgeInsets.all(8),
                       child: Column(
                         children: [
-                          // EVENT NAME
+
+
+                          // === EVENT NAME ===
                           TextFormField(
                             decoration:
                                 InputDecoration(labelText: 'Event Name'),
@@ -121,7 +123,8 @@ class _CalendarState extends State<Calendar> {
                             },
                           ),
 
-                          // EVENT DESCRIPTION
+
+                          // === EVENT DESCRIPTION ===
                           TextFormField(
                             decoration:
                                 InputDecoration(labelText: 'Event Description'),
@@ -132,12 +135,13 @@ class _CalendarState extends State<Calendar> {
                               return null;
                             },
                             keyboardType: TextInputType.multiline,
-                            minLines: 1,
+                            minLines: 3,
                             maxLines: 20,
                             maxLength: 1000,
                           ),
 
-                          // EVENT TYPE (Online or Face-to-Face || Make into radio buttons: https://api.flutter.dev/flutter/material/Radio-class.html)
+
+                          // === EVENT TYPE === (Online or Face-to-Face || Make into radio buttons: https://api.flutter.dev/flutter/material/Radio-class.html)
                           ListTile(
                             title: const Text('Online'),
                             leading: Radio<EventTypeRadio>(
@@ -164,7 +168,8 @@ class _CalendarState extends State<Calendar> {
                             ),
                           ),
 
-                          // LOCATION PICKER
+
+                          // === LOCATION PICKER ===
                           TextFormField(
                             decoration: InputDecoration(labelText: 'Location'),
                             validator: (value) {
@@ -175,72 +180,106 @@ class _CalendarState extends State<Calendar> {
                             },
                           ),
 
-                          // TIME PICKER
 
-                          Text(
-                            (pickedStartTime == null)
-                                ? 'Start Time: Select start time'
-                                : 'Start Time: ${pickedStartTime!.hour}:${pickedStartTime!.minute}',
-                            style: TextStyle(fontWeight: FontWeight.bold),
+
+                          // === TIME PICKERS ===
+
+
+                          // START TIME
+
+                          // Start Time Label
+                          Container(
+                            margin: const EdgeInsets.only(top: 30.0),
+                            child: 
+                              Text(
+                                (pickedStartTime == null)
+                                    ? 'Start Time: Please select START Time'
+                                    : 'Start Time: ${pickedStartTime!.format(context)}',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
                           ),
 
-                          Text(
-                            (pickedEndTime == null)
-                                ? 'End Time: end time'
-                                : (pickedStartTime!.hour >
-                                            pickedEndTime!.hour ||
-                                        (pickedStartTime!.hour ==
-                                                pickedEndTime!.hour &&
-                                            pickedStartTime!.minute >=
-                                                pickedEndTime!.minute))
-                                    ? 'End Time: Start time must be earlier than end time  ${pickedStartTime!.hour}:${pickedStartTime!.minute} - ${pickedEndTime!.hour}:${pickedEndTime!.minute}'
-                                    : 'End Time: ${pickedEndTime!.hour}:${pickedEndTime!.minute}',
-                            style: (pickedEndTime == null)
-                                ? TextStyle(fontWeight: FontWeight.bold)
-                                : (pickedStartTime!.hour >
-                                            pickedEndTime!.hour ||
-                                        (pickedStartTime!.hour ==
-                                                pickedEndTime!.hour &&
-                                            pickedStartTime!.minute >=
-                                                pickedEndTime!.minute))
-                                    ? TextStyle(
-                                        color: Colors.red,
-                                        fontWeight: FontWeight.bold)
-                                    : TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          ElevatedButton(
-                            onPressed: () async {
-                              // Show time picker
-                              TimeOfDay? pickedTime = await showTimePicker(
-                                context: context,
-                                initialTime: pickedStartTime ?? TimeOfDay.now(),
-                              );
+                          // Start Time Button
+                          Container(
+                            margin: const EdgeInsets.only(top: 5.0),
+                            child: 
+                              ElevatedButton(
+                                onPressed: () async {
+                                  // Show time picker
+                                  TimeOfDay? pickedTime = await showTimePicker(
+                                    context: context,
+                                    initialTime: pickedStartTime ?? TimeOfDay.now(),
+                                  );
 
-                              if (pickedTime != null) {
-                                setState(() {
-                                  pickedStartTime = pickedTime;
-                                });
-                              }
-                            },
-                            child: Text('Select Start Time'),
+                                  if (pickedTime != null) {
+                                    setState(() {
+                                      pickedStartTime = pickedTime;
+                                    });
+                                  }
+                                },
+                                child: Text('Select Start Time'),
+                              ),
                           ),
 
-                          ElevatedButton(
-                            onPressed: () async {
-                              // Show time picker
-                              TimeOfDay? pickedTime = await showTimePicker(
-                                context: context,
-                                initialTime: pickedEndTime ?? TimeOfDay.now(),
-                              );
 
-                              if (pickedTime != null) {
-                                setState(() {
-                                  pickedEndTime = pickedTime;
-                                });
-                              }
-                            },
-                            child: Text('Select End Time'),
+                          // END TIME
+
+                          // End Time Label
+                          Container(
+                            margin: const EdgeInsets.only(top: 15.0),
+                            child:
+                              Text(
+                                (pickedEndTime == null)
+                                    ? 'End Time: Please select END Time'
+                                    : (pickedStartTime!.hour >
+                                                pickedEndTime!.hour ||
+                                            (pickedStartTime!.hour ==
+                                                    pickedEndTime!.hour &&
+                                                pickedStartTime!.minute >=
+                                                    pickedEndTime!.minute))
+                                        ? 'End Time: ${pickedEndTime!.format(context)}\n(ERROR: Start Time must be earlier than End Time!)'
+                                        : 'End Time: ${pickedEndTime!.format(context)}',
+                                style: (pickedEndTime == null)
+                                    ? TextStyle(fontWeight: FontWeight.bold)
+                                    : (pickedStartTime!.hour >
+                                                pickedEndTime!.hour ||
+                                            (pickedStartTime!.hour ==
+                                                    pickedEndTime!.hour &&
+                                                pickedStartTime!.minute >=
+                                                    pickedEndTime!.minute))
+                                        ? TextStyle(
+                                            color: Colors.red,
+                                            fontWeight: FontWeight.bold)
+                                        : TextStyle(fontWeight: FontWeight.bold),
+                                textAlign: TextAlign.center,
+                              ),
                           ),
+                          
+                          // End Time Button
+                          Container(
+                            margin: const EdgeInsets.only(top: 5.0),
+                            child:
+                              ElevatedButton(
+                                onPressed: () async {
+                                  // Show time picker
+                                  TimeOfDay? pickedTime = await showTimePicker(
+                                    context: context,
+                                    initialTime: pickedEndTime ?? TimeOfDay.now(),
+                                  );
+
+                                  if (pickedTime != null) {
+                                    setState(() {
+                                      pickedEndTime = pickedTime;
+                                    });
+                                  }
+                                },
+                                child: Text('Select End Time'),
+                              ),
+                          ),
+
+
+
+
                         ],
                       ),
                     ),
