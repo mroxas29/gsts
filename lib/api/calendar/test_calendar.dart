@@ -1,7 +1,12 @@
 import 'dart:math';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 import 'package:flutter/material.dart';
 import 'package:sysadmindb/api/calendar/appointment_editor.dart';
+import 'package:googleapis/calendar/v3.dart' as GoogleAPI;
+import 'package:http/io_client.dart' show IOClient, IOStreamedResponse;
+import 'package:http/http.dart' show BaseRequest, Response;
+import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
 
 class CalendarSF extends StatefulWidget {
   const CalendarSF({super.key});
@@ -16,7 +21,7 @@ int selectedColorIndex = 0;
 int selectedTimeZoneIndex = 0;
 int selectedResourceIndex = 0;
 late List<String> timeZoneCollection;
-late DataSource events;
+late GoogleDataSource events;
 Meeting? selectedAppointment;
 late DateTime startDate;
 late TimeOfDay startTime;
@@ -30,29 +35,87 @@ late List<String> nameCollection;
 
 class _CalendarSFState extends State<CalendarSF> {
   late List<String> eventNameCollection;
-  late List<Meeting> appointments;
+  late List<GoogleAPI.Event> appointments;
   CalendarController calendarController = CalendarController();
+
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    clientId:
+        '703443900752-d0o2p65v12dkmfq8vt4dd8pmtp3k7ish.apps.googleusercontent.com',
+    scopes: <String>[
+      GoogleAPI.CalendarApi.calendarScope,
+    ],
+  );
+
+  GoogleSignInAccount? _currentUser;
   @override
   void initState() {
-    appointments = getMeetingDetails();
-    events = DataSource(appointments);
+    // appointments = getGoogleEventsData() as List<GoogleAPI.Event>;
+    // events = GoogleDataSource(events: [appointments]);
     selectedAppointment = null;
     selectedColorIndex = 0;
     selectedTimeZoneIndex = 0;
     subject = '';
     notes = '';
     super.initState();
+    getMeetingDetails();
+
+    _googleSignIn.onCurrentUserChanged.listen((GoogleSignInAccount? account) {
+      setState(() {
+        _currentUser = account;
+      });
+      if (_currentUser != null) {
+        //getGoogleEventsData();
+      }
+    });
+    _googleSignIn.signInSilently();
+  }
+
+  Future<List<GoogleAPI.Event>> getGoogleEventsData() async {
+    final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
+    var httpClient = (await _googleSignIn.authenticatedClient())!;
+
+    final GoogleAPI.CalendarApi calendarApi = GoogleAPI.CalendarApi(httpClient);
+    final GoogleAPI.Events calEvents = await calendarApi.events.list(
+      "primary",
+    );
+
+    final List<GoogleAPI.Event> appointments = <GoogleAPI.Event>[];
+    if (calEvents.items != null) {
+      for (int i = 0; i < calEvents.items!.length; i++) {
+        final GoogleAPI.Event event = calEvents.items![i];
+        if (event.start == null) {
+          continue;
+        }
+        appointments.add(event);
+      }
+    }
+
+    return appointments;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Expanded(child: getEventCalendar(events, onCalendarTapped)),
+    return FutureBuilder(
+      future: getGoogleEventsData(),
+      builder: (BuildContext context, AsyncSnapshot snapshot) {
+        return Expanded(child: getEventCalendar(onCalendarTapped, snapshot));
+      },
     );
   }
 
-  SfCalendar getEventCalendar(CalendarDataSource calendarDataSource,
-      CalendarTapCallback calendarTapCallback) {
+  @override
+  void dispose() {
+    if (_googleSignIn.currentUser != null) {
+      _googleSignIn.disconnect();
+      _googleSignIn.signOut();
+    }
+
+    super.dispose();
+  }
+
+  SfCalendar getEventCalendar(
+      CalendarTapCallback calendarTapCallback, AsyncSnapshot snapshot) {
     return SfCalendar(
         view: CalendarView.month,
         controller: calendarController,
@@ -61,13 +124,14 @@ class _CalendarSFState extends State<CalendarSF> {
           CalendarView.timelineWeek,
           CalendarView.month
         ],
-        dataSource: calendarDataSource,
+        dataSource: GoogleDataSource(events: snapshot.data),
         onTap: calendarTapCallback,
         appointmentBuilder: (context, calendarAppointmentDetails) {
-          final Meeting meeting = calendarAppointmentDetails.appointments.first;
+          final GoogleAPI.Event meeting =
+              calendarAppointmentDetails.appointments.first;
           return Container(
-            color: meeting.background.withOpacity(0.8),
-            child: Text(meeting.eventName),
+            color: Colors.green,
+            child: Text(meeting.summary!),
           );
         },
         initialDisplayDate: DateTime(DateTime.now().year, DateTime.now().month,
@@ -97,7 +161,7 @@ class _CalendarSFState extends State<CalendarSF> {
             calendarTapDetails.appointments!.length == 1) {
           final Meeting meetingDetails = calendarTapDetails.appointments![0];
           setState(() {
-               startDate = meetingDetails.from;
+            startDate = meetingDetails.from;
             endDate = meetingDetails.to;
             isAllDay = meetingDetails.isAllDay;
             selectedColorIndex =
@@ -109,10 +173,9 @@ class _CalendarSFState extends State<CalendarSF> {
                 ? ''
                 : meetingDetails.eventName;
             notes = meetingDetails.description;
-            
+
             selectedAppointment = meetingDetails;
           });
-       
         } else {
           final DateTime date = calendarTapDetails.date!;
           startDate = date;
@@ -175,7 +238,7 @@ class _CalendarSFState extends State<CalendarSF> {
             background: colorCollection[random.nextInt(4)],
             startTimeZone: '',
             endTimeZone: '',
-            description: 'TEst description',
+            description: '',
             isAllDay: false,
             eventName: eventNameCollection[random.nextInt(4)],
             ids: [],
@@ -187,7 +250,7 @@ class _CalendarSFState extends State<CalendarSF> {
     return meetingCollection;
   }
 }
-
+/*
 class DataSource extends CalendarDataSource {
   DataSource(List<Meeting> source) {
     appointments = source;
@@ -217,6 +280,67 @@ class DataSource extends CalendarDataSource {
   @override
   DateTime getEndTime(int index) => appointments![index].to;
 }
+*/
+
+class GoogleDataSource extends CalendarDataSource {
+  GoogleDataSource({required List<GoogleAPI.Event>? events}) {
+    appointments = events;
+  }
+
+  @override
+  DateTime getStartTime(int index) {
+    final GoogleAPI.Event event = appointments![index];
+    return event.start?.date ?? event.start!.dateTime!.toLocal();
+  }
+
+  @override
+  bool isAllDay(int index) {
+    return appointments![index].start.date != null;
+  }
+
+  @override
+  DateTime getEndTime(int index) {
+    final GoogleAPI.Event event = appointments![index];
+    return event.endTimeUnspecified != null && event.endTimeUnspecified!
+        ? (event.start?.date ?? event.start!.dateTime!.toLocal())
+        : (event.end?.date != null
+            ? event.end!.date!.add(const Duration(days: -1))
+            : event.end!.dateTime!.toLocal());
+  }
+
+  @override
+  String getLocation(int index) {
+    return appointments![index].location ?? '';
+  }
+
+  @override
+  String getNotes(int index) {
+    return appointments![index].description ?? '';
+  }
+
+  @override
+  String getSubject(int index) {
+    final GoogleAPI.Event event = appointments![index];
+    return event.summary == null || event.summary!.isEmpty
+        ? 'No Title'
+        : event.summary!;
+  }
+}
+
+class GoogleAPIClient extends IOClient {
+  final Map<String, String> _headers;
+
+  GoogleAPIClient(this._headers) : super();
+
+  @override
+  Future<IOStreamedResponse> send(BaseRequest request) =>
+      super.send(request..headers.addAll(_headers));
+
+  @override
+  Future<Response> head(Uri url, {Map<String, String>? headers}) =>
+      super.head(url,
+          headers: (headers != null ? (headers..addAll(_headers)) : headers));
+}
 
 class Meeting {
   Meeting(
@@ -231,14 +355,14 @@ class Meeting {
       this.notes = '',
       required this.ids});
 
-   String eventName;
-   DateTime from;
-   DateTime to;
-   Color background;
-   bool isAllDay;
-   String startTimeZone;
-   String endTimeZone;
-   String description;
-   String notes;
-   List<String> ids;
+  String eventName;
+  DateTime from;
+  DateTime to;
+  Color background;
+  bool isAllDay;
+  String startTimeZone;
+  String endTimeZone;
+  String description;
+  String notes;
+  List<String> ids;
 }

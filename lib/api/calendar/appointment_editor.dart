@@ -297,7 +297,6 @@ class AppointmentEditorState extends State<AppointmentEditor> {
                 controller: TextEditingController(text: notes),
                 onChanged: (String value) {
                   notes = value;
-                  selectedAppointment!.description = notes;
                 },
                 keyboardType: TextInputType.multiline,
                 maxLines: null,

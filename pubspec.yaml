@@ -12,6 +12,7 @@ dependencies:
   cloud_firestore: ^4.9.3
   cupertino_icons: ^1.0.6
   english_words: ^4.0.0
+  extension_google_sign_in_as_googleapis_auth: ^2.0.12
   file_picker: ^6.2.0
   firebase_auth: ^4.17.5
   firebase_core: ^2.25.4
