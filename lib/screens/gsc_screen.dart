@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:side_navigation/side_navigation.dart';
 import 'package:sysadmindb/api/invoice_service.dart';
+import 'package:sysadmindb/api/calendar/test_calendar.dart';
 import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/faculty.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
@@ -1745,7 +1746,7 @@ class _MainViewState extends State<Gscscreen> {
       ),
 
       // CALENDAR PAGE || Following guide: https://www.youtube.com/watch?v=6Gxa-v7Zh7I&ab_channel=AIwithFlutter
-      Calendar(),
+      CalendarSF(),
 
       // INBOX PAGE
       Column(

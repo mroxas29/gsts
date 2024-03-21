@@ -30,7 +30,7 @@ class _CalendarState extends State<Calendar> {
   TimeOfDay? pickedStartTime;
   TimeOfDay? pickedEndTime;
   String currentDate = 
-      "Today is: ${DateFormat('MMMM').format(today)} ${today.day}, ${today.year}]";
+      "Today is: ${DateFormat('MMMM').format(today)} ${today.day}, ${today.year}";
 
   EventTypeRadio? _eventtype = EventTypeRadio.online;
 

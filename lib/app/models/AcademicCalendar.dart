@@ -41,3 +41,4 @@ List<AcademicCalendar> academicCalendars = [
   AcademicCalendar("Term 3", DateTime(DateTime.now().year, 5, 1),
       DateTime(DateTime.now().year, 8, 31)),
 ];
+

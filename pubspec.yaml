@@ -10,6 +10,7 @@ environment:
 
 dependencies:
   cloud_firestore: ^4.9.3
+  cupertino_icons: ^1.0.6
   english_words: ^4.0.0
   file_picker: ^6.2.0
   firebase_auth: ^4.17.5
@@ -22,8 +23,8 @@ dependencies:
   flutter_html: 3.0.0-beta.2
   flutter_resizable_container: ^0.4.1
   flutter_secure_storage: ^9.0.0
-  flutter_widget_from_html: ^0.14.6
   flutter_typeahead: ^5.2.0
+  flutter_widget_from_html: ^0.14.6
   google_sign_in: ^6.1.5
   googleapis: ^12.0.0
   googleapis_auth: ^1.4.2
@@ -37,7 +38,7 @@ dependencies:
   provider: ^6.0.0
   shared_preferences: ^2.1.1
   side_navigation: ^1.0.4
-  syncfusion_flutter_calendar: ^24.2.7
+  syncfusion_flutter_calendar: 24.2.8
   syncfusion_flutter_pdfviewer: ^24.2.5
   table_calendar: ^3.0.9
   universal_html: ^2.2.4
