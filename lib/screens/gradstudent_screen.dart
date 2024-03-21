@@ -851,7 +851,8 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                                 style: TextButton.styleFrom(
                                   padding: const EdgeInsets.all(20.0),
                                   foregroundColor: selectedRadio ==
-                                          (currentStudent!.degree.contains('MIT')
+                                          (currentStudent!.degree
+                                                  .contains('MIT')
                                               ? 'Capstone'
                                               : 'Thesis')
                                       ? Color.fromARGB(255, 0, 0,
@@ -877,7 +878,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                                   ),
                                 ),
                                 child: Text(
-                                 currentStudent!.degree.contains('MIT')
+                                  currentStudent!.degree.contains('MIT')
                                       ? 'Capstone'
                                       : 'Thesis',
                                   style: TextStyle(color: Colors.black),
@@ -2137,7 +2138,6 @@ DataRow isCoursePassed(Course course) {
   }
 }
 
-
 class CapstoneProjectScreen extends StatefulWidget {
   @override
   State<CapstoneProjectScreen> createState() => _CapstoneProjectScreenState();
@@ -2180,7 +2180,6 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-       
         Padding(
           padding: const EdgeInsets.all(8.0),
           child: Column(
@@ -2295,11 +2294,11 @@ class _MainViewState extends State<GradStudentscreen>
 
   bool changeinPOS = false;
   SchoolYear? selectedSchoolYear = studentPOS.schoolYears[1];
-  int electiveCount = 0;
-  
+
   @override
   Widget build(BuildContext context) {
     // print(currentStudent.pastCourses[1]);
+    int electiveCount = 0;
     List<Widget> views = [
       Center(
         child: SingleChildScrollView(
