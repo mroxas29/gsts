@@ -32,7 +32,16 @@ class _CalendarState extends State<Calendar> {
   String currentDate = 
       "Today is: ${DateFormat('MMMM').format(today)} ${today.day}, ${today.year}";
 
+  // Radio Button Init
   EventTypeRadio? _eventtype = EventTypeRadio.online;
+  bool _locationVisible = false;
+
+  void handleSelection(EventTypeRadio? value) {
+    setState(() {
+      _eventtype = value;
+      _locationVisible = value == EventTypeRadio.f2f;
+    });
+  }
 
   // Store Events created
   //Map<DateTime, List<Event>> events = {};
@@ -150,6 +159,7 @@ class _CalendarState extends State<Calendar> {
                               onChanged: (EventTypeRadio? value) {
                                 setState(() {
                                   _eventtype = value;
+                                  _locationVisible = value == EventTypeRadio.f2f;
                                 });
                               },
                             ),
@@ -163,22 +173,34 @@ class _CalendarState extends State<Calendar> {
                               onChanged: (EventTypeRadio? value) {
                                 setState(() {
                                   _eventtype = value;
+                                  _locationVisible = value == EventTypeRadio.f2f;
                                 });
                               },
                             ),
                           ),
 
+                          // === OLD LOCATION PICKER ===
+                          if (_locationVisible)
+                            TextFormField(
+                              decoration: InputDecoration(
+                                labelText: 'Location',
+                                border: OutlineInputBorder(),
+                                hintText: '(e.g. G-301, LS-105, etc.)',
+                              ),
+                            ),
 
-                          // === LOCATION PICKER ===
-                          TextFormField(
+
+                          // === OLD LOCATION PICKER ===
+                          /* TextFormField(
                             decoration: InputDecoration(labelText: 'Location'),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return 'Please enter the Event Name';
+                                return 'Please enter the Event Location';
                               }
                               return null;
                             },
                           ),
+                          */
 
 
 
