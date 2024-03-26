@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:sysadmindb/app/models/courses.dart';
-import 'package:sysadmindb/app/models/sendemail.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/app/models/user.dart';
@@ -67,7 +66,15 @@ Future<String?> showStudentTypeDialog(
 void showAddNewUserForm(
     BuildContext context, GlobalKey<FormState> formKey, String studentType) {
   List<String> roles = ['Coordinator', 'Graduate Student', 'Admin'];
-  List<String> degrees = ['No degree', 'MIT', 'MSIT', 'MIT-Masters', 'MIT-Doctorate', 'MSIT-Masters', 'MSIT-Doctorate'];
+  List<String> degrees = [
+    'No degree',
+    'MIT',
+    'MSIT',
+    'MIT-Masters',
+    'MIT-Doctorate',
+    'MSIT-Masters',
+    'MSIT-Doctorate'
+  ];
   List<String> status = ['Full Time', 'Part Time', 'LOA'];
 
   final UserData _userData = UserData();
@@ -358,7 +365,6 @@ void showAddNewUserForm(
                   );
                 }
               }
-
             },
             child: Text('Add'),
           ),

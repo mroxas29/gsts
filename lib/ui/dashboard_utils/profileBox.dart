@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:sysadmindb/ui/responsive/gsc_dash.dart';
-import 'package:sysadmindb/ui/studentInfoPage.dart';
+import 'package:sysadmindb/ui/dashboard/gsc_dash.dart';
+import 'package:sysadmindb/ui/info_page/studentInfoPage.dart';
 
 
 

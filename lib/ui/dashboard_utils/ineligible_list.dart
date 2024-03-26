@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sysadmindb/app/models/sendemail.dart';
+import 'package:sysadmindb/api/email/sendemail.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 
 class IneligibleList extends StatelessWidget {

@@ -9,12 +9,13 @@ import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/app/models/term.dart';
 import 'package:sysadmindb/app/models/user.dart';
-import 'package:sysadmindb/ui/form.dart';
-import 'package:sysadmindb/ui/studentInfoPage.dart';
-import 'package:sysadmindb/ui/utils/ineligible_list.dart';
-import 'package:sysadmindb/ui/utils/profileBox.dart';
-import 'package:sysadmindb/ui/utils/studentList.dart';
-import 'package:sysadmindb/ui/utils/studentTile.dart';
+import 'package:sysadmindb/ui/info_page/deviatedInfoPage.dart';
+import 'package:sysadmindb/ui/forms/form.dart';
+import 'package:sysadmindb/ui/info_page/studentInfoPage.dart';
+import 'package:sysadmindb/ui/dashboard_utils/ineligible_list.dart';
+import 'package:sysadmindb/ui/dashboard_utils/profileBox.dart';
+import 'package:sysadmindb/ui/dashboard_utils/studentList.dart';
+import 'package:sysadmindb/ui/dashboard_utils/deviatedList.dart';
 
 class DesktopScaffold extends StatefulWidget {
   const DesktopScaffold({super.key});
@@ -26,6 +27,7 @@ class DesktopScaffold extends StatefulWidget {
 List<String> sytermParts = getCurrentSYandTerm().split(" ");
 Future<List<Student>> graduateStudents = convertToStudentList(users);
 
+List<Course> foundCourse = courses;
 Widget _buildEditableField(
     String label, TextEditingController controller, bool hasStudents) {
   return Padding(
@@ -46,6 +48,7 @@ Widget _buildEditableField(
 List<StudentPOS> getDeviatedStudents() {
   // Iterate through each studentPOS
   deviatedStudentList.clear();
+
   List<StudentPOS> posss = [];
 
   for (StudentPOS pos in studentPOSList) {
@@ -435,12 +438,6 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
           }
         }
 
-        for (DeviatedStudent devStudent in deviatedStudentList) {
-          if (devStudent.deviatedCourses
-              .any((devCourse) => devCourse.coursecode == course.coursecode)) {
-            occurrence -= 1;
-          }
-        }
         if (occurrence > 0) {
           uniqueCourses.add(MapEntry(course, occurrence));
         }
@@ -621,6 +618,11 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
   bool deviatedStudentsClicked = true;
 
   @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -713,6 +715,8 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                           totalStudentsClicked = false;
                                           newStudentsClicked = false;
                                           deviatedStudentsClicked = true;
+
+                                          getDeviatedStudents();
                                         });
                                       }
                                       if (index == 3) {
@@ -730,7 +734,8 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                         totalStudents: totalStudents,
                                         newStudents: newStudentList.length,
                                         deviatedStudents: deviatedStudents,
-                                        ineligibleStudents: ineligibleStudentList.length,
+                                        ineligibleStudents:
+                                            ineligibleStudentList.length,
                                         cardCount: index,
                                       ),
                                     ),
@@ -847,19 +852,22 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                           deviatedStudentList[index]
                                               .studentPOS
                                               .uid);
-
-                                      Navigator.push(
+                                      for (Course c
+                                          in deviatedStudentList[index]
+                                              .deviatedCourses) {
+                                        print('before:${c.coursecode}');
+                                      }
+                                      await Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (context) => StudentInfoPage(
-                                            student: deviatedStudentList[index]
-                                                .studentPOS as Student,
-                                            studentpos:
-                                                deviatedStudentList[index]
-                                                    .studentPOS,
+                                          builder: (context) =>
+                                              DeviatedInfoPage(
+                                            student: deviatedStudentList[index],
+                                            studentpos: studentPOS,
                                           ),
                                         ),
                                       );
+                                      setState(() {});
                                     },
                                     child: MouseRegion(
                                       cursor: SystemMouseCursors.click,
@@ -889,25 +897,26 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                   )
                                 ],
                               )),
-                  if(!deviatedStudentsClicked && !newStudentsClicked && !totalStudentsClicked)
-                  Expanded(
+                  if (!deviatedStudentsClicked &&
+                      !newStudentsClicked &&
+                      !totalStudentsClicked)
+                    Expanded(
                         child: ineligibleStudentList.isNotEmpty
                             ? ListView.builder(
                                 itemCount: ineligibleStudentList.length,
                                 itemBuilder: (context, index) {
                                   return GestureDetector(
                                     onTap: () async {
-                                       await retrieveStudentPOS(
+                                      await retrieveStudentPOS(
                                           ineligibleStudentList[index].uid);
 
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
                                           builder: (context) => StudentInfoPage(
-                                            student: ineligibleStudentList[index]
-                                              ,
-                                            studentpos: studentPOS
-                                          ),
+                                              student:
+                                                  ineligibleStudentList[index],
+                                              studentpos: studentPOS),
                                         ),
                                       );
                                     },
@@ -939,8 +948,6 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                   )
                                 ],
                               )),
-
-
                 ],
               ),
             ),

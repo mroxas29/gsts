@@ -8,9 +8,9 @@ import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/main.dart';
 import 'package:sysadmindb/app/models/user.dart';
-import 'package:sysadmindb/ui/form.dart';
+import 'package:sysadmindb/ui/forms/form.dart';
 import 'package:sysadmindb/ui/reusable_widgets.dart';
-import 'package:sysadmindb/ui/user_form_dialog.dart';
+import 'package:sysadmindb/ui/forms/user_form_dialog.dart';
 
 void main() {
   runApp(

@@ -4,13 +4,19 @@ import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/SchoolYear.dart';
 import 'package:sysadmindb/app/models/term.dart';
 
-class StudentTile extends StatelessWidget {
+class StudentTile extends StatefulWidget {
   final DeviatedStudent student;
   const StudentTile({super.key, required this.student});
 
+  @override
+  State<StudentTile> createState() => _StudentTileState();
+}
+
+class _StudentTileState extends State<StudentTile> {
+
   String findSYTerm(Course course) {
-    for (int i = 0; i < student.studentPOS.schoolYears.length; i++) {
-      SchoolYear sy = student.studentPOS.schoolYears[i];
+    for (int i = 0; i < widget.student.studentPOS.schoolYears.length; i++) {
+      SchoolYear sy = widget.student.studentPOS.schoolYears[i];
       for (int j = 0; j < sy.terms.length; j++) {
         Term term = sy.terms[j];
 
@@ -49,16 +55,16 @@ class StudentTile extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "ID Number: ${student.studentPOS.idnumber}",
+                      "ID Number: ${widget.student.studentPOS.idnumber}",
                       style:
                           TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     Text(
-                      "${student.studentPOS.displayname['firstname']} ${student.studentPOS.displayname['lastname']}",
+                      "${widget.student.studentPOS.displayname['firstname']} ${widget.student.studentPOS.displayname['lastname']}",
                       style: TextStyle(fontSize: 16),
                     ),
                     Text(
-                      student.studentPOS.email,
+                      widget.student.studentPOS.email,
                       style: TextStyle(fontSize: 14),
                     ),
                   ],
@@ -73,16 +79,12 @@ class StudentTile extends StatelessWidget {
                       style:
                           TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                     ),
-                    for (Course course in student.deviatedCourses)
+                    for (Course course in widget.student.deviatedCourses)
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "${course.coursecode}: ${course.coursename}",
-                            style: TextStyle(fontSize: 14),
-                          ),
-                          Text(
-                            "Course is supposed to be taken on ${findSYTerm(course)}",
+                            "Course ${course.coursecode}: ${course.coursename} is supposed to be taken on ${findSYTerm(course)}",
                             style: TextStyle(fontSize: 14, color: Colors.red),
                           ),
                           SizedBox(

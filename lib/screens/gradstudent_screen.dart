@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:flutter/material.dart';
 import 'package:side_navigation/side_navigation.dart';
-import 'package:sysadmindb/api/google_drive.dart';
 import 'package:sysadmindb/app/models/AcademicCalendar.dart';
 import 'package:sysadmindb/app/models/coursedemand.dart';
 import 'package:sysadmindb/app/models/courses.dart';
@@ -14,10 +13,11 @@ import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/app/models/term.dart';
 import 'package:sysadmindb/main.dart';
-import 'package:sysadmindb/ui/form.dart';
-import 'package:sysadmindb/ui/calendar.dart';
+import 'package:sysadmindb/ui/forms/form.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
+
+import 'package:sysadmindb/api/calendar/test_calendar.dart';
 import 'package:googleapis_auth/googleapis_auth.dart' as auth;
 
 void main() {
@@ -940,7 +940,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                           ),
                         if (!hasPreReq)
                           Text(
-                            'This course is has a pre-requisite course which you have not taken',
+                            'This course has a pre-requisite course which you have not taken',
                             style: TextStyle(color: Colors.red),
                           ),
                         if (selectedCourse != null)
@@ -1023,7 +1023,6 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                             setState(() {
                               hasPreReq = false;
                             });
-                            return;
                           } else {
                             late EnrolledCourseData enrolledCourse;
 
@@ -2300,103 +2299,110 @@ class _MainViewState extends State<GradStudentscreen>
     // print(currentStudent.pastCourses[1]);
     int electiveCount = 0;
     List<Widget> views = [
-      Center(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Program of Study',
-                  textDirection: TextDirection.ltr,
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 20),
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    color:
-                        Colors.white, // Set the background color of the table
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.5),
-                        spreadRadius: 2,
-                        blurRadius: 5,
-                        offset: Offset(0, 3), // changes position of shadow
+      Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Program of Study',
+                      textDirection: TextDirection.ltr,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
                       ),
-                    ],
-                  ),
-                  child: DataTable(
-                    headingTextStyle: TextStyle(
-                      fontWeight: FontWeight.bold,
                     ),
-                    dataRowColor: MaterialStateColor.resolveWith(
-                      (states) => Colors.white,
+                    SizedBox(height: 20),
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        color: Colors
+                            .white, // Set the background color of the table
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.5),
+                            spreadRadius: 2,
+                            blurRadius: 5,
+                            offset: Offset(0, 3), // changes position of shadow
+                          ),
+                        ],
+                      ),
+                      child: DataTable(
+                        headingTextStyle: TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
+                        dataRowColor: MaterialStateColor.resolveWith(
+                          (states) => Colors.white,
+                        ),
+                        columns: [
+                          DataColumn(
+                            label: Text(
+                              'Course Code',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          DataColumn(
+                            label: Text(
+                              'Course Name',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          DataColumn(
+                            label: Text(
+                              'Units',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          DataColumn(
+                            label: Text(
+                              'Course Type',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                        rows: [
+                          for (var year in studentPOS.schoolYears)
+                            for (var term in year.terms)
+                              for (var course in term.termcourses)
+                                DataRow(cells: [
+                                  DataCell(Text(course.coursecode)),
+                                  DataCell(
+                                    Row(
+                                      children: [
+                                        Text(course.coursename),
+                                        if (course.type == 'Elective Courses')
+                                          Text(
+                                            ' (ELEC${++electiveCount})',
+                                            style:
+                                                TextStyle(color: Colors.grey),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  DataCell(Text('${course.units}')),
+                                  DataCell(Text(course.type)),
+                                ]),
+                        ],
+                      ),
                     ),
-                    columns: [
-                      DataColumn(
-                        label: Text(
-                          'Course Code',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      DataColumn(
-                        label: Text(
-                          'Course Name',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      DataColumn(
-                        label: Text(
-                          'Units',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      DataColumn(
-                        label: Text(
-                          'Course Type',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ],
-                    rows: [
-                      for (var year in studentPOS.schoolYears)
-                        for (var term in year.terms)
-                          for (var course in term.termcourses)
-                            DataRow(cells: [
-                              DataCell(Text(course.coursecode)),
-                              DataCell(
-                                Row(
-                                  children: [
-                                    Text(course.coursename),
-                                    if (course.type == 'Elective Courses')
-                                      Text(
-                                        ' (ELEC${++electiveCount})',
-                                        style: TextStyle(color: Colors.grey),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                              DataCell(Text('${course.units}')),
-                              DataCell(Text(course.type)),
-                            ]),
-                    ],
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
 
       // CALENDAR PAGE || Following guide: https://www.youtube.com/watch?v=6Gxa-v7Zh7I&ab_channel=AIwithFlutter
-      Calendar(),
+      CalendarSF(),
 
       Center(
         child: Text(

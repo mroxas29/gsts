@@ -7,6 +7,7 @@ import 'package:googleapis/calendar/v3.dart' as GoogleAPI;
 import 'package:http/io_client.dart' show IOClient, IOStreamedResponse;
 import 'package:http/http.dart' show BaseRequest, Response;
 import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
+import 'package:sysadmindb/app/models/user.dart';
 
 class CalendarSF extends StatefulWidget {
   const CalendarSF({super.key});
@@ -22,14 +23,14 @@ int selectedTimeZoneIndex = 0;
 int selectedResourceIndex = 0;
 late List<String> timeZoneCollection;
 late GoogleDataSource events;
-Meeting? selectedAppointment;
+GoogleAPI.Event? selectedAppointment;
 late DateTime startDate;
 late TimeOfDay startTime;
 late DateTime endDate;
 late TimeOfDay endTime;
 late bool isAllDay;
+String description = '';
 String subject = '';
-String notes = '';
 late List<CalendarResource> employeeCollection;
 late List<String> nameCollection;
 
@@ -50,12 +51,10 @@ class _CalendarSFState extends State<CalendarSF> {
   @override
   void initState() {
     // appointments = getGoogleEventsData() as List<GoogleAPI.Event>;
-    // events = GoogleDataSource(events: [appointments]);
     selectedAppointment = null;
     selectedColorIndex = 0;
     selectedTimeZoneIndex = 0;
     subject = '';
-    notes = '';
     super.initState();
     getMeetingDetails();
 
@@ -116,6 +115,7 @@ class _CalendarSFState extends State<CalendarSF> {
 
   SfCalendar getEventCalendar(
       CalendarTapCallback calendarTapCallback, AsyncSnapshot snapshot) {
+    events = GoogleDataSource(events: snapshot.data);
     return SfCalendar(
         view: CalendarView.month,
         controller: calendarController,
@@ -131,7 +131,15 @@ class _CalendarSFState extends State<CalendarSF> {
               calendarAppointmentDetails.appointments.first;
           return Container(
             color: Colors.green,
-            child: Text(meeting.summary!),
+            child: Column(
+              children: [
+                Text(
+                  meeting.summary!,
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(meeting.description!)
+              ],
+            ),
           );
         },
         initialDisplayDate: DateTime(DateTime.now().year, DateTime.now().month,
@@ -147,6 +155,7 @@ class _CalendarSFState extends State<CalendarSF> {
         calendarTapDetails.targetElement != CalendarElement.appointment) {
       return;
     }
+// Initialize Calendar service with valid OAuth credentials
 
     setState(() {
       selectedAppointment = null;
@@ -159,20 +168,27 @@ class _CalendarSFState extends State<CalendarSF> {
       } else {
         if (calendarTapDetails.appointments != null &&
             calendarTapDetails.appointments!.length == 1) {
-          final Meeting meetingDetails = calendarTapDetails.appointments![0];
+          final GoogleAPI.Event meetingDetails =
+              calendarTapDetails.appointments![0];
+
+          print(meetingDetails.description);
           setState(() {
-            startDate = meetingDetails.from;
-            endDate = meetingDetails.to;
-            isAllDay = meetingDetails.isAllDay;
-            selectedColorIndex =
-                colorCollection.indexOf(meetingDetails.background);
-            selectedTimeZoneIndex = meetingDetails.startTimeZone == ''
+            startDate = meetingDetails.start!.date!;
+
+            startTime = TimeOfDay.fromDateTime(meetingDetails.start!.dateTime!);
+            endTime = TimeOfDay.fromDateTime(meetingDetails.end!.dateTime!);
+            endDate = meetingDetails.end!.date!;
+            isAllDay = meetingDetails.endTimeUnspecified!;
+            selectedColorIndex = 0;
+            selectedTimeZoneIndex = meetingDetails.start!.timeZone! == ''
                 ? 0
-                : timeZoneCollection.indexOf(meetingDetails.startTimeZone);
-            subject = meetingDetails.eventName == '(No title)'
+                : timeZoneCollection.indexOf(meetingDetails.start!.timeZone!);
+            subject = (meetingDetails.summary == '(No title)'
                 ? ''
-                : meetingDetails.eventName;
-            notes = meetingDetails.description;
+                : meetingDetails.summary)!;
+            description = meetingDetails.description! == ''
+                ? ''
+                : meetingDetails.description!;
 
             selectedAppointment = meetingDetails;
           });
@@ -183,6 +199,7 @@ class _CalendarSFState extends State<CalendarSF> {
         }
         startTime = TimeOfDay(hour: startDate.hour, minute: startDate.minute);
         endTime = TimeOfDay(hour: endDate.hour, minute: endDate.minute);
+
         Navigator.push<Widget>(
           context,
           MaterialPageRoute(
@@ -196,10 +213,9 @@ class _CalendarSFState extends State<CalendarSF> {
     final List<Meeting> meetingCollection = <Meeting>[];
 
     nameCollection = <String>[];
-    nameCollection.add('John');
-    nameCollection.add('Bryan');
-    nameCollection.add('Robert');
-    nameCollection.add('Kenny');
+    for (user userEmail in users) {
+      nameCollection.add(userEmail.email);
+    }
 
     eventNameCollection = <String>[];
     eventNameCollection.add('General Meeting');
@@ -222,30 +238,6 @@ class _CalendarSFState extends State<CalendarSF> {
     timeZoneCollection = <String>[];
     timeZoneCollection.add('Default Time');
     timeZoneCollection.add('Singapore Standard Time');
-
-    final DateTime today = DateTime.now();
-    final Random random = Random();
-    for (int month = -1; month < 2; month++) {
-      for (int day = -5; day < 5; day++) {
-        for (int hour = 9; hour < 18; hour += 5) {
-          meetingCollection.add(Meeting(
-            from: today
-                .add(Duration(days: (month * 30) + day))
-                .add(Duration(hours: hour)),
-            to: today
-                .add(Duration(days: (month * 30) + day))
-                .add(Duration(hours: hour + 2)),
-            background: colorCollection[random.nextInt(4)],
-            startTimeZone: '',
-            endTimeZone: '',
-            description: '',
-            isAllDay: false,
-            eventName: eventNameCollection[random.nextInt(4)],
-            ids: [],
-          ));
-        }
-      }
-    }
 
     return meetingCollection;
   }
@@ -352,7 +344,6 @@ class Meeting {
       this.startTimeZone = '',
       this.endTimeZone = '',
       this.description = '',
-      this.notes = '',
       required this.ids});
 
   String eventName;
@@ -363,6 +354,5 @@ class Meeting {
   String startTimeZone;
   String endTimeZone;
   String description;
-  String notes;
   List<String> ids;
 }

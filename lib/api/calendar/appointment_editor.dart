@@ -5,6 +5,7 @@ import 'package:sysadmindb/api/calendar/color_picker.dart';
 import 'package:sysadmindb/api/calendar/resource_picker.dart';
 import 'package:sysadmindb/api/calendar/test_calendar.dart';
 import 'package:sysadmindb/api/calendar/timezone_picker.dart';
+import 'package:googleapis/calendar/v3.dart' as GoogleAPI;
 
 class AppointmentEditor extends StatefulWidget {
   const AppointmentEditor({super.key});
@@ -294,9 +295,9 @@ class AppointmentEditorState extends State<AppointmentEditor> {
                 color: Colors.black87,
               ),
               title: TextField(
-                controller: TextEditingController(text: notes),
+                controller: TextEditingController(text: description),
                 onChanged: (String value) {
-                  notes = value;
+                  description = value;
                 },
                 keyboardType: TextInputType.multiline,
                 maxLines: null,
@@ -343,28 +344,34 @@ class AppointmentEditorState extends State<AppointmentEditor> {
                       color: Colors.white,
                     ),
                     onPressed: () {
-                      final List<Meeting> meetings = <Meeting>[];
+                      final List<GoogleAPI.Event> meetings =
+                          <GoogleAPI.Event>[];
                       if (selectedAppointment != null) {
                         events.appointments!.removeAt(
                             events.appointments!.indexOf(selectedAppointment));
                         events.notifyListeners(CalendarDataSourceAction.remove,
-                            <Meeting>[selectedAppointment!]);
+                            <GoogleAPI.Event>[selectedAppointment!]);
                       }
-                      meetings.add(Meeting(
-                        from: startDate,
-                        to: endDate,
-                        background: colorCollection[selectedColorIndex],
-                        startTimeZone: selectedTimeZoneIndex == 0
-                            ? ''
-                            : timeZoneCollection[selectedTimeZoneIndex],
-                        endTimeZone: selectedTimeZoneIndex == 0
-                            ? ''
-                            : timeZoneCollection[selectedTimeZoneIndex],
-                        description: notes,
-                        notes: notes,
-                        isAllDay: isAllDay,
-                        eventName: subject == '' ? '(No title)' : subject,
-                        ids: [],
+                      meetings.add(GoogleAPI.Event(
+                        start: GoogleAPI.EventDateTime(
+                          date: startDate,
+                          dateTime: DateTime(startDate.year, startDate.month,
+                              startDate.day, startTime.hour, startTime.minute),
+                          timeZone: selectedTimeZoneIndex == 0
+                              ? ''
+                              : timeZoneCollection[selectedTimeZoneIndex],
+                        ),
+                        end: GoogleAPI.EventDateTime(
+                          date: startDate,
+                          dateTime: DateTime(endDate.year, endDate.month,
+                              endDate.day, endDate.hour, endDate.minute),
+                          timeZone: selectedTimeZoneIndex == 0
+                              ? ''
+                              : timeZoneCollection[selectedTimeZoneIndex],
+                        ),
+                        description: description,
+                        endTimeUnspecified: isAllDay,
+                        summary: subject == '' ? '(No title)' : subject,
                       ));
 
                       events.appointments!.add(meetings[0]);
@@ -390,7 +397,7 @@ class AppointmentEditorState extends State<AppointmentEditor> {
                         events.appointments!.removeAt(
                             events.appointments!.indexOf(selectedAppointment));
                         events.notifyListeners(CalendarDataSourceAction.remove,
-                            <Meeting>[]..add(selectedAppointment!));
+                            <GoogleAPI.Event>[]..add(selectedAppointment!));
                         selectedAppointment = null;
                         Navigator.pop(context);
                       }
