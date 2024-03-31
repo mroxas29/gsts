@@ -2535,6 +2535,10 @@ class _MainViewState extends State<GradStudentscreen>
                         dataRowColor: MaterialStateColor.resolveWith(
                           (states) => Colors.white,
                         ),
+                        border: TableBorder.all(
+                          width: 0.5,
+                          color: Colors.black,
+                        ),
                         columns: [
                           DataColumn(
                             label: Text(
