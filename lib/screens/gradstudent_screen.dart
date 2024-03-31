@@ -2492,12 +2492,12 @@ class _MainViewState extends State<GradStudentscreen>
     // print(currentStudent.pastCourses[1]);
     int electiveCount = 0;
     List<Widget> views = [
-      Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: SingleChildScrollView(
+      SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
                 child: Column(
@@ -2562,27 +2562,62 @@ class _MainViewState extends State<GradStudentscreen>
                           ),
                         ],
                         rows: [
-                          for (var year in studentPOS.schoolYears)
-                            for (var term in year.terms)
+                          for (var year in studentPOS.schoolYears) ...[
+                            DataRow(cells: [
+                              DataCell(Text(
+                                'S.Y: ${year.name}',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              )),
+                              DataCell(Text(
+                                '',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              )),
+                              DataCell(Text('')), // Empty cell for units
+                              DataCell(Text('')), // Empty cell for course type
+                            ]),
+                            for (var term in year.terms) ...[
+                              DataRow(cells: [
+                                DataCell(Text(
+                                  term.name,
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                )),
+                                DataCell(Text(
+                                  '',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                )),
+                                DataCell(Text('')), // Empty cell for units
+                                DataCell(
+                                    Text('')), // Empty cell for course type
+                              ]),
                               for (var course in term.termcourses)
                                 DataRow(cells: [
-                                  DataCell(Text(course.coursecode)),
-                                  DataCell(
-                                    Row(
-                                      children: [
-                                        Text(course.coursename),
-                                        if (course.type == 'Elective Courses')
-                                          Text(
-                                            ' (ELEC${++electiveCount})',
-                                            style:
-                                                TextStyle(color: Colors.grey),
-                                          ),
-                                      ],
-                                    ),
-                                  ),
+                                  // Always create two cells for the first column
+                                  DataCell(Text(
+                                      course.type != 'Elective Courses'
+                                          ? course.coursecode
+                                          : '')), // Course Code or empty string
+                                  DataCell(Text(course.type ==
+                                          'Elective Courses'
+                                      ? 'Elective ${electiveCount++}'
+                                      : course
+                                          .coursename)), // Course Name (Elective or regular)
                                   DataCell(Text('${course.units}')),
                                   DataCell(Text(course.type)),
                                 ]),
+                            ],
+                            // Add an empty row after processing all terms in the school year
+                            DataRow(
+                              cells: [
+                                DataCell(Text('')),
+                                DataCell(Text('')),
+                                DataCell(Text('')),
+                                DataCell(Text('')),
+                              ],
+                              color: MaterialStateProperty.all(Colors.grey
+                                  .withOpacity(
+                                      0.2)), // Set a slightly transparent grey
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -2590,8 +2625,8 @@ class _MainViewState extends State<GradStudentscreen>
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
 
       // CALENDAR PAGE || Following guide: https://www.youtube.com/watch?v=6Gxa-v7Zh7I&ab_channel=AIwithFlutter
