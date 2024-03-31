@@ -2490,7 +2490,7 @@ class _MainViewState extends State<GradStudentscreen>
   @override
   Widget build(BuildContext context) {
     // print(currentStudent.pastCourses[1]);
-    int electiveCount = 0;
+    int electiveCount = 1;
     List<Widget> views = [
       SingleChildScrollView(
         child: Column(

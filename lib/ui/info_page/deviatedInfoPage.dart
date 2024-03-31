@@ -141,15 +141,18 @@ class _DeviatedInfoPage extends State<DeviatedInfoPage>
       posEdited = true;
     });
 
-    // Update deviated students
-
     // Determine the maximum number of units based on the student's status
     int maxUnits = (widget.studentpos.status == 'Part Time') ? 6 : 12;
-    List<Course> coursesToMove = [];
-    // Get the enrolled courses
 
+    // Set to track attempted moves
+    Set<Course> attemptedToMove = {};
+
+    // Iterate through school years
     for (int i = 0; i < widget.studentpos.schoolYears.length; i++) {
       SchoolYear year = widget.studentpos.schoolYears[i];
+      bool movedToNextTerm = false;
+
+      // Iterate through terms within the current year
       for (int j = 0; j < year.terms.length; j++) {
         Term term = year.terms[j];
         int termUnits =
@@ -158,139 +161,69 @@ class _DeviatedInfoPage extends State<DeviatedInfoPage>
         // Check if the current term is the same as the current SY and term
         if (getCurrentSYandTerm().contains(term.name) &&
             getCurrentSYandTerm().contains(year.name)) {
-          // Check if the term has available units to add courses
-          if (termUnits <= maxUnits) {
-            // Add deviated courses to the term if there's space
-            int devCourseIndex = 0;
-            while (devCourseIndex < widget.student.deviatedCourses.length) {
-              Course devCourse = widget.student.deviatedCourses[devCourseIndex];
-              if (!term.termcourses.contains(devCourse) &&
-                  termUnits + devCourse.units <= maxUnits) {
-                term.termcourses.add(devCourse);
+          // Add deviated courses to the term if there's space
+          for (int devCourseIndex = 0;
+              devCourseIndex < widget.student.deviatedCourses.length;
+              devCourseIndex++) {
+            Course devCourse = widget.student.deviatedCourses[devCourseIndex];
 
-                termUnits += devCourse.units;
-                int duplicateCheck = 0;
-                for (int i = 0; i < widget.studentpos.schoolYears.length; i++) {
-                  for (int j = 0;
-                      j < widget.studentpos.schoolYears[i].terms.length;
-                      j++) {
-                    for (int k = 0;
-                        k <
-                            widget.studentpos.schoolYears[i].terms[j]
-                                .termcourses.length;
-                        k++) {
-                      for (int a = 0;
-                          a <
-                              widget.studentpos.schoolYears[i].terms[j]
-                                  .termcourses.length;
-                          a++) {
-                        if (widget.studentpos.schoolYears[i].terms[j]
-                                .termcourses[a].coursecode ==
-                            devCourse.coursecode) {
-                          if (duplicateCheck < 2) {
-                            duplicateCheck++;
-                          } else {
-                            widget
-                                .studentpos.schoolYears[i].terms[j].termcourses
-                                .removeAt(a);
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-
-                widget.student.deviatedCourses.removeAt(devCourseIndex);
-              } else {
-                // Try moving the excess units to the next available term or school year
-                for (int n = j + 1; n < year.terms.length; n++) {
-                  Term nextTerm = year.terms[n];
-                  int nextTermUnits = nextTerm.termcourses
-                      .fold(0, (acc, course) => acc + course.units);
-                  if (!nextTerm.termcourses.contains(devCourse) &&
-                      nextTermUnits + termUnits <= maxUnits) {
-                    // Move excess courses to the next term
-                    nextTerm.termcourses.add(devCourse);
-                    term.termcourses.remove(devCourse);
-                    break; // Exit loop after moving courses
-                  }
-                }
-                // If unable to move to the next term, try the next school year
-                if (term.termcourses.isNotEmpty) {
-                  for (int m = i + 1;
-                      m < widget.studentpos.schoolYears.length;
-                      m++) {
-                    SchoolYear nextYear = widget.studentpos.schoolYears[m];
-                    for (int n = 0; n < nextYear.terms.length; n++) {
-                      Term nextTerm = nextYear.terms[n];
-                      int nextTermUnits = nextTerm.termcourses
-                          .fold(0, (acc, course) => acc + course.units);
-                      if (!nextTerm.termcourses.contains(devCourse) &&
-                          nextTermUnits + termUnits <= maxUnits) {
-                        // Move excess courses to the next school year
-                        nextTerm.termcourses.add(devCourse);
-                        term.termcourses.remove(devCourse);
-                        break; // Exit loop after moving courses
-                      }
-                    }
-                    // Exit the loop if courses have been moved to the next school year
-                    if (term.termcourses.isEmpty) {
-                      break;
-                    }
-                  }
-                }
-                // Move to the next deviated course
-                devCourseIndex++;
-              }
+            // Check if the course has already been attempted to be moved
+            if (attemptedToMove.contains(devCourse)) {
+              continue;
             }
-          }
-        } else {
-          // Move enrolled courses from other school years and terms to the current one
-          if (termUnits < maxUnits) {
-            for (int k = 0; k < term.termcourses.length; k++) {
-              Course termCourse = term.termcourses[k];
-              if (widget.student.studentPOS.enrolledCourses
-                  .contains(termCourse)) {
-                term.termcourses.remove(termCourse);
-                year.terms[j].termcourses.add(termCourse);
-                // Decrement loop counter to recheck current index
-                k--;
-              }
+
+            if (!term.termcourses.contains(devCourse) &&
+                termUnits + devCourse.units <= maxUnits) {
+              // There's space in the current term, add the deviated course
+              term.termcourses.add(devCourse);
+              termUnits += devCourse.units;
+              attemptedToMove
+                  .add(devCourse); // Mark course as attempted to move
+              widget.student.deviatedCourses.removeAt(devCourseIndex);
             }
           }
 
-          // Remove duplicates in the following school years and terms
-          for (int i = 0; i < widget.studentpos.schoolYears.length; i++) {
-            SchoolYear year = widget.studentpos.schoolYears[i];
-            for (int j = 0; j < year.terms.length; j++) {
-              Term term = year.terms[j];
-              for (int k = 0; k < term.termcourses.length; k++) {
-                Course termCourse = term.termcourses[k];
-
-                // Remove duplicates in the following school years and terms
-                for (int m = i + 1;
-                    m < widget.studentpos.schoolYears.length;
-                    m++) {
-                  SchoolYear nextYear = widget.studentpos.schoolYears[m];
-                  for (int n = 0; n < nextYear.terms.length; n++) {
-                    Term nextTerm = nextYear.terms[n];
-                    for (int p = 0; p < nextTerm.termcourses.length; p++) {
-                      Course nextTermCourse = nextTerm.termcourses[p];
-                      if (termCourse == nextTermCourse) {
-                        nextTerm.termcourses.remove(nextTermCourse);
-                        // Decrement loop counter to recheck current index
-                        p--;
-                      }
-                    }
-                  }
+          // Try moving other courses to subsequent terms if the current term is full
+          for (int k = 0; k < term.termcourses.length; k++) {
+            Course courseToMove = term.termcourses[k];
+            int remainingSpace = maxUnits - termUnits;
+            if (remainingSpace < courseToMove.units) {
+              // Try moving to subsequent terms
+              for (int nextTermIndex = j + 1;
+                  nextTermIndex < year.terms.length;
+                  nextTermIndex++) {
+                Term nextTerm = year.terms[nextTermIndex];
+                int nextTermUnits = nextTerm.termcourses
+                    .fold(0, (acc, course) => acc + course.units);
+                int spaceInNextTerm = maxUnits - nextTermUnits;
+                if (spaceInNextTerm >= courseToMove.units) {
+                  // There's space in the next term, move the course
+                  term.termcourses.removeAt(k);
+                  nextTerm.termcourses.add(courseToMove);
+                  termUnits -= courseToMove.units;
+                  movedToNextTerm = true;
+                  break; // Exit loop after moving a course
                 }
               }
             }
           }
         }
+
+        // If courses were moved to the next term, break out of the loop to prevent infinite processing
+        if (movedToNextTerm) {
+          break;
+        }
+      }
+      // If courses were moved to the next term, break out of the outer loop as well
+      if (movedToNextTerm) {
+        break;
       }
     }
 
+    // Clear attempted moves after restructuring
+    attemptedToMove.clear();
+
+    // Further processing such as handling unmovable courses or updating UI
     getDeviatedStudents();
   }
 
