@@ -52,7 +52,7 @@ class IneligibleList extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "ID Number: ${student.idnumber} (Student should have graduated on ${graduatingYear(student.degree, student.idnumber.toString())})",
+                      "ID Number: ${student.idnumber} (Student should have graduated on or before ${graduatingYear(student.degree, student.idnumber.toString())})",
                       style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,

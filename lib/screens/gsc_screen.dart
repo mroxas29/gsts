@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:side_navigation/side_navigation.dart';
 import 'package:sysadmindb/api/email/invoice_service.dart';
 import 'package:sysadmindb/api/calendar/test_calendar.dart';
+import 'package:sysadmindb/app/models/DeviatedStudents.dart';
 import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/faculty.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
@@ -13,6 +14,7 @@ import 'package:sysadmindb/app/models/user.dart';
 import 'package:sysadmindb/ui/forms/addcourse.dart';
 import 'package:sysadmindb/ui/forms/form.dart';
 import 'package:sysadmindb/ui/dashboard/gsc_dash.dart';
+import 'package:sysadmindb/ui/info_page/deviatedInfoPage.dart';
 import 'package:sysadmindb/ui/info_page/studentInfoPage.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:html' as html;
@@ -1180,7 +1182,7 @@ class _MainViewState extends State<Gscscreen> {
                           ],
                         ),
                         TextButton(
-                          onPressed: () {
+                          onPressed: () async {
                             final String selectedStudentUid = selectedPOS!
                                 .uid; // Assuming selectedPOS has a studentUid property
                             Student? selectedStudent;
@@ -1192,13 +1194,40 @@ class _MainViewState extends State<Gscscreen> {
                                 break; // Exit the loop once a matching student is found
                               }
                             }
-                            Navigator.push(
+
+                            await retrieveStudentPOS(selectedStudent!.uid);
+
+                            late DeviatedStudent devStudent;
+                            bool isDeviated = false;
+                            for (DeviatedStudent student
+                                in deviatedStudentList) {
+                              if (student.studentPOS.idnumber ==
+                                  selectedStudent.idnumber) {
+                                devStudent = student;
+                                isDeviated = true;
+                              }
+                            }
+                            if (isDeviated) {
+                              Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                    builder: (context) => StudentInfoPage(
-                                          student: selectedStudent!,
-                                          studentpos: selectedPOS!,
-                                        )));
+                                  builder: (context) => DeviatedInfoPage(
+                                    student: devStudent,
+                                    studentpos: studentPOS,
+                                  ),
+                                ),
+                              );
+                            } else {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => StudentInfoPage(
+                                    student: selectedStudent!,
+                                    studentpos: studentPOS,
+                                  ),
+                                ),
+                              );
+                            }
                           },
                           child: Text(
                             'See student profile',

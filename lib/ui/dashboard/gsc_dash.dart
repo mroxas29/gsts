@@ -616,7 +616,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
   bool totalStudentsClicked = false;
   bool newStudentsClicked = false;
   bool deviatedStudentsClicked = true;
-
+  bool graduatingStudentsClicked = false;
   @override
   void initState() {
     super.initState();
@@ -677,7 +677,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                   crossAxisCount: 1,
                                   childAspectRatio: 1,
                                 ),
-                                itemCount: 4,
+                                itemCount: 5,
                                 itemBuilder: (context, index) {
                                   // Dummy data for counts (replace with actual data)
                                   int totalStudents = studentList
@@ -699,6 +699,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                           totalStudentsClicked = true;
                                           newStudentsClicked = false;
                                           deviatedStudentsClicked = false;
+                                          graduatingStudentsClicked = false;
                                         });
                                       }
                                       if (index == 1) {
@@ -707,6 +708,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                           totalStudentsClicked = false;
                                           newStudentsClicked = true;
                                           deviatedStudentsClicked = false;
+                                          graduatingStudentsClicked = false;
                                         });
                                       }
                                       if (index == 2) {
@@ -715,7 +717,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                           totalStudentsClicked = false;
                                           newStudentsClicked = false;
                                           deviatedStudentsClicked = true;
-
+                                          graduatingStudentsClicked = false;
                                           getDeviatedStudents();
                                         });
                                       }
@@ -725,6 +727,16 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                           totalStudentsClicked = false;
                                           newStudentsClicked = false;
                                           deviatedStudentsClicked = false;
+                                          graduatingStudentsClicked = false;
+                                        });
+                                      }
+                                      if (index == 4) {
+                                        print('Graduating Students Clicked');
+                                        setState(() {
+                                          totalStudentsClicked = false;
+                                          newStudentsClicked = false;
+                                          deviatedStudentsClicked = false;
+                                          graduatingStudentsClicked = true;
                                         });
                                       }
                                     },
@@ -737,6 +749,8 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                         ineligibleStudents:
                                             ineligibleStudentList.length,
                                         cardCount: index,
+                                        graduatingStudents:
+                                            graduatingStudentsList.length,
                                       ),
                                     ),
                                   );
@@ -756,7 +770,9 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                             ? "New Students (${getCurrentSYandTerm()})"
                             : deviatedStudentsClicked
                                 ? "Deviated Students (${getCurrentSYandTerm()})"
-                                : "Ineligible Students (${getCurrentSYandTerm()})", // Empty string if none of the buttons are clicked
+                                : graduatingStudentsClicked
+                                    ? ' Graduating Students'
+                                    : "Ineligible Students (${getCurrentSYandTerm()})", // Empty string if none of the buttons are clicked
                     textAlign: TextAlign.left,
                     style: TextStyle(
                       fontSize: 12,
@@ -773,15 +789,37 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                   await retrieveStudentPOS(
                                       studentList[index].uid);
 
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => StudentInfoPage(
-                                        student: studentList[index],
-                                        studentpos: studentPOS,
+                                  late DeviatedStudent devStudent;
+                                  bool isDeviated = false;
+                                  for (DeviatedStudent student
+                                      in deviatedStudentList) {
+                                    if (student.studentPOS.idnumber ==
+                                        studentList[index].idnumber) {
+                                      devStudent = student;
+                                      isDeviated = true;
+                                    }
+                                  }
+                                  if (isDeviated) {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => DeviatedInfoPage(
+                                          student: devStudent,
+                                          studentpos: studentPOS,
+                                        ),
                                       ),
-                                    ),
-                                  );
+                                    );
+                                  } else {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => StudentInfoPage(
+                                          student: studentList[index],
+                                          studentpos: studentPOS,
+                                        ),
+                                      ),
+                                    );
+                                  }
                                 },
                                 child: MouseRegion(
                                   cursor: SystemMouseCursors.click,
@@ -867,7 +905,6 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                           ),
                                         ),
                                       );
-                                      setState(() {});
                                     },
                                     child: MouseRegion(
                                       cursor: SystemMouseCursors.click,
@@ -899,7 +936,8 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                               )),
                   if (!deviatedStudentsClicked &&
                       !newStudentsClicked &&
-                      !totalStudentsClicked)
+                      !totalStudentsClicked &&
+                      !graduatingStudentsClicked)
                     Expanded(
                         child: ineligibleStudentList.isNotEmpty
                             ? ListView.builder(
@@ -941,6 +979,55 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                   ),
                                   Text(
                                     'No ineligible Students',
+                                    style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold),
+                                  )
+                                ],
+                              )),
+                  if (graduatingStudentsClicked)
+                    Expanded(
+                        child: graduatingStudentsList.isNotEmpty
+                            ? ListView.builder(
+                                itemCount: graduatingStudentsList.length,
+                                itemBuilder: (context, index) {
+                                  return GestureDetector(
+                                    onTap: () async {
+                                      await retrieveStudentPOS(
+                                          graduatingStudentsList[index].uid);
+
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => StudentInfoPage(
+                                              student:
+                                                  graduatingStudentsList[index],
+                                              studentpos: studentPOS),
+                                        ),
+                                      );
+                                    },
+                                    child: MouseRegion(
+                                      cursor: SystemMouseCursors.click,
+                                      child: StudentList(
+                                        student: graduatingStudentsList[index],
+                                      ),
+                                    ),
+                                  );
+                                })
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.error_outline,
+                                    color: Colors.grey,
+                                  ),
+                                  SizedBox(
+                                    width: 20,
+                                  ),
+                                  Text(
+                                    'No graduating Students',
                                     style: TextStyle(
                                         color: Colors.grey,
                                         fontSize: 16,

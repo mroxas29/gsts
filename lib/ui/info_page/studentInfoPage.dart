@@ -1,4 +1,8 @@
+import 'dart:typed_data';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:sysadmindb/app/models/DeviatedStudents.dart';
 import 'package:sysadmindb/app/models/SchoolYear.dart';
@@ -8,6 +12,7 @@ import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/app/models/term.dart';
 import 'package:sysadmindb/ui/forms/addcourse.dart';
 import 'package:sysadmindb/ui/dashboard/gsc_dash.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class StudentInfoPage extends StatefulWidget {
   final Student student;
@@ -19,10 +24,248 @@ class StudentInfoPage extends StatefulWidget {
   _StudentInfoPageState createState() => _StudentInfoPageState();
 }
 
+late Future<ListResult> futurefiles;
 
-class _StudentInfoPageState extends State<StudentInfoPage> with SingleTickerProviderStateMixin{
+class _StudentInfoPageState extends State<StudentInfoPage>
+    with SingleTickerProviderStateMixin {
   bool studentDeviated = false;
   late TabController _tabController;
+  DataRow isCoursePassed(Course course, BuildContext context) {
+    final bool isPassed = widget.studentpos.pastCourses.any((pastCourse) =>
+        pastCourse.coursecode == course.coursecode && pastCourse.grade > 0);
+    final bool isNotPassed = widget.studentpos.pastCourses.any((pastCourse) =>
+        pastCourse.coursecode == course.coursecode && pastCourse.grade <= 0);
+    final bool isInProgress = widget.studentpos.enrolledCourses.any(
+        (enrolledCourse) => enrolledCourse.coursecode == course.coursecode);
+    final bool isNotEnrolled = !isPassed && !isNotPassed && !isInProgress;
+
+    Color color;
+    IconData icon;
+    String status;
+
+    if (isPassed) {
+      color = Colors.green;
+      icon = Icons.check;
+      status = 'Passed';
+    } else if (isNotPassed) {
+      color = Colors.red;
+      icon = Icons.running_with_errors_outlined;
+      status = 'Not Passed';
+    } else if (isInProgress) {
+      color = Colors.orange;
+      icon = Icons.incomplete_circle;
+      status = 'In Progress';
+    } else {
+      color = Colors.grey;
+      icon = Icons.error;
+      status = 'Not Enrolled';
+    }
+
+    return DataRow(cells: [
+      DataCell(Text(
+        course.coursecode,
+        style: TextStyle(color: color),
+      )),
+      DataCell(Text(course.coursename, style: TextStyle(color: color))),
+      DataCell(Row(
+        children: [
+          Icon(
+            icon,
+            color: color,
+          ),
+          SizedBox(width: 5),
+          Text(status, style: TextStyle(color: color)),
+        ],
+      )),
+      buildDocDataCell(course, context,
+          "${widget.studentpos.idnumber}/${course.coursecode}_${widget.studentpos.idnumber}.pdf")
+    ]);
+  }
+
+  List<DataColumn> columns = [
+    DataColumn(
+        label: Text(
+      'Course Code',
+      style: TextStyle(fontWeight: FontWeight.bold),
+    )),
+    DataColumn(
+        label: Text(
+      'Course Name',
+      style: TextStyle(fontWeight: FontWeight.bold),
+    )),
+    DataColumn(
+        label: Text(
+      'Status',
+      style: TextStyle(fontWeight: FontWeight.bold),
+    )),
+    DataColumn(
+        label: Text(
+      'Document ',
+      style: TextStyle(fontWeight: FontWeight.bold),
+    )),
+  ];
+
+  Widget _buildSchoolYearRow(SchoolYear year) {
+    return Container(
+      padding: EdgeInsets.all(10),
+      child: Text(
+        "S.Y ${year.name}",
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
+  Widget _buildTermRow(Term term) {
+    return Container(
+      padding: EdgeInsets.all(10),
+      child: Text(
+        term.name,
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
+  Widget _buildSuggestedCourseRow(Course course, SchoolYear year, Term term) {
+    return Expanded(
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: () {
+            // Add the course to the POS in the specified school year and term
+            setState(() {
+              int syIndex = widget.studentpos.schoolYears.indexOf(year);
+              int termIndex =
+                  widget.studentpos.schoolYears[syIndex].terms.indexOf(term);
+
+              for (int i = 0; i < widget.studentpos.schoolYears.length; i++) {
+                for (int j = 0;
+                    j < widget.studentpos.schoolYears[i].terms.length;
+                    j++) {
+                  for (int k = 0;
+                      k <
+                          widget.studentpos.schoolYears[i].terms[j].termcourses
+                              .length;
+                      k++) {
+                    for (int a = 0;
+                        a <
+                            widget.studentpos.schoolYears[i].terms[j]
+                                .termcourses.length;
+                        a++) {
+                      if (widget.studentpos.schoolYears[i].terms[j]
+                              .termcourses[a].coursecode ==
+                          course.coursecode) {
+                        widget.studentpos.schoolYears[i].terms[j].termcourses
+                            .removeAt(a);
+                      }
+                    }
+                  }
+                }
+              }
+              widget
+                  .studentpos.schoolYears[syIndex].terms[termIndex].termcourses
+                  .add(course);
+              posEdited = true;
+
+              getDeviatedStudents();
+            });
+          },
+          child: ListTile(
+            title: Text(
+              course.coursecode,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey,
+              ),
+            ),
+            subtitle: Text(
+              course.coursename,
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCourseRow(Course course, String year, String term) {
+    bool isCourseDone = (widget.student.pastCourses
+        .any((element) => element.coursecode == course.coursecode));
+    bool isCourseIP = (widget.student.enrolledCourses
+        .any((element) => element.coursecode == course.coursecode));
+    return ListTile(
+      title: Text(
+        course.coursecode,
+        style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: isCourseDone
+                ? Colors.green
+                : isCourseIP
+                    ? Colors.orange
+                    : Colors.black),
+      ),
+      subtitle: Text(course.coursename,
+          style: TextStyle(
+              fontSize: 12,
+              color: isCourseDone
+                  ? Colors.green
+                  : isCourseIP
+                      ? Colors.orange
+                      : Colors.black)),
+    );
+  }
+
+  Future<void> uploadFile(String coursecode) async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles();
+    if (result != null) {
+      PlatformFile file = result.files.first;
+      String fileName =
+          '${widget.studentpos.idnumber}/${coursecode}_${widget.studentpos.idnumber}.pdf';
+
+      Uint8List fileBytes = file.bytes!;
+      final ref = FirebaseStorage.instance.ref().child(fileName);
+      await ref.putData(fileBytes);
+    }
+
+    setState(() {
+      futurefiles = FirebaseStorage.instance
+          .ref('/${widget.studentpos.idnumber}')
+          .listAll();
+    });
+  }
+
+  void updateProgramOfStudy() async {
+    // Set the flag to false before starting asynchronous operations
+    setState(() {
+      posEdited = false;
+    });
+
+    // Update deviated students
+    getDeviatedStudents();
+
+    // Set Firestore data
+    final FirebaseFirestore firestore = FirebaseFirestore.instance;
+    Map<String, dynamic> studentPosData = widget.studentpos.toJson();
+    await firestore
+        .collection('studentpos')
+        .doc(widget.student.uid)
+        .set(studentPosData);
+
+    // Retrieve all POS data
+    await retrieveAllPOS();
+
+    // Show a snackbar after the asynchronous operations complete
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Program of Study updated'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+
+    // Update the state after all asynchronous operations complete
+    setState(() {});
+  }
 
   Student fetchStudentInfo(Student student) {
     // Replace this with your actual data fetching logic
@@ -58,6 +301,7 @@ class _StudentInfoPageState extends State<StudentInfoPage> with SingleTickerProv
 
     return false;
   }
+
   String findSYTerm(Course course) {
     for (int i = 0; i < widget.studentpos.schoolYears.length; i++) {
       SchoolYear sy = widget.studentpos.schoolYears[i];
@@ -65,7 +309,6 @@ class _StudentInfoPageState extends State<StudentInfoPage> with SingleTickerProv
         Term term = sy.terms[j];
 
         if (term.termcourses.any((c) => c.coursecode == course.coursecode)) {
-    
           return '${sy.name} ${term.name}';
         }
       }
@@ -105,15 +348,28 @@ class _StudentInfoPageState extends State<StudentInfoPage> with SingleTickerProv
 
   bool posEdited = false;
 
-      @override
-      void initState(){
-        super.initState();
-        _tabController = TabController(length: 2, vsync: this);
-      }
+  PlatformFile? pickedFile;
+  @override
+  void initState() {
+    super.initState();
+    futurefiles = FirebaseStorage.instance
+        .ref('/${widget.studentpos.idnumber}')
+        .listAll();
+    _tabController = TabController(length: 3, vsync: this);
+  }
 
-
+  List<DataRow> rows = [];
   @override
   Widget build(BuildContext context) {
+    if (widget.studentpos.degree.contains('MIT')) {
+      rows = capstonecourses.map((capstoneCourse) {
+        return isCoursePassed(capstoneCourse, context);
+      }).toList();
+    } else if (widget.studentpos.degree.contains('MSIT')) {
+      rows = thesiscourses.map((thesisCourse) {
+        return isCoursePassed(thesisCourse, context);
+      }).toList();
+    }
     Student studentInfo = fetchStudentInfo(widget.student);
     return Scaffold(
       appBar: AppBar(
@@ -121,13 +377,17 @@ class _StudentInfoPageState extends State<StudentInfoPage> with SingleTickerProv
         bottom: TabBar(
           controller: _tabController,
           tabs: [
-          Tab(text: 'Student Information'),
-          Tab(text: 'Program of Study'),
-        ],),
+            Tab(text: 'Student Information'),
+            Tab(text: 'Program of Study'),
+            Tab(
+              text: (widget.student.degree == 'MIT')
+                  ? 'Capstone Progress'
+                  : 'Thesis Progress',
+            )
+          ],
+        ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
+      body: TabBarView(controller: _tabController, children: [
         SingleChildScrollView(
             padding: EdgeInsets.all(8.0),
             child: Row(
@@ -271,99 +531,78 @@ class _StudentInfoPageState extends State<StudentInfoPage> with SingleTickerProv
                     )
                   ],
                 ),
-               ],
+              ],
             )),
-
-
-            SingleChildScrollView(
-              child:  Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(10),
+                child: Column(
                   mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.all(10),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
+                    Row(
+                      children: [
+                        Text(
+                          "Program of Study",
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(
+                          width: 20,
+                        ),
+                        ElevatedButton(
+                          onPressed: posEdited
+                              ? () {
+                                  // Implement logic to save studentPOS
+                                  updateProgramOfStudy();
+                                }
+                              : null, // Disable the button when no course is added
+                          child: Text("Save changes"),
+                        ),
+                      ],
+                    ),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Student enrolled in:",
+                          style: TextStyle(fontSize: 14),
+                        ),
+                        for (Course course in widget.studentpos.enrolledCourses)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "Program of Study",
+                                "Course ${course.coursecode}: ${course.coursename} supposed to be taken on ${findSYTerm(course)}",
                                 style: TextStyle(
-                                    fontSize: 18, fontWeight: FontWeight.bold),
+                                    fontSize: 14, color: Colors.black),
                               ),
                               SizedBox(
-                                width: 20,
-                              ),
-                              ElevatedButton(
-                                onPressed: posEdited
-                                    ? () {
-                                        // Implement logic to save studentPOS
-                                        setState(() {
-                                          posEdited = false;
-                                          getDeviatedStudents();
-                                          isStudentDeviated();
-                                          final FirebaseFirestore firestore =
-                                              FirebaseFirestore.instance;
-                                          Map<String, dynamic> studentPosData =
-                                              widget.studentpos.toJson();
-                                          firestore
-                                              .collection('studentpos')
-                                              .doc(widget.student.uid)
-                                              .set(studentPosData);
-
-                                          retrieveAllPOS();
-
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                  'Program of Study updated'),
-                                              duration: Duration(seconds: 2),
-                                            ),
-                                          );
-                                        });
-                                      }
-                                    : null, // Disable the button when no course is added
-                                child: Text("Save changes"),
+                                height: 5,
                               ),
                             ],
                           ),
-                          isStudentDeviated()
-                              ? Column(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      "Student enrolled in:",
-                                      style: TextStyle(fontSize: 14),
-                                    ),
-                                    for (Course course
-                                        in widget.studentpos.enrolledCourses)
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            "Course ${course.coursecode}: ${course.coursename} supposed to be taken on ${findSYTerm(course)}",
-                                            style: TextStyle(
-                                                fontSize: 14,
-                                                color: Colors.red),
-                                          ),
-                                          SizedBox(
-                                            height: 5,
-                                          ),
-                                        ],
-                                      ),
-                                  ],
-                                )
-                              : SizedBox(height: 0),
-                        ],
-                      ),
-                    ),
+                      ],
+                    )
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     SingleChildScrollView(
                       // Allow horizontal scrolling
                       child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children:
                             widget.studentpos.schoolYears.map<Widget>((year) {
                           return Card(
@@ -486,15 +725,193 @@ class _StudentInfoPageState extends State<StudentInfoPage> with SingleTickerProv
                         }).toList(),
                       ),
                     ),
+                    SizedBox(
+                      width: 10,
+                    ),
+                    StatefulBuilder(
+                      builder: (BuildContext context, StateSetter setState) {
+                        return SizedBox(
+                          height: MediaQuery.sizeOf(context).height / 0.5,
+                          width: MediaQuery.sizeOf(context).width / 3,
+                          child: SingleChildScrollView(
+                            child: Card(
+                              elevation: 4.0,
+                              margin: EdgeInsets.all(8.0),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8.0),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: widget.studentpos.schoolYears
+                                      .expand<Widget>((year) {
+                                    return [
+                                      Container(
+                                        color: Colors.blue.withOpacity(0.3),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            _buildSchoolYearRow(year),
+                                          ],
+                                        ),
+                                      ),
+                                      ...year.terms.expand<Widget>((term) {
+                                        return [
+                                          Container(
+                                            color:
+                                                Colors.green.withOpacity(0.3),
+                                            child: Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                _buildTermRow(term),
+                                              ],
+                                            ),
+                                          ),
+                                          Row(
+                                            children: term.termcourses
+                                                .map<Widget>((course) {
+                                              return Expanded(
+                                                child: _buildCourseRow(course,
+                                                    year.name, term.name),
+                                              );
+                                            }).toList(),
+                                          ),
+                                        ];
+                                      }).toList(),
+                                    ];
+                                  }).toList(),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   ],
                 ),
-              
-            )
-        ]
-
-      ),
+              ),
+            ],
+          ),
+        ),
+        SingleChildScrollView(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Thesis Courses List',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(
+                        height:
+                            8), // Optional: Adjust the space from top if needed
+                    Center(
+                      child: DataTable(
+                        columns: columns,
+                        rows: rows,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        )
+      ]),
     );
   }
+}
+
+DataCell buildDocDataCell(
+  Course course,
+  BuildContext context,
+  String reference,
+) {
+  // Get the download URL of the file from Firebase Storage
+  Reference emptyReference =
+      FirebaseStorage.instance.ref(); // Or any other path
+
+  return DataCell(
+    SizedBox(
+      width: MediaQuery.of(context).size.width / 7,
+      child: FutureBuilder<ListResult>(
+        future: futurefiles,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(
+              child: CircularProgressIndicator(),
+            );
+          } else if (snapshot.hasError) {
+            return Text('Error: ${snapshot.error}');
+          } else if (snapshot.hasData) {
+            var files = snapshot.data!.items;
+
+            // Find the file with the specified course code
+            var file = files.firstWhere(
+                (file) => file.name.contains(course.coursecode),
+                orElse: (() => emptyReference));
+
+            if (file != emptyReference) {
+              return ListTile(
+                title: Text(
+                  file.name,
+                  style: TextStyle(fontSize: 12),
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.download),
+                      onPressed: () async {
+                        final imageUrl = await FirebaseStorage.instance
+                            .ref()
+                            .child(reference)
+                            .getDownloadURL();
+                        if (await canLaunch(imageUrl.toString())) {
+                          await launch(imageUrl.toString());
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Failed to download file'),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                    SizedBox(width: 8),
+                  ],
+                ),
+              );
+            } else {
+              // No file found for the course code
+              return ListTile(
+                title: Text(
+                  'No file attached',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              );
+            }
+          } else {
+            return Center(
+              child: Text('No data'),
+            );
+          }
+        },
+      ),
+    ),
+  );
 }
 
 class Coursetest {

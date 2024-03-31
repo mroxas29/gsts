@@ -127,8 +127,48 @@ Future<List<PastCourse>> getPastCoursesForStudent(String studentUid) async {
 }
 
 List<Student> studentList = [];
+
+List<Student> graduatingStudentsList = [];
 List<Student> newStudentList = [];
 List<Student> ineligibleStudentList = [];
+
+Future<List<Student>> getGraduatingStudents() async {
+  graduatingStudentsList.clear();
+  FirebaseFirestore firestore = FirebaseFirestore.instance;
+
+  QuerySnapshot<Map<String, dynamic>> querySnapshot =
+      await firestore.collection('graduatingStudents').get();
+
+  try {
+    // Access the Firestore instance
+    FirebaseFirestore firestore = FirebaseFirestore.instance;
+
+    // Query the "graduatingStudents" collection
+    QuerySnapshot<Map<String, dynamic>> querySnapshot =
+        await firestore.collection('graduatingStudents').get();
+
+    for (QueryDocumentSnapshot<Map<String, dynamic>> document
+        in querySnapshot.docs) {
+      Map<String, dynamic> userData = document.data();
+      Student graduatingStudent = Student(
+          uid: document.id,
+          displayname: Map<String, String>.from(userData['displayname']),
+          enrolledCourses: await getEnrolledCoursesForStudent(document.id),
+          pastCourses: await getPastCoursesForStudent(document.id),
+          role: userData['role'],
+          email: userData['email'],
+          idnumber: userData['idnumber'],
+          status: userData['status'],
+          degree: await getDegreeForStudent(document.id));
+
+      graduatingStudentsList.add(graduatingStudent);
+    }
+  } catch (e) {
+    print(e);
+  }
+  return graduatingStudentsList;
+}
+
 Future<List<Student>> convertToStudentList(List<user> users) async {
   studentList.clear();
   ineligibleStudentList.clear();

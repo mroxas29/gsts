@@ -1,8 +1,14 @@
+import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:confetti/confetti.dart';
 import 'package:side_navigation/side_navigation.dart';
+import 'package:sysadmindb/api/email/invoice_service.dart';
 import 'package:sysadmindb/app/models/AcademicCalendar.dart';
 import 'package:sysadmindb/app/models/coursedemand.dart';
 import 'package:sysadmindb/app/models/courses.dart';
@@ -14,11 +20,8 @@ import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/app/models/term.dart';
 import 'package:sysadmindb/main.dart';
 import 'package:sysadmindb/ui/forms/form.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:googleapis/drive/v3.dart' as drive;
-
 import 'package:sysadmindb/api/calendar/test_calendar.dart';
-import 'package:googleapis_auth/googleapis_auth.dart' as auth;
+import 'package:url_launcher/url_launcher.dart';
 
 void main() {
   runApp(
@@ -42,6 +45,11 @@ int unitsCompleted =
     currentStudent!.pastCourses.fold(0, (int sum, PastCourse pastCourse) {
   return sum + pastCourse.units;
 });
+late Future<ListResult> futurefiles;
+int filescount = 0;
+
+ConfettiController _confettiController =
+    ConfettiController(duration: const Duration(seconds: 5));
 
 class _StudentProfileScreenState extends State<StudentProfileScreen> {
   bool isEditing = false;
@@ -58,6 +66,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   @override
   void initState() {
     super.initState();
+
     initializeData();
   }
 
@@ -900,16 +909,18 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                             child: ListView.builder(
                               itemCount: activecourses
                                   .where((course) =>
-                                      course.program
-                                          .contains(currentStudent!.degree) &&
+                                      (currentStudent!.degree
+                                              .contains(course.program) ||
+                                          course.program.contains('/')) &&
                                       course.type.toLowerCase().contains(
                                           selectedRadio.toLowerCase()))
                                   .length,
                               itemBuilder: (BuildContext context, int index) {
                                 final course = activecourses
                                     .where((course) =>
-                                        course.program
-                                            .contains(currentStudent!.degree) &&
+                                        (currentStudent!.degree
+                                                .contains(course.program) ||
+                                            course.program.contains('/')) &&
                                         course.type.toLowerCase().contains(
                                             selectedRadio.toLowerCase()))
                                     .toList()[index];
@@ -1003,7 +1014,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                     // Validate and save form data
                     if (formKey.currentState!.validate()) {
                       formKey.currentState!.save();
-
+                      bool THEorCAP = false;
                       if (selectedCourse != blankCourse) {
                         // Check if the course is already enrolled or in past courses
                         if (currentStudent!.enrolledCourses.any((course) =>
@@ -1017,9 +1028,18 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                           });
                           return;
                         } else {
+                          if (selectedCourse!.type
+                                  .toLowerCase()
+                                  .contains('capstone') ||
+                              selectedCourse!.type
+                                  .toLowerCase()
+                                  .contains('thesis')) {
+                            THEorCAP = true;
+                          }
                           // Check prerequisites
                           if (!checkPrerequisites(
-                              selectedCourse!, currentStudent!)) {
+                                  selectedCourse!, currentStudent!) &&
+                              THEorCAP) {
                             setState(() {
                               hasPreReq = false;
                             });
@@ -1547,16 +1567,18 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                             child: ListView.builder(
                               itemCount: courses
                                   .where((course) =>
-                                      course.program
-                                          .contains(currentStudent!.degree) &&
+                                      (currentStudent!.degree
+                                              .contains(course.program) ||
+                                          course.program.contains('/')) &&
                                       course.type.toLowerCase().contains(
                                           selectedRadio.toLowerCase()))
                                   .length,
                               itemBuilder: (BuildContext context, int index) {
                                 final course = courses
                                     .where((course) =>
-                                        course.program
-                                            .contains(currentStudent!.degree) &&
+                                        (currentStudent!.degree
+                                                .contains(course.program) ||
+                                            course.program.contains('/')) &&
                                         course.type.toLowerCase().contains(
                                             selectedRadio.toLowerCase()))
                                     .toList()[index];
@@ -1654,6 +1676,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                 TextButton(
                   onPressed: () async {
                     // Validate and save form data
+                    bool THEorCAP = false;
                     if (formKey.currentState!.validate()) {
                       formKey.currentState!.save();
                       if ((currentStudent!.enrolledCourses.any((course) =>
@@ -1668,8 +1691,17 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                           courseAlreadyExists = true;
                         });
                       } else {
+                        if (selectedCourse!.type
+                                .toLowerCase()
+                                .contains('capstone') ||
+                            selectedCourse!.type
+                                .toLowerCase()
+                                .contains('thesis')) {
+                          THEorCAP = true;
+                        }
                         if (!checkPrerequisites(
-                            selectedCourse!, currentStudent!)) {
+                                selectedCourse!, currentStudent!) &&
+                            THEorCAP) {
                           setState(() {
                             hasPreReq = false;
                           });
@@ -2050,91 +2082,18 @@ DataCell capstoneCell(PastCourse pastCourse) {
   return DataCell(Text(''));
 }
 
-DataRow isCoursePassed(Course course) {
-  if (currentStudent!.pastCourses.any((pastCourse) =>
-      pastCourse.coursecode == course.coursecode && pastCourse.grade > 0)) {
-    return DataRow(cells: [
-      DataCell(Text(
-        course.coursecode,
-        style: TextStyle(color: Colors.green),
-      )),
-      DataCell(Text(course.coursename, style: TextStyle(color: Colors.green))),
-      DataCell(Row(
-        children: [
-          Icon(
-            Icons.check,
-            color: Colors.green,
-          ),
-          SizedBox(
-            width: 5,
-          ),
-          Text('Passed', style: TextStyle(color: Colors.green)),
-        ],
-      )),
-    ]);
-  } else if (currentStudent!.pastCourses.any((pastCourse) =>
-      pastCourse.coursecode == course.coursecode && pastCourse.grade <= 0)) {
-    return DataRow(cells: [
-      DataCell(Text(
-        course.coursecode,
-        style: TextStyle(color: Colors.red),
-      )),
-      DataCell(Text(course.coursename, style: TextStyle(color: Colors.red))),
-      DataCell(Row(
-        children: [
-          Icon(
-            Icons.running_with_errors_outlined,
-            color: Colors.red,
-          ),
-          SizedBox(
-            width: 5,
-          ),
-          Text('Not Passed', style: TextStyle(color: Colors.red)),
-        ],
-      )),
-    ]);
-  } else if (currentStudent!.enrolledCourses.any(
-      (enrolledCourse) => enrolledCourse.coursecode == course.coursecode)) {
-    return DataRow(cells: [
-      DataCell(Text(
-        course.coursecode,
-        style: TextStyle(color: Colors.orange),
-      )),
-      DataCell(Text(course.coursename, style: TextStyle(color: Colors.orange))),
-      DataCell(Row(
-        children: [
-          Icon(
-            Icons.incomplete_circle,
-            color: Colors.orange,
-          ),
-          SizedBox(
-            width: 5,
-          ),
-          Text('In Progress', style: TextStyle(color: Colors.orange)),
-        ],
-      )),
-    ]);
-  } else {
-    return DataRow(cells: [
-      DataCell(Text(
-        course.coursecode,
-        style: TextStyle(color: Colors.grey),
-      )),
-      DataCell(Text(course.coursename, style: TextStyle(color: Colors.grey))),
-      DataCell(Row(
-        children: [
-          Icon(
-            Icons.error,
-            color: Colors.grey,
-          ),
-          SizedBox(
-            width: 5,
-          ),
-          Text('Not enrolled', style: TextStyle(color: Colors.grey)),
-        ],
-      )),
-    ]);
-  }
+final PdfInvoiceService service = PdfInvoiceService();
+
+class RemoteFile {
+  final String name;
+  final String url; // Assuming you have a download URL for the file
+  // Add other properties relevant to your file data
+
+  const RemoteFile({required this.name, required this.url});
+}
+
+void downloadFile(Reference ref, BuildContext context) async {
+  final String url = await ref.getDownloadURL();
 }
 
 class CapstoneProjectScreen extends StatefulWidget {
@@ -2143,6 +2102,21 @@ class CapstoneProjectScreen extends StatefulWidget {
 }
 
 class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
+  PlatformFile? pickedFile;
+
+  @override
+  void initState() {
+    super.initState();
+    _confettiController =
+        ConfettiController(duration: const Duration(seconds: 5));
+  }
+
+  @override
+  void dispose() {
+    _confettiController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     List<DataColumn> columns = [
@@ -2161,17 +2135,201 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
         'Status',
         style: TextStyle(fontWeight: FontWeight.bold),
       )),
+      DataColumn(
+          label: Text(
+        'Document ',
+        style: TextStyle(fontWeight: FontWeight.bold),
+      )),
     ];
 
     List<DataRow> rows = [];
 
+    Future<void> uploadFile(String coursecode) async {
+      if (currentStudent!.enrolledCourses
+              .any((course) => course.coursecode == coursecode) ||
+          currentStudent!.pastCourses
+              .any((course) => course.coursecode == coursecode)) {
+        FilePickerResult? result = await FilePicker.platform.pickFiles();
+        if (result != null) {
+          PlatformFile file = result.files.first;
+          String fileName =
+              '${currentStudent!.idnumber}/${coursecode}_${currentStudent!.idnumber}.pdf';
+
+          Uint8List fileBytes = file.bytes!;
+          final ref = FirebaseStorage.instance.ref().child(fileName);
+          await ref.putData(fileBytes);
+        }
+
+        setState(() {
+          futurefiles = FirebaseStorage.instance
+              .ref('/${currentStudent!.idnumber}')
+              .listAll();
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'You are not currently enrolled nor had completed this class'),
+          ),
+        );
+      }
+    }
+
+    DataCell buildDocDataCell(
+      Course course,
+      BuildContext context,
+      String reference,
+    ) {
+      // Get the download URL of the file from Firebase Storage
+      Reference emptyReference =
+          FirebaseStorage.instance.ref(); // Or any other path
+
+      return DataCell(
+        SizedBox(
+          width: MediaQuery.of(context).size.width / 8,
+          child: FutureBuilder<ListResult>(
+            future: futurefiles,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Center(
+                  child: CircularProgressIndicator(),
+                );
+              } else if (snapshot.hasError) {
+                return Text('Error: ${snapshot.error}');
+              } else if (snapshot.hasData) {
+                var files = snapshot.data!.items;
+                filescount = files.length;
+                // Find the file with the specified course code
+                var file = files.firstWhere(
+                    (file) => file.name.contains(course.coursecode),
+                    orElse: (() => emptyReference));
+
+                if (file != emptyReference) {
+                  return ListTile(
+                    title: Text(
+                      file.name,
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.download),
+                          onPressed: () async {
+                            final imageUrl = await FirebaseStorage.instance
+                                .ref()
+                                .child(reference)
+                                .getDownloadURL();
+                            if (await canLaunch(imageUrl.toString())) {
+                              await launch(imageUrl.toString());
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Failed to download file'),
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                        SizedBox(width: 8),
+                        IconButton(
+                          icon: Icon(Icons.attach_file),
+                          onPressed: () async {
+                            // Prompt the user to select a file
+
+                            await uploadFile(course.coursecode);
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                } else {
+                  // No file found for the course code
+                  return ListTile(
+                    title: Text(
+                      'No file attached',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                    trailing: IconButton(
+                      icon: Icon(Icons.attach_file),
+                      onPressed: () async {
+                        // Prompt the user to select a file
+
+                        await uploadFile(course.coursecode);
+                      },
+                    ),
+                  );
+                }
+              } else {
+                return Center(
+                  child: Text('No data'),
+                );
+              }
+            },
+          ),
+        ),
+      );
+    }
+
+    DataRow isCoursePassed(Course course, BuildContext context) {
+      final bool isPassed = currentStudent!.pastCourses.any((pastCourse) =>
+          pastCourse.coursecode == course.coursecode && pastCourse.grade > 0);
+      final bool isNotPassed = currentStudent!.pastCourses.any((pastCourse) =>
+          pastCourse.coursecode == course.coursecode && pastCourse.grade <= 0);
+      final bool isInProgress = currentStudent!.enrolledCourses.any(
+          (enrolledCourse) => enrolledCourse.coursecode == course.coursecode);
+      final bool isNotEnrolled = !isPassed && !isNotPassed && !isInProgress;
+
+      Color color;
+      IconData icon;
+      String status;
+
+      if (isPassed) {
+        color = Colors.green;
+        icon = Icons.check;
+        status = 'Passed';
+      } else if (isNotPassed) {
+        color = Colors.red;
+        icon = Icons.running_with_errors_outlined;
+        status = 'Not Passed';
+      } else if (isInProgress) {
+        color = Colors.orange;
+        icon = Icons.incomplete_circle;
+        status = 'In Progress';
+      } else {
+        color = Colors.grey;
+        icon = Icons.error;
+        status = 'Not Enrolled';
+      }
+
+      return DataRow(cells: [
+        DataCell(Text(
+          course.coursecode,
+          style: TextStyle(color: color),
+        )),
+        DataCell(Text(course.coursename, style: TextStyle(color: color))),
+        DataCell(Row(
+          children: [
+            Icon(
+              icon,
+              color: color,
+            ),
+            SizedBox(width: 5),
+            Text(status, style: TextStyle(color: color)),
+          ],
+        )),
+        buildDocDataCell(course, context,
+            "${currentStudent!.idnumber}/${course.coursecode}_${currentStudent!.idnumber}.pdf")
+      ]);
+    }
+
     if (currentStudent!.degree.contains('MIT')) {
       rows = capstonecourses.map((capstoneCourse) {
-        return isCoursePassed(capstoneCourse);
+        return isCoursePassed(capstoneCourse, context);
       }).toList();
     } else if (currentStudent!.degree.contains('MSIT')) {
       rows = thesiscourses.map((thesisCourse) {
-        return isCoursePassed(thesisCourse);
+        return isCoursePassed(thesisCourse, context);
       }).toList();
     }
 
@@ -2200,8 +2358,40 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                   rows: rows,
                 ),
               ),
+              buildCompletedButton(filescount, rows.length),
             ],
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget buildCompletedButton(int filescounts, int rowsLength) {
+    return Column(
+      children: [
+        Text('Ready to graduate?'),
+        ElevatedButton(
+          onPressed: filescounts == rowsLength
+              ? null
+              : () {
+                  print(filescounts);
+                  print(rowsLength);
+                  _confettiController.play();
+
+                  FirebaseFirestore.instance
+                      .collection('graduatingStudents')
+                      .doc(currentStudent!.uid)
+                      .set(currentStudent!.toJson());
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content:
+                          Text('Congratulations on completing the program!'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+          child: Text('Completed'),
         ),
       ],
     );
@@ -2262,10 +2452,13 @@ class _MainViewState extends State<GradStudentscreen>
   }
 
   int selectedIndex = 0;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    futurefiles =
+        FirebaseStorage.instance.ref('/${currentStudent!.idnumber}').listAll();
   }
 
   Color getColorForCourseType(Course course) {

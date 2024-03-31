@@ -495,6 +495,7 @@ class _LoginPageState extends State<LoginPage> {
       await getFacultyList();
       await getCourseDemandsFromFirestore();
       await convertToStudentList(users);
+      await getGraduatingStudents();
       route();
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') {
