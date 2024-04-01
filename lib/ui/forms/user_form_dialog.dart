@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:sysadmindb/api/email/sendemail.dart';
 import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
@@ -252,7 +253,7 @@ void showAddNewUserForm(
                   );
 
                   User? user = userCredential.user;
-/*
+
                   await user?.sendEmailVerification();
                   sendEmail(
                       firstname: _userData.displayname['firstname'],
@@ -261,7 +262,7 @@ void showAddNewUserForm(
                       subject:
                           'New account at the Graduate Student Tracking System',
                       password: otp);
-*/
+
                   String userID = user!.uid;
                   uid = userID;
                   if (isStudent) {
