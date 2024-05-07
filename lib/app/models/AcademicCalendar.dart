@@ -23,14 +23,24 @@ String getNextSYandTerm() {
   for (int i = 0; i < academicCalendars.length; i++) {
     AcademicCalendar calendar = academicCalendars[i];
     if (now.isAfter(calendar.startDate) && now.isBefore(calendar.endDate)) {
-      // If the current date is within the current term, return the next term
-      if (i + 1 < academicCalendars.length) {
+      // If current date is within a term
+      if (i == academicCalendars.length - 1) {
+        // Check if it's the last term (avoiding out-of-bounds)
+        return getNextSchoolYearTerm(calendar);
+      } else {
+        // If not the last term, return next term of current year
         AcademicCalendar nextCalendar = academicCalendars[i + 1];
-        return "${nextCalendar.startDate.year - 1}-${nextCalendar.endDate.year} ${nextCalendar.term}";
+        return "${nextCalendar.startDate.year}-${nextCalendar.endDate.year} ${nextCalendar.term}";
       }
     }
   }
   return "No next term found";
+}
+
+String getNextSchoolYearTerm(AcademicCalendar currentTerm) {
+  int nextYear = currentTerm.startDate.year;
+  // Assuming Term 1 always starts on January 1st
+  return "${nextYear}-${nextYear + 1} Term 1";
 }
 
 List<AcademicCalendar> academicCalendars = [
@@ -41,4 +51,3 @@ List<AcademicCalendar> academicCalendars = [
   AcademicCalendar("Term 3", DateTime(DateTime.now().year, 5, 1),
       DateTime(DateTime.now().year, 8, 31)),
 ];
-

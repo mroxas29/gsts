@@ -92,6 +92,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
 
   Widget buildRanking(List<StudentPOS> studentpos) {
     // Calculate occurrences of each course for the next term of the current school year
+
     Map<Course, int> occurrences = {};
 
     void editCourseData(BuildContext context, Course course,
@@ -446,7 +447,8 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
 
 // Sort uniqueCourses based on occurrence count
     uniqueCourses.sort((a, b) => b.value.compareTo(a.value));
-
+    print(
+        "UNIQUE COURSES:::  ${uniqueCourses.length} ${getCurrentSYandTerm()}");
     return Expanded(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
