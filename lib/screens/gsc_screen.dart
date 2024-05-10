@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:side_navigation/side_navigation.dart';
 import 'package:sysadmindb/api/email/invoice_service.dart';
 import 'package:sysadmindb/api/calendar/test_calendar.dart';
@@ -92,153 +93,561 @@ class _MainViewState extends State<Gscscreen> {
     TextEditingController emailController =
         TextEditingController(text: faculty.email);
 
+    List<Course> selectedCourses = faculty.history;
+    print(faculty.history);
+
+    List<Course> suggestedCourses = courses;
+    final controllerSugg = TextEditingController();
+    bool alreadyAdded = false;
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Edit Faculty'),
-          content: SingleChildScrollView(
-            child: Column(
-              children: [
-                _buildEditableField('First Name', firstNameController, false),
-                _buildEditableField('Last Name', lastNameController, false),
-                _buildEditableField('Email', emailController, false),
+        return StatefulBuilder(builder: (context, setState) {
+          return SingleChildScrollView(
+            child: AlertDialog(
+              title: Text('Edit Faculty'),
+              content: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    _buildEditableField(
+                        'First Name', firstNameController, false),
+                    _buildEditableField('Last Name', lastNameController, false),
+                    _buildEditableField('Email', emailController, false),
+                    Text('Applicable Courses'),
+                    if (selectedCourses.isNotEmpty)
+                      Container(
+                        padding: EdgeInsets.all(5.0),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(18.0),
+                        ),
+                        child: Wrap(
+                          spacing: 8.0,
+                          runSpacing: 8.0,
+                          children: selectedCourses.map((course) {
+                            return Container(
+                              padding: EdgeInsets.all(8.0),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(18.0),
+                                color: Color.fromARGB(255, 196, 194,
+                                    194), // Gray background color
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(course.coursecode),
+                                  SizedBox(width: 4.0),
+                                  MouseRegion(
+                                    cursor: SystemMouseCursors.click,
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          selectedCourses.remove(course);
+                                        });
+                                      },
+                                      child: Icon(Icons.clear),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    SizedBox(
+                      height: 10,
+                    ),
+                    if (selectedCourses.isEmpty)
+                      Text(
+                        'No courses added',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    SizedBox(
+                      height: 20,
+                    ),
+                    Text('Add an applicable course'),
+                    SizedBox(
+                        height: 75,
+                        width: 500,
+                        child: Padding(
+                          padding: EdgeInsets.all(10.0),
+                          child: TextField(
+                            controller: controllerSugg,
+                            decoration: InputDecoration(
+                                prefixIcon: const Icon(Icons.search),
+                                hintText: 'Enter course code/name',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide:
+                                      const BorderSide(color: Colors.blue),
+                                )),
+                            onChanged: (value) {
+                              setState(() {
+                                suggestedCourses =
+                                    runApplicableCourseFilter(value);
+                              });
+                            },
+                          ),
+                        )),
+                    SizedBox(
+                      height: 10,
+                    ),
+                    if (alreadyAdded == true)
+                      Text(
+                        "The selected course has already been added",
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    SingleChildScrollView(
+                      child: SizedBox(
+                        height: 300,
+                        width: 500,
+                        child: ListView.builder(
+                          itemCount: suggestedCourses.length,
+                          itemBuilder: ((context, index) {
+                            return InkWell(
+                              onTap: () {
+                                setState(() {
+                                  if (selectedCourses.any((course) =>
+                                      course.coursecode ==
+                                      suggestedCourses[index].coursecode)) {
+                                    alreadyAdded = true;
+                                  } else {
+                                    alreadyAdded = false;
+                                    selectedCourses
+                                        .add(suggestedCourses[index]);
+                                  }
+                                });
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Text(
+                                    "${suggestedCourses[index].coursecode}: ${suggestedCourses[index].coursename}"), // Display course name
+                              ),
+                            );
+                          }),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () async {
+                    // Show a confirmation dialog before deletion
+                    bool confirmDelete = await showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return AlertDialog(
+                          title: Text('Confirm Delete'),
+                          content: Text(
+                              'Are you sure you want to delete this faculty member?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pop(
+                                    context, false); // No, do not delete
+                              },
+                              child: Text('No'),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pop(context, true); // Yes, delete
+                              },
+                              child: Text('Yes'),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+
+                    if (confirmDelete == true) {
+                      try {
+                        // Update the facultyassigned field in courses
+                        QuerySnapshot courseSnapshot = await FirebaseFirestore
+                            .instance
+                            .collection('courses')
+                            .where('facultyassigned',
+                                isEqualTo:
+                                    '${faculty.displayname['firstname']} ${faculty.displayname['lastname']}')
+                            .get();
+
+                        for (QueryDocumentSnapshot courseDoc
+                            in courseSnapshot.docs) {
+                          String courseId = courseDoc.id;
+
+                          await FirebaseFirestore.instance
+                              .collection('courses')
+                              .doc(courseId)
+                              .update({
+                            'facultyassigned': 'None assigned'
+                          }).then((_) {
+                            print(
+                                'Faculty assigned updated successfully for course: $courseId');
+                          }).catchError((error) {
+                            print(
+                                'Error updating faculty assigned for course: $courseId, $error');
+                          });
+                        }
+
+                        // Delete the faculty member
+                        await FirebaseFirestore.instance
+                            .collection('faculty')
+                            .doc(faculty.uid)
+                            .delete();
+
+                        // Show a SnackBar
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Faculty member deleted'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+
+                        // Close the dialog
+                        Navigator.pop(context);
+                      } catch (e) {
+                        print('Error deleting faculty member: $e');
+                        // Handle the error
+                      }
+
+                      // If you want to refresh the faculty list after deleting a member
+
+                      getFacultyList();
+                      getCoursesFromFirestore();
+                    }
+                  },
+                  child: Text(
+                    'Delete',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    // Save the edited data locally
+                    setState(() {
+                      faculty.displayname['firstname'] =
+                          firstNameController.text;
+                      faculty.displayname['lastname'] = lastNameController.text;
+                      faculty.email = emailController.text;
+                    });
+
+                    // Update the data in Firestore
+                    try {
+                      await FirebaseFirestore.instance
+                          .collection('faculty')
+                          .doc(faculty
+                              .uid) // Assuming you have a 'uid' field in your User class
+                          .update({
+                        'displayname': {
+                          'firstname': firstNameController.text,
+                          'lastname': lastNameController.text,
+                        },
+                        'email': emailController.text,
+                        'history': selectedCourses
+                            .map((course) => course.toMap())
+                            .toList(),
+                      });
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Faculty updated'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                      getCoursesFromFirestore();
+
+                      // Trigger a rebuild
+                      Navigator.pop(context);
+                    } catch (e) {
+                      print('Error updating faculty data: $e');
+                      // Handle the error
+                    }
+                  },
+                  child: Text('Save'),
+                ),
               ],
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () async {
-                // Show a confirmation dialog before deletion
-                bool confirmDelete = await showDialog(
-                  context: context,
-                  builder: (BuildContext context) {
-                    return AlertDialog(
-                      title: Text('Confirm Delete'),
-                      content: Text(
-                          'Are you sure you want to delete this faculty member?'),
-                      actions: [
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(context, false); // No, do not delete
-                          },
-                          child: Text('No'),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(context, true); // Yes, delete
-                          },
-                          child: Text('Yes'),
-                        ),
-                      ],
-                    );
-                  },
-                );
+          );
+        });
+      },
+    );
+  }
 
-                if (confirmDelete == true) {
-                  try {
-                    // Update the facultyassigned field in courses
-                    QuerySnapshot courseSnapshot = await FirebaseFirestore
-                        .instance
-                        .collection('courses')
-                        .where('facultyassigned',
-                            isEqualTo: faculty.displayname)
-                        .get();
-
-                    for (QueryDocumentSnapshot courseDoc
-                        in courseSnapshot.docs) {
-                      String courseId = courseDoc.id;
-
-                      await FirebaseFirestore.instance
-                          .collection('courses')
-                          .doc(courseId)
-                          .update({
-                        'facultyassigned':
-                            'UNASSIGNED', // Set to an appropriate value
-                      });
-                    }
-
-                    // Delete the faculty member
-                    await FirebaseFirestore.instance
-                        .collection('faculty')
-                        .doc(faculty.uid)
-                        .delete();
-
-                    // Show a SnackBar
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Faculty member deleted'),
-                        duration: Duration(seconds: 2),
+  void showAddFacultyForm(BuildContext context, GlobalKey<FormState> formKey) {
+    print(facultyList.length);
+    final FacultyData _facultyData = FacultyData();
+    List<Course> selectedCourses = [];
+    List<Course> suggestedCourses = courses;
+    final controllerSugg = TextEditingController();
+    bool alreadyAdded = false;
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return SingleChildScrollView(
+              child: AlertDialog(
+                title: Text('Add New Faculty'),
+                content: Form(
+                  key: formKey,
+                  autovalidateMode: AutovalidateMode.always,
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        decoration: InputDecoration(labelText: 'First name'),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter the first name';
+                          }
+                          return null;
+                        },
+                        onSaved: (value) {
+                          _facultyData.displayName['firstname'] = value ?? '';
+                        },
                       ),
-                    );
-
-                    // Close the dialog
-                    Navigator.pop(context);
-                  } catch (e) {
-                    print('Error deleting faculty member: $e');
-                    // Handle the error
-                  }
-
-                  // If you want to refresh the faculty list after deleting a member
-
-                  getFacultyList();
-                  getCoursesFromFirestore();
-                }
-              },
-              child: Text(
-                'Delete',
-                style: TextStyle(color: Colors.red),
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () async {
-                // Save the edited data locally
-                setState(() {
-                  faculty.displayname['firstname'] = firstNameController.text;
-                  faculty.displayname['lastname'] = lastNameController.text;
-                  faculty.email = emailController.text;
-                });
-
-                // Update the data in Firestore
-                try {
-                  await FirebaseFirestore.instance
-                      .collection('faculty')
-                      .doc(faculty
-                          .uid) // Assuming you have a 'uid' field in your User class
-                      .update({
-                    'displayname': {
-                      'firstname': firstNameController.text,
-                      'lastname': lastNameController.text,
+                      TextFormField(
+                        decoration: InputDecoration(labelText: 'Last name'),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter the last name';
+                          }
+                          return null;
+                        },
+                        onSaved: (value) {
+                          _facultyData.displayName['lastname'] = value ?? '';
+                        },
+                      ),
+                      TextFormField(
+                        decoration: InputDecoration(labelText: 'Email'),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter the email address';
+                          }
+                          if (facultyList
+                              .any((faculty) => faculty.email == value)) {
+                            return "Faculty with email $value already exists";
+                          }
+                          // Add email validation if needed
+                          return null;
+                        },
+                        onSaved: (value) {
+                          _facultyData.email = value ?? '';
+                        },
+                      ),
+                      SizedBox(
+                        height: 10,
+                      ),
+                      Text('Applicable Courses'),
+                      if (selectedCourses.isNotEmpty)
+                        Container(
+                          padding: EdgeInsets.all(5.0),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(18.0),
+                          ),
+                          child: Wrap(
+                            spacing: 8.0,
+                            runSpacing: 8.0,
+                            children: selectedCourses.map((course) {
+                              return Container(
+                                padding: EdgeInsets.all(8.0),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(18.0),
+                                  color: Color.fromARGB(255, 196, 194,
+                                      194), // Gray background color
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(course.coursecode),
+                                    SizedBox(width: 4.0),
+                                    MouseRegion(
+                                      cursor: SystemMouseCursors.click,
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            selectedCourses.remove(course);
+                                          });
+                                        },
+                                        child: Icon(Icons.clear),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      SizedBox(
+                        height: 10,
+                      ),
+                      if (selectedCourses.isEmpty)
+                        Text(
+                          'No courses added',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      SizedBox(
+                        height: 20,
+                      ),
+                      Text('Add an applicable courses'),
+                      SizedBox(
+                          height: 75,
+                          width: 500,
+                          child: Padding(
+                            padding: EdgeInsets.all(10.0),
+                            child: TextField(
+                              controller: controllerSugg,
+                              decoration: InputDecoration(
+                                  prefixIcon: const Icon(Icons.search),
+                                  hintText: 'Enter course code/name',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide:
+                                        const BorderSide(color: Colors.blue),
+                                  )),
+                              onChanged: (value) {
+                                setState(() {
+                                  suggestedCourses =
+                                      runApplicableCourseFilter(value);
+                                });
+                              },
+                            ),
+                          )),
+                      SizedBox(
+                        height: 10,
+                      ),
+                      if (alreadyAdded == true)
+                        Text(
+                          "The selected course has already been added",
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      SingleChildScrollView(
+                        child: SizedBox(
+                          height: 300,
+                          width: 500,
+                          child: ListView.builder(
+                            itemCount: suggestedCourses.length,
+                            itemBuilder: ((context, index) {
+                              return InkWell(
+                                onTap: () {
+                                  setState(() {
+                                    if (selectedCourses.any((course) =>
+                                        course.coursecode ==
+                                        suggestedCourses[index].coursecode)) {
+                                      alreadyAdded = true;
+                                    } else {
+                                      alreadyAdded = false;
+                                      selectedCourses
+                                          .add(suggestedCourses[index]);
+                                    }
+                                  });
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Text(
+                                      "${suggestedCourses[index].coursecode}: ${suggestedCourses[index].coursename}"), // Display course name
+                                ),
+                              );
+                            }),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
                     },
-                    'email': emailController.text,
-                  });
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Faculty updated'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                  getCoursesFromFirestore();
+                    child: Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      if (formKey.currentState!.validate()) {
+                        formKey.currentState!.save();
+                        var uid = generateUID();
+                        try {
+                          await FirebaseFirestore.instance
+                              .collection('faculty')
+                              .doc(uid)
+                              .set({
+                            'displayname': {
+                              'firstname':
+                                  _facultyData.displayName['firstname']!,
+                              'lastname': _facultyData.displayName['lastname']!,
+                            },
+                            'email': _facultyData.email,
+                            'uid': uid,
+                            'history': selectedCourses
+                                .map((course) => course.toMap())
+                                .toList(),
+                          }).then((value) {
+                            // Get the newly generated document ID (UID)
 
-                  // Trigger a rebuild
-                  Navigator.pop(context);
-                } catch (e) {
-                  print('Error updating faculty data: $e');
-                  // Handle the error
-                }
-              },
-              child: Text('Save'),
-            ),
-          ],
+                            // Use the UID as needed (if necessary)
+                            print('New faculty member UID: $uid');
+                          });
+
+                          Navigator.pop(context);
+
+                          // If you want to refresh the faculty list after adding a new member
+
+                          getFacultyList();
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Faculty member added'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        } catch (e) {
+                          print('Error adding faculty member: $e');
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Error adding faculty member: $e'),
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    child: Text('Submit'),
+                  ),
+                ],
+              ),
+            );
+          },
         );
       },
     );
+  }
+
+  String buildCourseHistoryMessage(
+      Faculty faculty, List<Faculty> suggestedFaculty) {
+    if (suggestedFaculty.isEmpty) {
+      return 'No suggested faculty.';
+    } else if (faculty.displayname['firstname']!.contains('None') &&
+        faculty.displayname['lastname']!.contains('assigned')) {
+      final messageBuffer = StringBuffer('Suggested faculty:\n');
+      for (int i = 1; i < suggestedFaculty.length; i++) {
+        Faculty faculty = suggestedFaculty[i];
+        messageBuffer.write(
+            ' - ${faculty.displayname['firstname']} ${faculty.displayname['lastname']}\n');
+      }
+      return messageBuffer.toString();
+    } else {
+      final messageBuffer = StringBuffer('Course history:\n');
+      for (final course in faculty.history) {
+        messageBuffer.write(' - ${course.coursecode}: ${course.coursename}\n');
+      }
+      return messageBuffer.toString();
+    }
   }
 
   void _editCourseData(BuildContext context, Course course) {
@@ -260,6 +669,36 @@ class _MainViewState extends State<Gscscreen> {
     String selectedStatus = course.isactive.toString();
     String selectedType = course.type.toString();
     String selectedFaculty = course.facultyassigned.toString();
+
+    List<Faculty> facultySuggestions = [facultyList[0]];
+    for (Faculty facultySuggest in facultyList) {
+      // Check if the faculty's history contains the specified course code
+      bool hasCourseInHistory = false;
+      for (Course historyCourse in facultySuggest.history) {
+        if (historyCourse.coursecode == course.coursecode) {
+          hasCourseInHistory = true;
+          break;
+        }
+      }
+      // If the faculty has the specified course in their history, add them to the suggestions
+      if (hasCourseInHistory) {
+        facultySuggestions.add(facultySuggest);
+      }
+    }
+
+    List<Map<String, String>> history = [];
+    for (Faculty faculty in facultyList) {
+      if (faculty.displayname['firstname']!.contains(course.facultyassigned) &&
+          faculty.displayname['lastname']!.contains(course.facultyassigned)) {
+        // Extract coursecode and coursename from faculty history and add to history list
+        for (Course historyCourse in faculty.history) {
+          history.add({
+            'coursecode': historyCourse.coursecode,
+            'coursename': historyCourse.coursename,
+          });
+        }
+      }
+    }
 
     final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
     TextEditingController coursecodeController =
@@ -309,11 +748,27 @@ class _MainViewState extends State<Gscscreen> {
                             'Course Name', coursenameController, hasStudents),
                         DropdownButtonFormField<String>(
                           value: selectedFaculty,
-                          items: facultyList.map((faculty) {
+                          items: facultySuggestions.map((faculty) {
                             return DropdownMenuItem<String>(
                               value:
                                   "${faculty.displayname['firstname']} ${faculty.displayname['lastname']}",
-                              child: Text(getFullname(faculty)),
+                              child: SizedBox(
+                                width: 250,
+                                child: Row(
+                                  children: [
+                                    Text(getFullname(faculty)),
+                                    Spacer(),
+                                    Tooltip(
+                                      message: buildCourseHistoryMessage(
+                                          faculty, facultySuggestions),
+                                      child: MouseRegion(
+                                        cursor: SystemMouseCursors.click,
+                                        child: Icon(Icons.info_outline_rounded),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             );
                           }).toList(),
                           onChanged: (value) {
@@ -593,6 +1048,27 @@ class _MainViewState extends State<Gscscreen> {
       foundCourse = results;
       foundCourse.sort((a, b) => a.coursecode.compareTo(b.coursecode));
     });
+  }
+
+  List<Course> runApplicableCourseFilter(String query) {
+    List<Course> suggestedCourses;
+    if (query.isEmpty) {
+      return courses;
+    } else {
+      query = query
+          .toLowerCase(); // Convert query to lowercase for case-insensitive comparison
+
+      suggestedCourses = courses
+          .where((course) =>
+              course.coursecode.toLowerCase().contains(query) ||
+              course.coursename.toLowerCase().contains(query) ||
+              course.numstudents.toString().contains(query) ||
+              course.facultyassigned.toString().contains(query) ||
+              (query == "active" && course.isactive) ||
+              (query == "inactive" && !course.isactive))
+          .toList();
+      return suggestedCourses;
+    }
   }
 
   void runFacultyFilter(String query) {

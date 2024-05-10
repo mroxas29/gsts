@@ -270,37 +270,6 @@ class _MainViewState extends State<Sysad> {
     );
   }
 
-  Widget _buildFacultyDropdown(
-    String labelText,
-    List<Faculty> facultyList,
-    String selectedFaculty,
-    void Function(String?)? onChangedCallback,
-  ) {
-    // Check if the selectedValue is in the facultyList
-    bool isCurrentFacultyInList =
-        facultyList.any((faculty) => faculty.email == selectedFaculty);
-
-    // If it's not in the list, add it to the list
-    if (!isCurrentFacultyInList) {
-      facultyList.add(Faculty(displayname: {
-        "firstname": selectedFaculty,
-        "lastname": selectedFaculty,
-      }, email: selectedFaculty, uid: generateUID()));
-    }
-
-    return DropdownButtonFormField<String>(
-      value: selectedFaculty,
-      items: facultyList.map((faculty) {
-        return DropdownMenuItem<String>(
-          value: faculty.email,
-          child: Text(getFullname(faculty)),
-        );
-      }).toList(),
-      onChanged: onChangedCallback,
-      decoration: InputDecoration(labelText: labelText),
-    );
-  }
-
   void _showStudentInfo(BuildContext context, Student student) {}
 
   void _editCourseData(BuildContext context, Course course) {

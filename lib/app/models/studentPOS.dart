@@ -134,6 +134,7 @@ Future<List<StudentPOS>> retrieveAllPOS() async {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final CollectionReference collectionReference =
       firestore.collection('studentpos');
+  String testUid = '';
 
   try {
     QuerySnapshot querySnapshot = await collectionReference.get();
@@ -147,6 +148,8 @@ Future<List<StudentPOS>> retrieveAllPOS() async {
         if (data != null) {
           // Create a StudentPOS object from the retrieved data
           StudentPOS studentPOS = StudentPOS.fromJson(data);
+
+          testUid = studentPOS.uid;
           studentPOSList.add(studentPOS);
         } else {
           print('Document data is null');
@@ -157,6 +160,7 @@ Future<List<StudentPOS>> retrieveAllPOS() async {
       }
     }
   } catch (e) {
+    print(testUid);
     print('Error retrieving documents from Student POS collection: $e');
   }
   return studentPOSList;

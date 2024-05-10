@@ -1857,169 +1857,75 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
     final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Text(
-              'Enrolled Courses',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 8),
-            DataTable(
-              columns: [
-                DataColumn(
-                    label: Text(
-                  'Course Code',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                )),
-                DataColumn(
-                    label: Text(
-                  'Course Name',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                )),
-                DataColumn(
-                    label: Text(
-                  'Units',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                )),
-                DataColumn(
-                    label: Text(
-                  'Enrolled',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                )),
-                DataColumn(
-                    label: Text(
-                  'Actions',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                )),
-              ],
-              rows: currentStudent!.enrolledCourses
-                  .map(
-                    (enrolledCourse) => DataRow(
-                      cells: [
-                        DataCell(Text(enrolledCourse.coursecode)),
-                        DataCell(Text(enrolledCourse.coursename)),
-                        DataCell(Text(enrolledCourse.units.toString())),
-                        DataCell(Text(enrolledCourse.numstudents.toString())),
-                        DataCell(
-                          Row(
-                            children: [
-                              TextButton(
-                                onPressed: () {
-                                  showAddPastCourse(
-                                      context,
-                                      _formKey,
-                                      enrolledCourse,
-                                      (enrolledCourse) => setState(() {
-                                            currentStudent!.pastCourses
-                                                .add(enrolledCourse);
-                                          }),
-                                      true);
-                                },
-                                child: Icon(
-                                  Icons.done_all,
-                                  color: const Color.fromARGB(255, 32, 102, 34),
-                                ),
-                              ),
-                              IconButton(
-                                icon: Icon(
-                                  Icons.delete,
-                                  color: Colors.red,
-                                ),
-                                onPressed: () {
-                                  // Handle delete action
-                                  _deleteEnrolledCourse(enrolledCourse, false);
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                  .toList(),
-            ),
-            SizedBox(
-              height: 8,
-            ),
-            Center(
-              child: InkWell(
-                onTap: () async {
-                  await getCoursesFromFirestore();
-                  showAddEnrolledCoursePopup(context, _formKey, activecourses,
-                      (enrolledCourse) {
-                    setState(() {
-                      currentStudent!.enrolledCourses.add(enrolledCourse);
-                    });
-
-                    // Handle the added enrolled course
-                  });
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Text('Add enrolled course',
-                      style: TextStyle(
-                          decoration: TextDecoration.underline,
-                          color: Colors.grey)),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              Text(
+                'Enrolled Courses',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ),
-            SizedBox(
-              height: 15,
-            ),
-            Container(
-                child: Column(
-              children: [
-                Text(
-                  'Past Courses',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 8),
-                DataTable(
-                  columns: [
-                    DataColumn(
-                        label: Text(
-                      'Course Code',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    )),
-                    DataColumn(
-                        label: Text(
-                      'Course Name',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    )),
-                    DataColumn(
-                        label: Text(
-                      'Grade',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    )),
-                    DataColumn(
-                        label: Text(
-                      'Units',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    )),
-                    DataColumn(
-                        label: Text(
-                      'Actions',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    )),
-                  ],
-                  rows: currentStudent!.pastCourses
-                      .map(
-                        (pastCourse) => DataRow(
-                          cells: [
-                            DataCell(Text(pastCourse.coursecode)),
-                            DataCell(Text(pastCourse.coursename)),
-                            DataCell(Text(pastCourse.grade.toString())),
-                            DataCell(Text(pastCourse.units.toString())),
-                            DataCell(Row(
+              SizedBox(height: 8),
+              DataTable(
+                columns: [
+                  DataColumn(
+                      label: Text(
+                    'Course Code',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  )),
+                  DataColumn(
+                      label: Text(
+                    'Course Name',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  )),
+                  DataColumn(
+                      label: Text(
+                    'Units',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  )),
+                  DataColumn(
+                      label: Text(
+                    'Enrolled',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  )),
+                  DataColumn(
+                      label: Text(
+                    'Actions',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  )),
+                ],
+                rows: currentStudent!.enrolledCourses
+                    .map(
+                      (enrolledCourse) => DataRow(
+                        cells: [
+                          DataCell(Text(enrolledCourse.coursecode)),
+                          DataCell(Text(enrolledCourse.coursename)),
+                          DataCell(Text(enrolledCourse.units.toString())),
+                          DataCell(Text(enrolledCourse.numstudents.toString())),
+                          DataCell(
+                            Row(
                               children: [
+                                TextButton(
+                                  onPressed: () {
+                                    showAddPastCourse(
+                                        context,
+                                        _formKey,
+                                        enrolledCourse,
+                                        (enrolledCourse) => setState(() {
+                                              currentStudent!.pastCourses
+                                                  .add(enrolledCourse);
+                                            }),
+                                        true);
+                                  },
+                                  child: Icon(
+                                    Icons.done_all,
+                                    color: const Color.fromARGB(255, 32, 102, 34),
+                                  ),
+                                ),
                                 IconButton(
                                   icon: Icon(
                                     Icons.delete,
@@ -2027,43 +1933,138 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                                   ),
                                   onPressed: () {
                                     // Handle delete action
-                                    _deletePastCourse(pastCourse);
+                                    _deleteEnrolledCourse(enrolledCourse, false);
                                   },
                                 ),
                               ],
-                            )),
-                          ],
-                        ),
-                      )
-                      .toList(),
-                ),
-                SizedBox(
-                  height: 8,
-                ),
-                Center(
-                  child: InkWell(
-                    onTap: () {
-                      showAddPastCourse(
-                          context,
-                          _formKey,
-                          courses.isNotEmpty ? courses[0] : null,
-                          (pastCourse) => setState(() {
-                                currentStudent!.pastCourses.add(pastCourse);
-                              }),
-                          false);
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Text('Add past course',
-                          style: TextStyle(
-                              decoration: TextDecoration.underline,
-                              color: Colors.grey)),
-                    ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                    .toList(),
+              ),
+              SizedBox(
+                height: 8,
+              ),
+              Center(
+                child: InkWell(
+                  onTap: () async {
+                    await getCoursesFromFirestore();
+                    showAddEnrolledCoursePopup(context, _formKey, activecourses,
+                        (enrolledCourse) {
+                      setState(() {
+                        currentStudent!.enrolledCourses.add(enrolledCourse);
+                      });
+        
+                      // Handle the added enrolled course
+                    });
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text('Add enrolled course',
+                        style: TextStyle(
+                            decoration: TextDecoration.underline,
+                            color: Colors.grey)),
                   ),
-                )
-              ],
-            )),
-          ],
+                ),
+              ),
+              SizedBox(
+                height: 15,
+              ),
+              Column(
+                            children: [
+              Text(
+                'Past Courses',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 8),
+              DataTable(
+                columns: [
+                  DataColumn(
+                      label: Text(
+                    'Course Code',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  )),
+                  DataColumn(
+                      label: Text(
+                    'Course Name',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  )),
+                  DataColumn(
+                      label: Text(
+                    'Grade',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  )),
+                  DataColumn(
+                      label: Text(
+                    'Units',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  )),
+                  DataColumn(
+                      label: Text(
+                    'Actions',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  )),
+                ],
+                rows: currentStudent!.pastCourses
+                    .map(
+                      (pastCourse) => DataRow(
+                        cells: [
+                          DataCell(Text(pastCourse.coursecode)),
+                          DataCell(Text(pastCourse.coursename)),
+                          DataCell(Text(pastCourse.grade.toString())),
+                          DataCell(Text(pastCourse.units.toString())),
+                          DataCell(Row(
+                            children: [
+                              IconButton(
+                                icon: Icon(
+                                  Icons.delete,
+                                  color: Colors.red,
+                                ),
+                                onPressed: () {
+                                  // Handle delete action
+                                  _deletePastCourse(pastCourse);
+                                },
+                              ),
+                            ],
+                          )),
+                        ],
+                      ),
+                    )
+                    .toList(),
+              ),
+              SizedBox(
+                height: 8,
+              ),
+              Center(
+                child: InkWell(
+                  onTap: () {
+                    showAddPastCourse(
+                        context,
+                        _formKey,
+                        courses.isNotEmpty ? courses[0] : null,
+                        (pastCourse) => setState(() {
+                              currentStudent!.pastCourses.add(pastCourse);
+                            }),
+                        false);
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text('Add past course',
+                        style: TextStyle(
+                            decoration: TextDecoration.underline,
+                            color: Colors.grey)),
+                  ),
+                ),
+              )
+                            ],
+                          ),
+            ],
+          ),
         ),
       ),
     );
