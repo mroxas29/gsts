@@ -598,18 +598,18 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
         // Check for CIS411M in past courses with a passing grade
         bool hasCIS411M = student.pastCourses.any((course) =>
             course.coursecode == 'CIS411M' &&
-            course.grade > 0 &&
+            course.grade >= 2.0 &&
             course.grade <= 4);
         return hasCIS411M;
       } else if (selectedCourse.coursecode == 'CAPFIND') {
         // Check for CIS411M and Capstone Project Proposal in past courses
         bool hasCIS411M = student.pastCourses.any((course) =>
             course.coursecode == 'CIS411M' &&
-            course.grade > 0 &&
+            course.grade >= 2.0 &&
             course.grade <= 4);
         bool hasProposal = student.pastCourses.any((course) =>
             course.coursename == 'Capstone Project Proposal' &&
-            course.grade > 0 &&
+            course.grade >= 2.0 &&
             course.grade <= 4);
         return hasCIS411M && hasProposal;
       }
@@ -620,28 +620,28 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
         // Check for CIS801M in past courses with a passing grade
         bool hasCIS801M = student.pastCourses.any((course) =>
             course.coursecode == 'CIS801M' &&
-            course.grade > 0 &&
+            course.grade >= 2.0 &&
             course.grade <= 4);
         return hasCIS801M;
       } else if (selectedCourse.coursecode == 'THPROD') {
         // Check for THWR1 in past courses with a passing grade
         bool hasTHWR1 = student.pastCourses.any((course) =>
             course.coursecode == 'THWR1' &&
-            course.grade > 0 &&
+            course.grade >= 2.0 &&
             course.grade <= 4);
         return hasTHWR1;
       } else if (selectedCourse.coursecode == 'THWR2') {
         // Check for THPROD in past courses with a passing grade
         bool hasTHPROD = student.pastCourses.any((course) =>
             course.coursecode == 'THPROD' &&
-            course.grade > 0 &&
+            course.grade >= 0 &&
             course.grade <= 4);
         return hasTHPROD;
       } else if (selectedCourse.coursecode == 'THFIND') {
         // Check for THWR2 in past courses with a passing grade
         bool hasTHWR2 = student.pastCourses.any((course) =>
             course.coursecode == 'THWR2' &&
-            course.grade > 0 &&
+            course.grade >= 0 &&
             course.grade <= 4);
         return hasTHWR2;
       }
@@ -951,7 +951,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                           ),
                         if (!hasPreReq)
                           Text(
-                            'This course has a pre-requisite course which you have not taken',
+                            'This course has a pre-requisite course which you have not taken or passed',
                             style: TextStyle(color: Colors.red),
                           ),
                         if (selectedCourse != null)
@@ -1652,9 +1652,10 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                               return 'Please enter the grade';
                             }
 
-                            if (int.parse(value) > 4.0 ||
-                                int.parse(value) < 0.0) {
-                              return 'Invalid grade';
+                            // Check if the value is a double using a regular expression
+                            final gradeRegex = RegExp(r'^[0-4]\.?[0-9]?$');
+                            if (!gradeRegex.hasMatch(value)) {
+                              return 'Invalid grade. Enter a value between 0.0 and 4.0.';
                             }
                             return null;
                           },
@@ -1923,7 +1924,8 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                                   },
                                   child: Icon(
                                     Icons.done_all,
-                                    color: const Color.fromARGB(255, 32, 102, 34),
+                                    color:
+                                        const Color.fromARGB(255, 32, 102, 34),
                                   ),
                                 ),
                                 IconButton(
@@ -1933,7 +1935,8 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                                   ),
                                   onPressed: () {
                                     // Handle delete action
-                                    _deleteEnrolledCourse(enrolledCourse, false);
+                                    _deleteEnrolledCourse(
+                                        enrolledCourse, false);
                                   },
                                 ),
                               ],
@@ -1956,7 +1959,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                       setState(() {
                         currentStudent!.enrolledCourses.add(enrolledCourse);
                       });
-        
+
                       // Handle the added enrolled course
                     });
                   },
@@ -1973,96 +1976,96 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                 height: 15,
               ),
               Column(
-                            children: [
-              Text(
-                'Past Courses',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              SizedBox(height: 8),
-              DataTable(
-                columns: [
-                  DataColumn(
-                      label: Text(
-                    'Course Code',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  )),
-                  DataColumn(
-                      label: Text(
-                    'Course Name',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  )),
-                  DataColumn(
-                      label: Text(
-                    'Grade',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  )),
-                  DataColumn(
-                      label: Text(
-                    'Units',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  )),
-                  DataColumn(
-                      label: Text(
-                    'Actions',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  )),
-                ],
-                rows: currentStudent!.pastCourses
-                    .map(
-                      (pastCourse) => DataRow(
-                        cells: [
-                          DataCell(Text(pastCourse.coursecode)),
-                          DataCell(Text(pastCourse.coursename)),
-                          DataCell(Text(pastCourse.grade.toString())),
-                          DataCell(Text(pastCourse.units.toString())),
-                          DataCell(Row(
-                            children: [
-                              IconButton(
-                                icon: Icon(
-                                  Icons.delete,
-                                  color: Colors.red,
-                                ),
-                                onPressed: () {
-                                  // Handle delete action
-                                  _deletePastCourse(pastCourse);
-                                },
-                              ),
-                            ],
-                          )),
-                        ],
-                      ),
-                    )
-                    .toList(),
-              ),
-              SizedBox(
-                height: 8,
-              ),
-              Center(
-                child: InkWell(
-                  onTap: () {
-                    showAddPastCourse(
-                        context,
-                        _formKey,
-                        courses.isNotEmpty ? courses[0] : null,
-                        (pastCourse) => setState(() {
-                              currentStudent!.pastCourses.add(pastCourse);
-                            }),
-                        false);
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Text('Add past course',
-                        style: TextStyle(
-                            decoration: TextDecoration.underline,
-                            color: Colors.grey)),
+                children: [
+                  Text(
+                    'Past Courses',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-              )
+                  SizedBox(height: 8),
+                  DataTable(
+                    columns: [
+                      DataColumn(
+                          label: Text(
+                        'Course Code',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      )),
+                      DataColumn(
+                          label: Text(
+                        'Course Name',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      )),
+                      DataColumn(
+                          label: Text(
+                        'Grade',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      )),
+                      DataColumn(
+                          label: Text(
+                        'Units',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      )),
+                      DataColumn(
+                          label: Text(
+                        'Actions',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      )),
+                    ],
+                    rows: currentStudent!.pastCourses
+                        .map(
+                          (pastCourse) => DataRow(
+                            cells: [
+                              DataCell(Text(pastCourse.coursecode)),
+                              DataCell(Text(pastCourse.coursename)),
+                              DataCell(Text(pastCourse.grade.toString())),
+                              DataCell(Text(pastCourse.units.toString())),
+                              DataCell(Row(
+                                children: [
+                                  IconButton(
+                                    icon: Icon(
+                                      Icons.delete,
+                                      color: Colors.red,
+                                    ),
+                                    onPressed: () {
+                                      // Handle delete action
+                                      _deletePastCourse(pastCourse);
+                                    },
+                                  ),
+                                ],
+                              )),
                             ],
                           ),
+                        )
+                        .toList(),
+                  ),
+                  SizedBox(
+                    height: 8,
+                  ),
+                  Center(
+                    child: InkWell(
+                      onTap: () {
+                        showAddPastCourse(
+                            context,
+                            _formKey,
+                            courses.isNotEmpty ? courses[0] : null,
+                            (pastCourse) => setState(() {
+                                  currentStudent!.pastCourses.add(pastCourse);
+                                }),
+                            false);
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text('Add past course',
+                            style: TextStyle(
+                                decoration: TextDecoration.underline,
+                                color: Colors.grey)),
+                      ),
+                    ),
+                  )
+                ],
+              ),
             ],
           ),
         ),
@@ -2274,9 +2277,10 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
 
     DataRow isCoursePassed(Course course, BuildContext context) {
       final bool isPassed = currentStudent!.pastCourses.any((pastCourse) =>
-          pastCourse.coursecode == course.coursecode && pastCourse.grade > 0);
+          pastCourse.coursecode == course.coursecode &&
+          pastCourse.grade >= 2.0);
       final bool isNotPassed = currentStudent!.pastCourses.any((pastCourse) =>
-          pastCourse.coursecode == course.coursecode && pastCourse.grade <= 0);
+          pastCourse.coursecode == course.coursecode && pastCourse.grade < 2.0);
       final bool isInProgress = currentStudent!.enrolledCourses.any(
           (enrolledCourse) => enrolledCourse.coursecode == course.coursecode);
       final bool isNotEnrolled = !isPassed && !isNotPassed && !isInProgress;

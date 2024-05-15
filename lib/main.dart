@@ -396,6 +396,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void route() async {
+    
     User? authuser = FirebaseAuth.instance.currentUser;
     await retrieveAllPOS();
     await FirebaseFirestore.instance

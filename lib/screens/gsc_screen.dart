@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
@@ -7,6 +8,7 @@ import 'package:sysadmindb/api/email/invoice_service.dart';
 import 'package:sysadmindb/api/calendar/test_calendar.dart';
 import 'package:sysadmindb/app/models/DeviatedStudents.dart';
 import 'package:sysadmindb/app/models/courses.dart';
+import 'package:sysadmindb/app/models/enrolledcourses.dart';
 import 'package:sysadmindb/app/models/faculty.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
@@ -20,7 +22,7 @@ import 'package:sysadmindb/ui/info_page/studentInfoPage.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:html' as html;
 import 'package:flutter/services.dart';
-import 'package:table_calendar/table_calendar.dart';
+import 'package:syncfusion_flutter_pdf/pdf.dart';
 
 void main() {
   runApp(
@@ -1161,6 +1163,22 @@ class _MainViewState extends State<Gscscreen> {
     });
   }
 
+  Future<List<int>> _readDocumentData() async {
+    // Open a file picker dialog to allow the user to choose a file
+    FilePickerResult? result = await FilePicker.platform.pickFiles();
+
+    if (result != null) {
+      PlatformFile file = result.files.first;
+
+      // Read the selected file
+      Uint8List bytes = file.bytes!;
+      return bytes;
+    } else {
+      // User canceled the file picker dialog
+      return []; // Return an empty list
+    }
+  }
+
   void savePasswordChanges(
       String newPassword,
       bool isMatching,
@@ -1253,6 +1271,82 @@ class _MainViewState extends State<Gscscreen> {
     }
   }
 
+  Future<void> addEnrolledStudents(
+      List<String> students, String courseCode) async {
+    Course course = Course(
+        uid: 'blank',
+        coursecode: 'Select a course',
+        coursename: '',
+        facultyassigned: '',
+        units: 0,
+        numstudents: 0,
+        isactive: false,
+        type: '',
+        program: '');
+
+    late EnrolledCourseData enrolledCourse;
+    for (Course c in courses) {
+      if (c.coursecode == courseCode) {
+        course = c;
+      }
+    }
+
+    enrolledCourse = EnrolledCourseData(
+      uid: course.uid,
+      coursecode: course.coursecode,
+      coursename: course.coursename,
+      isactive: course.isactive,
+      facultyassigned: course.facultyassigned,
+      numstudents: students.length - 1,
+      units: course.units,
+      type: course.type,
+      program: course.program,
+    );
+    await FirebaseFirestore.instance
+        .collection('courses')
+        .doc(enrolledCourse.uid)
+        .update({'numstudents': students.length - 1});
+
+    for (String student in students) {
+      for (Student s in studentList) {
+        if (student.contains(s.idnumber.toString())) {
+          print(s.idnumber);
+          print('${s.displayname['firstname']} ${s.displayname['lastname']}');
+
+          if (s.enrolledCourses.any(
+              (eCourse) => eCourse.coursecode != enrolledCourse.coursecode)) {
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(s.uid)
+                .update({
+              'enrolledCourses':
+                  FieldValue.arrayUnion([enrolledCourse.toJson()]),
+            });
+
+            await FirebaseFirestore.instance
+                .collection('studentpos')
+                .doc(s.uid)
+                .update({
+              'enrolledCourses':
+                  FieldValue.arrayUnion([enrolledCourse.toJson()]),
+            });
+          }
+        }
+      }
+    }
+
+    await getCoursesFromFirestore();
+    await addUserFromFirestore();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+            'Enrolled students for $courseCode: ${enrolledCourse.coursename} updated!'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
   List<Course> recommendedRemedialCourses = [];
   List<Course> recommendedPriorityCourses = [];
 
@@ -1323,6 +1417,59 @@ class _MainViewState extends State<Gscscreen> {
                               ],
                             ),
                             Spacer(),
+                            TextButton(
+                                onPressed: () async {
+                                  PdfDocument document = PdfDocument(
+                                      inputBytes: await _readDocumentData());
+                                  //Create a new instance of the PdfTextExtractor.
+                                  PdfTextExtractor extractor =
+                                      PdfTextExtractor(document);
+
+                                  //Extract all the text from the document.
+                                  String text =
+                                      extractor.extractText(layoutText: true);
+
+                                  // Split the text into lines
+                                  List<String> lines = text.split('\n');
+
+                                  // Process each line
+                                  String termLine = '';
+                                  String courseLine = '';
+                                  List<String> studentLines = [];
+                                  int lineNum = 0;
+
+                                  for (String line in lines) {
+                                    // Do something with each line
+
+                                    if (line.toLowerCase().contains('term') &&
+                                        line.toLowerCase().contains('sy.')) {
+                                      termLine = line;
+                                    } else {
+                                      for (Course course in courses) {
+                                        if (line.contains(course.coursecode)) {
+                                          courseLine = line.substring(
+                                              0, line.indexOf(' '));
+                                          break; // Exit loop once a course code is found
+                                        }
+                                      }
+                                    }
+
+                                    if (lineNum > 4) {
+                                      studentLines.add(line);
+                                    }
+                                    print(line);
+                                    lineNum++;
+                                  }
+
+                                  await addEnrolledStudents(
+                                      studentLines, courseLine);
+                                },
+                                style: ElevatedButton.styleFrom(
+                                    padding: EdgeInsets.all(20),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(25))),
+                                child: Icon(Icons.upload)),
                             Column(
                               children: [
                                 SizedBox(
@@ -1528,6 +1675,8 @@ class _MainViewState extends State<Gscscreen> {
 
                   //STUDENT POS TAB
                   SingleChildScrollView(
+                    physics: BouncingScrollPhysics(
+                        parent: AlwaysScrollableScrollPhysics()),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.start,
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1711,6 +1860,8 @@ class _MainViewState extends State<Gscscreen> {
                           ),
                         ),
                         SingleChildScrollView(
+                          physics: BouncingScrollPhysics(
+                              parent: AlwaysScrollableScrollPhysics()),
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -1727,6 +1878,9 @@ class _MainViewState extends State<Gscscreen> {
                                     ),
                                   ),
                                   SingleChildScrollView(
+                                    physics: BouncingScrollPhysics(
+                                        parent:
+                                            AlwaysScrollableScrollPhysics()),
                                     child: SizedBox(
                                       width:
                                           MediaQuery.sizeOf(context).height / 3,
@@ -1851,6 +2005,9 @@ class _MainViewState extends State<Gscscreen> {
                                         fontSize: 12, color: Colors.grey),
                                   ),
                                   SingleChildScrollView(
+                                    physics: BouncingScrollPhysics(
+                                        parent:
+                                            AlwaysScrollableScrollPhysics()),
                                     child: SizedBox(
                                       width:
                                           MediaQuery.of(context).size.width / 6,
@@ -1955,6 +2112,9 @@ class _MainViewState extends State<Gscscreen> {
                                     ),
                                   ),
                                   SingleChildScrollView(
+                                    physics: BouncingScrollPhysics(
+                                        parent:
+                                            AlwaysScrollableScrollPhysics()),
                                     child: SizedBox(
                                       width:
                                           MediaQuery.of(context).size.width / 6,
@@ -2079,6 +2239,9 @@ class _MainViewState extends State<Gscscreen> {
                                         fontSize: 12, color: Colors.grey),
                                   ),
                                   SingleChildScrollView(
+                                    physics: BouncingScrollPhysics(
+                                        parent:
+                                            AlwaysScrollableScrollPhysics()),
                                     // Allow horizontal scrolling
                                     child: Column(
                                         mainAxisAlignment:
@@ -2258,6 +2421,8 @@ class _MainViewState extends State<Gscscreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [Text("Inbox")]),
       SingleChildScrollView(
+          physics:
+              BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
           padding: EdgeInsets.all(8.0),
           child: Column(
             children: [
@@ -2267,6 +2432,8 @@ class _MainViewState extends State<Gscscreen> {
                   SizedBox(
                       width: 560,
                       child: SingleChildScrollView(
+                        physics: BouncingScrollPhysics(
+                            parent: AlwaysScrollableScrollPhysics()),
                         child: Card(
                           color: Colors.white,
                           shape: RoundedRectangleBorder(
@@ -2318,6 +2485,8 @@ class _MainViewState extends State<Gscscreen> {
                   SizedBox(
                     width: 560, // Set your desired width
                     child: SingleChildScrollView(
+                      physics: BouncingScrollPhysics(
+                          parent: AlwaysScrollableScrollPhysics()),
                       child: Card(
                         color: Colors.white,
                         shape: RoundedRectangleBorder(

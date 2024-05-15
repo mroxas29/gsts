@@ -78,15 +78,14 @@ void showAddNewUserForm(
   ];
   List<String> status = ['Full Time', 'Part Time', 'LOA'];
 
-  final UserData _userData = UserData();
+  UserData _userData = UserData();
 
   String selectedStatus = status[0];
   String selectedDegree = degrees[0];
   String selectedRole = roles[0];
   bool isStudent = false;
-  String uid = '';
   final scaffoldContext = ScaffoldMessenger.of(context);
-
+  String uid = '';
   print("Add user form executed");
 
   showDialog(
@@ -255,14 +254,14 @@ void showAddNewUserForm(
                   User? user = userCredential.user;
 
                   await user?.sendEmailVerification();
-                  sendEmail(
+                  /*   sendEmail(
                       firstname: _userData.displayname['firstname'],
                       email: _userData.email,
                       toemail: _userData.email,
                       subject:
                           'New account at the Graduate Student Tracking System',
                       password: otp);
-
+*/
                   String userID = user!.uid;
                   uid = userID;
                   if (isStudent) {
@@ -329,6 +328,8 @@ void showAddNewUserForm(
                         print('Failed to update Program of Study');
                       }
                     }
+
+                    
                   } else {
                     await FirebaseFirestore.instance
                         .collection('users')
@@ -358,12 +359,8 @@ void showAddNewUserForm(
                     ),
                   );
                 } catch (e) {
-                  print('Error creating user: ${e.toString()}');
-                  scaffoldContext.showSnackBar(
-                    SnackBar(
-                      content: Text('Error creating user: $e'),
-                    ),
-                  );
+                
+                  print('Error creating user: $e');
                 }
               }
             },

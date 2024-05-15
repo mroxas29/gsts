@@ -122,7 +122,6 @@ Future<List<Faculty>> getFacultyList() async {
         );
       }).toList(),
     );
-    print(faculty.toMap());
     facultyList.add(faculty);
   }
 

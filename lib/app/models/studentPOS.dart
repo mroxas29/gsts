@@ -272,7 +272,7 @@ StudentPOS generatePOSforMIT(
         termIndex++) {
       var term = currentSchoolYear.terms[termIndex];
       print(
-          'Current num of courses in term ${term.name} ${term.termcourses.length}');
+          'Current num of courses in ${term.name} ${term.termcourses.length}');
       int remainingUnits = 6;
 
       int electiveCount = 0;
@@ -294,15 +294,6 @@ StudentPOS generatePOSforMIT(
           }
         }
       }
-    }
-  }
-
-// Adjust courses for specific terms
-  for (var i = 0; i < newStudentPOS.schoolYears.length; i++) {
-    for (var termIndex = 0;
-        termIndex < newStudentPOS.schoolYears[i].terms.length;
-        termIndex++) {
-      var term = newStudentPOS.schoolYears[i].terms[termIndex];
       if (i == 1 && term.name == "Term 3") {
         // Adjust for SchoolYear[1] Term 3
         Course capProjW = courses.firstWhere(
@@ -312,20 +303,24 @@ StudentPOS generatePOSforMIT(
           (course) => course.coursecode == "OEX",
         );
         term.termcourses.clear();
+        print("added $capProjW and $oex");
         term.termcourses.addAll([capProjW, oex]);
       } else if (i == 2 && term.name == "Term 1") {
         // Adjust for SchoolYear[2] Term 1
         Course capProjP = courses.firstWhere(
-          (course) => course.coursecode == "Capstone Project Proposal",
+          (course) => course.coursecode == "CAPROP",
         );
         Course capProjF = courses.firstWhere(
-          (course) => course.coursecode == "Capstone Project Final",
+          (course) => course.coursecode == "CAPFIND",
         );
         term.termcourses.clear();
+        print("added $capProjP and $capProjF");
         term.termcourses.addAll([capProjP, capProjF]);
       }
     }
   }
+
+// Adjust courses for specific terms
 
   return newStudentPOS;
 }
@@ -399,7 +394,7 @@ StudentPOS generatePOSforMSIT(
         termIndex++) {
       var term = currentSchoolYear.terms[termIndex];
       print(
-          'Current num of courses in term ${term.name} ${term.termcourses.length}');
+          'Current num of courses in ${term.name} ${term.termcourses.length}');
       int remainingUnits = 6;
 
       int electiveCount = 0;

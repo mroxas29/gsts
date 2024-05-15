@@ -32,9 +32,9 @@ class _StudentInfoPageState extends State<StudentInfoPage>
   late TabController _tabController;
   DataRow isCoursePassed(Course course, BuildContext context) {
     final bool isPassed = widget.studentpos.pastCourses.any((pastCourse) =>
-        pastCourse.coursecode == course.coursecode && pastCourse.grade > 0);
+        pastCourse.coursecode == course.coursecode && pastCourse.grade >= 2.0);
     final bool isNotPassed = widget.studentpos.pastCourses.any((pastCourse) =>
-        pastCourse.coursecode == course.coursecode && pastCourse.grade <= 0);
+        pastCourse.coursecode == course.coursecode && pastCourse.grade < 2.0);
     final bool isInProgress = widget.studentpos.enrolledCourses.any(
         (enrolledCourse) => enrolledCourse.coursecode == course.coursecode);
     final bool isNotEnrolled = !isPassed && !isNotPassed && !isInProgress;

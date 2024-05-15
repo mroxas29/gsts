@@ -220,6 +220,8 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                     SizedBox(
                       width: 20,
                     ),
+
+                    
                     Expanded(
                       flex: 1,
                       child: Column(
