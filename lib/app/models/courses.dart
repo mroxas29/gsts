@@ -156,5 +156,42 @@ Future<List<Course>> getCoursesFromFirestore() async {
   }
 
   courses.sort((a, b) => a.coursecode.compareTo(b.coursecode));
+
+  List<String> desiredThesisOrder = [
+    'CIS801M', // Methods of Research
+    'THWR1', // Thesis Writing 1
+    'THPROD', // Thesis Proposal Defense
+    'THWR2', // Thesis Writing 2
+    'THFIND', // Thesis Final Defense
+  ];
+
+// Sort thesiscourses list based on the desired order
+  thesiscourses.sort((a, b) {
+    int indexA = desiredThesisOrder.indexOf(a.coursecode);
+    int indexB = desiredThesisOrder.indexOf(b.coursecode);
+    return indexA.compareTo(indexB);
+  });
+
+  List<String> desiredCapstoneOrder = [
+    'CIS411M',
+    'Capstone Project Proposal',
+    'Capstone Project Final',
+  ];
+
+  capstonecourses.sort((a, b) {
+    int indexA = desiredCapstoneOrder.indexOf(a.coursecode);
+    int indexB = desiredCapstoneOrder.indexOf(b.coursecode);
+
+    // If either course is CIS411M, prioritize it
+    if (a.coursecode == 'CIS411M') {
+      return -1; // Put a before b
+    } else if (b.coursecode == 'CIS411M') {
+      return 1; // Put b before a
+    }
+
+    // Otherwise, sort based on their index in desiredCapstoneOrder
+    return indexA.compareTo(indexB);
+  });
+
   return courses;
 }

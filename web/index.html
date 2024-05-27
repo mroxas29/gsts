@@ -20,6 +20,10 @@
     <meta content="IE=Edge" http-equiv="X-UA-Compatible" />
     <meta name="description" content="A new Flutter project." />
 
+       <meta
+      name="google-signin-client_id"
+      content="703443900752-d0o2p65v12dkmfq8vt4dd8pmtp3k7ish.apps.googleusercontent.com"
+    />
     <!-- iOS meta tags & icons -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
@@ -38,12 +42,14 @@
     </script>
     <!-- This script adds the flutter initialization JS code -->
     <script src="flutter.js" defer></script>
+    <script async defer src="https://apis.google.com/js/api.js"></script>
+    <script src="https://apis.google.com/js/platform.js" async defer></script>
+ 
   </head>
   <body>
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-analytics.js"></script>
 
-    
     <script src="https://www.gstatic.com/firebase/8.10.1/firebase-auth.js"></script>
     <script>
       //firebase conenction
@@ -63,7 +69,6 @@
       const app = initializeApp(firebaseConfig);
       const analytics = getAnalytics(app);
     </script>
-
     <script>
       window.addEventListener("load", function (ev) {
         // Download main.dart.js

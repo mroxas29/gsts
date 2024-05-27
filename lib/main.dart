@@ -8,10 +8,10 @@ import 'package:sysadmindb/app/models/pastcourses.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/app/models/user.dart';
-import 'package:sysadmindb/gradstudent_screen.dart';
-import 'package:sysadmindb/gsc_screen.dart';
+import 'package:sysadmindb/screens/gradstudent_screen.dart';
+import 'package:sysadmindb/screens/gsc_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:sysadmindb/sysad.dart';
+import 'package:sysadmindb/screens/sysad.dart';
 import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sysadmindb/ui/reusable_widgets.dart';
@@ -28,6 +28,7 @@ void main() async {
   runApp(const MaterialApp(
     title: 'Login Page',
     home: LoginPage(),
+    debugShowCheckedModeBanner: false,
   ));
 }
 
@@ -37,9 +38,11 @@ class LoginPage extends StatefulWidget {
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
+ bool isEng501MChecked = false;
 
 TextEditingController passwordTextController = TextEditingController();
 TextEditingController emailTextController = TextEditingController();
+bool shownRecoGuide = false;
 late user currentUser;
 late Student? currentStudent;
 // Display students enrolled in the specific course
@@ -458,16 +461,22 @@ class _LoginPageState extends State<LoginPage> {
           print(
               "Current student uid: ${currentStudent!.uid}\nCurrent User uid: ${currentUser.uid}");
 
-          setState(() {
-            retrieveStudentPOS(currentStudent!.uid);
-          });
+          await retrieveStudentPOS(currentStudent!.uid);
+
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
               builder: (context) => GradStudentscreen(),
             ),
           );
-        } else {
+        }else if(documentSnapshot.get('role') == "Academic Programming Officer (APO)"){
+
+        } else if(documentSnapshot.get('role') ==
+            "DIT Secretary"){
+
+        }
+        
+        else {
           wrongCreds = true;
         }
       } else {
@@ -494,6 +503,8 @@ class _LoginPageState extends State<LoginPage> {
       await getFacultyList();
       await getCourseDemandsFromFirestore();
       await convertToStudentList(users);
+      await getGraduatingStudents();
+      await getNewStudents();
       route();
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') {

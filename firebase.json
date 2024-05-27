@@ -13,5 +13,15 @@
     "database": {
       "port": 9000
     }
+  },
+  "hosting": {
+    "public": "web",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
   }
 }

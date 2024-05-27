@@ -9,24 +9,32 @@ environment:
   sdk: ">=2.19.4 <4.0.0"
 
 dependencies:
-  appflowy_board: ^0.1.1
   cloud_firestore: ^4.9.3
+  confetti: ^0.7.0
+  cupertino_icons: ^1.0.6
+  drag_and_drop_lists: ^0.3.3
   english_words: ^4.0.0
-  firebase_auth: ^4.10.1
-  firebase_core: ^2.16.0
+  extension_google_sign_in_as_googleapis_auth: ^2.0.12
+  file_picker: ^6.2.0
+  firebase_auth: ^4.17.5
+  firebase_core: ^2.25.4
+  firebase_storage: ^11.6.11
   fl_chart: ^0.66.2
   flutter:
     sdk: flutter
   flutter_charts: ^0.5.2
   flutter_form_builder: ^9.1.1
+  flutter_html: 3.0.0-beta.2
+  flutter_resizable_container: ^0.4.1
+  flutter_secure_storage: ^9.0.0
+  flutter_typeahead: ^5.2.0
+  flutter_widget_from_html: ^0.14.6
   google_sign_in: ^6.1.5
-  googleapis_auth: ^1.4.2
   googleapis: ^12.0.0
-  cupertino_icons: ^1.0.6
-  syncfusion_flutter_calendar: ^24.2.7
+  googleapis_auth: ^1.4.2
+  googleapis_client: ^0.0.11
   http: ^1.2.0
   intl: ^0.18.1
-  kanban_board: ^0.1.0
   mailer: ^6.0.1
   open_document: ^1.0.7
   path_provider: ^2.1.2
@@ -34,7 +42,10 @@ dependencies:
   provider: ^6.0.0
   shared_preferences: ^2.1.1
   side_navigation: ^1.0.4
+  syncfusion_flutter_calendar: 24.2.8
+  syncfusion_flutter_pdf: ^24.2.8
   syncfusion_flutter_pdfviewer: ^24.2.5
+  table_calendar: ^3.0.9
   universal_html: ^2.2.4
   url_launcher: ^6.2.4
 
@@ -51,3 +62,5 @@ flutter:
     - assets/images/dlsuccsLogo.png
     - assets/images/dlsulogo.png
     - assets/images/De_La_Salle_University_Seal.png
+flutter_intl:
+  enabled: true
