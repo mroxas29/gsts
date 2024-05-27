@@ -13,7 +13,6 @@ class StudentTile extends StatefulWidget {
 }
 
 class _StudentTileState extends State<StudentTile> {
-
   String findSYTerm(Course course) {
     for (int i = 0; i < widget.student.studentPOS.schoolYears.length; i++) {
       SchoolYear sy = widget.student.studentPOS.schoolYears[i];
@@ -83,9 +82,18 @@ class _StudentTileState extends State<StudentTile> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            "Course ${course.coursecode}: ${course.coursename} is supposed to be taken on ${findSYTerm(course)}",
-                            style: TextStyle(fontSize: 14, color: Colors.red),
+                          Row(
+                            children: [
+                              Text(
+                                "Course ${course.coursecode}: ${course.coursename}\nplanned on ${findSYTerm(course)}",
+                                softWrap: true,
+                                style:
+                                    TextStyle(fontSize: 14, color: Colors.red),
+                                maxLines: null, // Allow unlimited lines
+                                overflow: TextOverflow
+                                    .visible, // Allow the text to wrap to the next line
+                              ),
+                            ],
                           ),
                           SizedBox(
                             height: 5,

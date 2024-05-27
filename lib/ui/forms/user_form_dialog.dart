@@ -38,7 +38,7 @@ Future<String?> showStudentTypeDialog(
     context: context,
     builder: (BuildContext context) {
       return AlertDialog(
-        title: Text('Select Student Type'),
+        title: Text('New user'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -47,16 +47,9 @@ Future<String?> showStudentTypeDialog(
                 studentType = 'New';
                 showAddNewUserForm(context, formKey, studentType);
               },
-              child: Text('New Student'),
+              child: Text('New User'),
             ),
             SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                studentType = 'Employee';
-                showAddNewUserForm(context, formKey, studentType);
-              },
-              child: Text('Employee'),
-            ),
           ],
         ),
       );
@@ -66,7 +59,13 @@ Future<String?> showStudentTypeDialog(
 
 void showAddNewUserForm(
     BuildContext context, GlobalKey<FormState> formKey, String studentType) {
-  List<String> roles = ['Coordinator', 'Graduate Student', 'Admin'];
+  List<String> roles = [
+    'Coordinator',
+    'Graduate Student',
+    'Admin',
+    'Academic Programming Officer (APO)',
+    'DIT Secretary'
+  ];
   List<String> degrees = [
     'No degree',
     'MIT',
@@ -282,23 +281,40 @@ void showAddNewUserForm(
                       'status': _userData.status
                     });
 
-                    Student newStudent = Student(
-                      uid: userID,
-                      displayname: {
+                    await FirebaseFirestore.instance
+                        .collection('newStudents')
+                        .doc(userID)
+                        .set({
+                      'displayname': {
                         'firstname': _userData.displayname['firstname']!,
                         'lastname': _userData.displayname['lastname']!,
                       },
-                      role: _userData.role,
-                      email: _userData.email.toLowerCase(),
-                      enrolledCourses: [],
-                      pastCourses: [],
-                      idnumber: _userData.idnumber,
-                      degree: _userData.degree,
-                      status: _userData.status,
-                    );
-                    final FirebaseFirestore firestore =
-                        FirebaseFirestore.instance;
+                      'role': _userData.role,
+                      'email': _userData.email.toLowerCase(),
+                      'enrolledCourses': [],
+                      'pastCourses': [],
+                      'idnumber': _userData.idnumber,
+                      'degree': _userData.degree,
+                      'status': _userData.status
+                    });
 
+                    studentPOS = StudentPOS(
+                        schoolYears: defaultschoolyears,
+                        uid: userID,
+                        displayname: _userData.displayname,
+                        role: _userData.role,
+                        email: _userData.email,
+                        idnumber: _userData.idnumber,
+                        enrolledCourses: [],
+                        pastCourses: [],
+                        degree: _userData.degree,
+                        status: _userData.status);
+                    await FirebaseFirestore.instance
+                        .collection('studentpos')
+                        .doc(userID)
+                        .set(studentPOS.toJson());
+
+                    /*
                     if (studentType == 'New') {
                       Map<String, dynamic>? studentPosData;
                       if (_userData.degree.contains('MIT')) {
@@ -328,8 +344,7 @@ void showAddNewUserForm(
                         print('Failed to update Program of Study');
                       }
                     }
-
-                    
+                      */
                   } else {
                     await FirebaseFirestore.instance
                         .collection('users')
@@ -347,11 +362,10 @@ void showAddNewUserForm(
                     });
                   }
 
-                  Navigator.pop(context);
                   users.clear();
 
                   addUserFromFirestore();
-
+                  Navigator.pop(context);
                   scaffoldContext.showSnackBar(
                     SnackBar(
                       content: Text('User added'),
@@ -359,7 +373,6 @@ void showAddNewUserForm(
                     ),
                   );
                 } catch (e) {
-                
                   print('Error creating user: $e');
                 }
               }

@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:sysadmindb/api/email/invoice_service.dart';
 import 'package:sysadmindb/app/models/AcademicCalendar.dart';
 import 'package:sysadmindb/app/models/DeviatedStudents.dart';
 import 'package:sysadmindb/app/models/SchoolYear.dart';
@@ -11,13 +12,14 @@ import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/app/models/term.dart';
+import 'package:sysadmindb/main.dart';
 import 'package:sysadmindb/ui/forms/addcourse.dart';
 import 'package:sysadmindb/ui/dashboard/gsc_dash.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class DeviatedInfoPage extends StatefulWidget {
   final DeviatedStudent student;
-  final StudentPOS studentpos;
+  StudentPOS studentpos;
 
   DeviatedInfoPage({required this.student, required this.studentpos});
 
@@ -230,6 +232,7 @@ class _DeviatedInfoPage extends State<DeviatedInfoPage>
   bool posEdited = false;
   late Future<ListResult> futurefiles;
   PlatformFile? pickedFile;
+
   @override
   void initState() {
     super.initState();
@@ -241,6 +244,11 @@ class _DeviatedInfoPage extends State<DeviatedInfoPage>
   }
 
   List<DataRow> rows = [];
+  final PdfInvoiceService service = PdfInvoiceService();
+
+  List<Course> recommendedRemedialCourses = [];
+  List<Course> recommendedPriorityCourses = [];
+
   @override
   Widget build(BuildContext context) {
     if (widget.studentpos.degree.contains('MIT')) {
@@ -451,6 +459,9 @@ class _DeviatedInfoPage extends State<DeviatedInfoPage>
                         SizedBox(
                           width: 20,
                         ),
+                        SizedBox(
+                          width: 20,
+                        ),
                         ElevatedButton(
                           onPressed: () {
                             // Implement logic to save studentPOS
@@ -582,6 +593,28 @@ class _DeviatedInfoPage extends State<DeviatedInfoPage>
                                                           ),
                                                           onPressed: () {
                                                             setState(() {
+                                                              setState(() {
+                                                                recommendedRemedialCourses.removeWhere(
+                                                                    (toremove) =>
+                                                                        toremove
+                                                                            .coursecode ==
+                                                                        course
+                                                                            .coursecode);
+
+                                                                recommendedPriorityCourses.removeWhere(
+                                                                    (toremove) =>
+                                                                        toremove
+                                                                            .coursecode ==
+                                                                        course
+                                                                            .coursecode);
+                                                                getDeviatedStudents();
+                                                                term.termcourses
+                                                                    .remove(
+                                                                        course);
+                                                                posEdited =
+                                                                    true;
+                                                              });
+
                                                               getDeviatedStudents();
                                                               term.termcourses
                                                                   .remove(
@@ -658,7 +691,8 @@ class _DeviatedInfoPage extends State<DeviatedInfoPage>
                                                   allCourses: courses,
                                                   selectedStudentPOS:
                                                       widget.studentpos,
-                                                )
+                                                  syAndTerm: 
+                                               "${widget.studentpos.schoolYears[widget.studentpos.schoolYears.indexOf(year)].name} ${widget.studentpos.schoolYears[widget.studentpos.schoolYears.indexOf(year)].terms[widget.studentpos.schoolYears[widget.studentpos.schoolYears.indexOf(year)].terms.indexOf(term)].name}", )
                                               ],
                                             ),
                                           ),

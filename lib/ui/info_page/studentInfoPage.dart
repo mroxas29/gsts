@@ -4,29 +4,32 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:sysadmindb/api/email/invoice_service.dart';
 import 'package:sysadmindb/app/models/DeviatedStudents.dart';
 import 'package:sysadmindb/app/models/SchoolYear.dart';
 import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/app/models/term.dart';
+import 'package:sysadmindb/main.dart';
+import 'package:sysadmindb/ui/deRF_dialog.dart';
 import 'package:sysadmindb/ui/forms/addcourse.dart';
 import 'package:sysadmindb/ui/dashboard/gsc_dash.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class StudentInfoPage extends StatefulWidget {
   final Student student;
-  final StudentPOS studentpos;
+  StudentPOS studentpos;
 
   StudentInfoPage({required this.student, required this.studentpos});
 
   @override
-  _StudentInfoPageState createState() => _StudentInfoPageState();
+  StudentInfoPageState createState() => StudentInfoPageState();
 }
 
 late Future<ListResult> futurefiles;
 
-class _StudentInfoPageState extends State<StudentInfoPage>
+class StudentInfoPageState extends State<StudentInfoPage>
     with SingleTickerProviderStateMixin {
   bool studentDeviated = false;
   late TabController _tabController;
@@ -194,26 +197,76 @@ class _StudentInfoPageState extends State<StudentInfoPage>
     bool isCourseIP = (widget.student.enrolledCourses
         .any((element) => element.coursecode == course.coursecode));
     return ListTile(
-      title: Text(
-        course.coursecode,
-        style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: isCourseDone
-                ? Colors.green
-                : isCourseIP
-                    ? Colors.orange
-                    : Colors.black),
+      title: Row(
+        children: [
+          Expanded(
+            child: Text(
+              course.coursecode,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: isCourseDone
+                    ? Colors.green
+                    : isCourseIP
+                        ? Colors.orange
+                        : Colors.black,
+              ),
+            ),
+          ),
+          Tooltip(
+            message: generateStudentList(
+                "$year $term", course), // Display the list of students
+            child: Icon(
+              Icons.info_outline,
+              color: Colors.blue,
+              size: 16,
+            ),
+          ),
+        ],
       ),
-      subtitle: Text(course.coursename,
-          style: TextStyle(
-              fontSize: 12,
-              color: isCourseDone
-                  ? Colors.green
-                  : isCourseIP
-                      ? Colors.orange
-                      : Colors.black)),
+      subtitle: Text(
+        course.coursename,
+        style: TextStyle(
+          fontSize: 12,
+          color: isCourseDone
+              ? Colors.green
+              : isCourseIP
+                  ? Colors.orange
+                  : Colors.black,
+        ),
+      ),
     );
+  }
+
+  String generateStudentList(String syAndTerm, Course targetCourse) {
+    String fulfillingStudentPOS = '';
+    // Get the next SY and term
+    List<String> sytermParts = syAndTerm.split(" ");
+
+    for (int i = 0; i < studentPOSList.length; i++) {
+      StudentPOS pos = studentPOSList[i];
+      for (int j = 0; j < pos.schoolYears.length; j++) {
+        SchoolYear sy = pos.schoolYears[j];
+        if (sytermParts[0] == sy.name) {
+          for (int k = 0; k < sy.terms.length; k++) {
+            Term term = sy.terms[k];
+            if (term.name == '${sytermParts[1]} ${sytermParts[2]}') {
+              for (Course course in term.termcourses) {
+                if (course.coursecode == targetCourse.coursecode) {
+                  fulfillingStudentPOS +=
+                      "${pos.idnumber}: ${pos.displayname['firstname']} ${pos.displayname['lastname']}\n";
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    if (fulfillingStudentPOS == '') {
+      return "Students who will take the ${targetCourse.coursecode} on $syAndTerm:\nNo students found";
+    } else {
+      return "Students who will take the ${targetCourse.coursecode} on $syAndTerm:\n$fulfillingStudentPOS";
+    }
   }
 
   Future<void> uploadFile(String coursecode) async {
@@ -349,6 +402,12 @@ class _StudentInfoPageState extends State<StudentInfoPage>
   bool posEdited = false;
 
   PlatformFile? pickedFile;
+  final PdfInvoiceService service = PdfInvoiceService();
+
+  List<Course> recommendedRemedialCourses = [];
+  List<Course> recommendedPriorityCourses = [];
+  bool _showDialog = false; // Flag to control dialog visibility
+
   @override
   void initState() {
     super.initState();
@@ -356,6 +415,29 @@ class _StudentInfoPageState extends State<StudentInfoPage>
         .ref('/${widget.studentpos.idnumber}')
         .listAll();
     _tabController = TabController(length: 3, vsync: this);
+    if (_tabController.index == 2 &&
+        newStudentList.any((newStudent) =>
+            newStudent.idnumber == widget.student.idnumber &&
+            shownRecoGuide == false)) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Add recommended courses for student'),
+            content: Text(
+                "Add specific remedial courses that the student needs.\n Click 'Download Recommendation Form' when finished adding."),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context, false); // No, do not delete
+                },
+                child: Text('Ok'),
+              ),
+            ],
+          );
+        },
+      );
+    }
   }
 
   List<DataRow> rows = [];
@@ -370,6 +452,7 @@ class _StudentInfoPageState extends State<StudentInfoPage>
         return isCoursePassed(thesisCourse, context);
       }).toList();
     }
+
     Student studentInfo = fetchStudentInfo(widget.student);
     return Scaffold(
       appBar: AppBar(
@@ -563,16 +646,123 @@ class _StudentInfoPageState extends State<StudentInfoPage>
                               : null, // Disable the button when no course is added
                           child: Text("Save changes"),
                         ),
+                        SizedBox(
+                          width: 20,
+                        ),
+                        ElevatedButton(
+                          onPressed: () async {
+                            // Inside your widget where you want to show the dialog
+
+                            showCourseDialog(
+                              context: context,
+                              recommendedPriorityCourses:
+                                  recommendedPriorityCourses,
+                              recommendedRemedialCourses:
+                                  recommendedRemedialCourses,
+                              onCheckboxChanged: (bool? value) {
+                                setState(() {
+                                  isEng501MChecked = value ?? false;
+                                });
+                              },
+                              onDownloadPressed: () async {
+                                final data =
+                                    await service.createRecommendationForm(
+                                  widget.studentpos,
+                                  recommendedRemedialCourses,
+                                  recommendedPriorityCourses,
+                                  isEng501MChecked,
+                                );
+                                await service.savePdfFile(
+                                  "DeRF_${widget.studentpos.idnumber}.pdf",
+                                  data,
+                                );
+
+                                if (widget.student.degree
+                                    .toLowerCase()
+                                    .contains('mit')) {
+                                  setState(() {
+                                    widget.studentpos = generatePOSforMIT(
+                                      widget.student,
+                                      widget.studentpos,
+                                      studentPOSList,
+                                      courses,
+                                    );
+                                  });
+                                } else if (widget.student.degree
+                                    .toLowerCase()
+                                    .contains('msit')) {
+                                  setState(() {
+                                    widget.studentpos = generatePOSforMSIT(
+                                      widget.student,
+                                      widget.studentpos,
+                                      studentPOSList,
+                                      courses,
+                                    );
+                                    shownRecoGuide = true;
+                                  });
+                                }
+                                Navigator.pop(context, true);
+                              },
+                            );
+                          }, // Disable the button when no course is added
+                          child: Text("Download Recommendation Form"),
+                        ),
+                        Spacer(),
+                        ElevatedButton(
+                          onPressed: () {
+                            // Implement logic to save studentPOS
+                            showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return AlertDialog(
+                                  title: Text('Confirm clear?'),
+                                  content: Text(
+                                      "Are you sure you want to clear this student's pos?"),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.pop(context,
+                                            false); // No, do not delete
+                                      },
+                                      child: Text('No'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          for (SchoolYear sy in widget
+                                              .studentpos.schoolYears) {
+                                            for (Term term in sy.terms) {
+                                              term.termcourses.clear();
+                                            }
+                                          }
+                                        });
+                                        Navigator.pop(
+                                            context, true); // Yes, delete
+                                      },
+                                      child: Text('Yes'),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          }, // Disable the button when no course is added
+                          child: Text("Clear student pos"),
+                        ),
                       ],
                     ),
                     Column(
                       mainAxisAlignment: MainAxisAlignment.start,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          "Student enrolled in:",
-                          style: TextStyle(fontSize: 14),
-                        ),
+                        widget.studentpos.enrolledCourses.isEmpty
+                            ? Text(
+                                " ",
+                                style: TextStyle(fontSize: 14),
+                              )
+                            : Text(
+                                "Student enrolled in:",
+                                style: TextStyle(fontSize: 14),
+                              ),
                         for (Course course in widget.studentpos.enrolledCourses)
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -662,6 +852,19 @@ class _StudentInfoPageState extends State<StudentInfoPage>
                                                           ),
                                                           onPressed: () {
                                                             setState(() {
+                                                              recommendedRemedialCourses
+                                                                  .removeWhere((toremove) =>
+                                                                      toremove
+                                                                          .coursecode ==
+                                                                      course
+                                                                          .coursecode);
+
+                                                              recommendedPriorityCourses
+                                                                  .removeWhere((toremove) =>
+                                                                      toremove
+                                                                          .coursecode ==
+                                                                      course
+                                                                          .coursecode);
                                                               getDeviatedStudents();
                                                               term.termcourses
                                                                   .remove(
@@ -702,11 +905,22 @@ class _StudentInfoPageState extends State<StudentInfoPage>
                                                           .add(course);
                                                       posEdited = true;
                                                       getDeviatedStudents();
+
+                                                      if (course.type ==
+                                                          'Bridging/Remedial Courses') {
+                                                        recommendedRemedialCourses
+                                                            .add(course);
+                                                      } else {
+                                                        recommendedPriorityCourses
+                                                            .add(course);
+                                                      }
                                                     });
                                                   },
                                                   allCourses: courses,
                                                   selectedStudentPOS:
                                                       widget.studentpos,
+                                                  syAndTerm:
+                                                      "${widget.studentpos.schoolYears[widget.studentpos.schoolYears.indexOf(year)].name} ${widget.studentpos.schoolYears[widget.studentpos.schoolYears.indexOf(year)].terms[widget.studentpos.schoolYears[widget.studentpos.schoolYears.indexOf(year)].terms.indexOf(term)].name}",
                                                 )
                                               ],
                                             ),

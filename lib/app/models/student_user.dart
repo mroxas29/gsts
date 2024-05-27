@@ -127,17 +127,45 @@ Future<List<PastCourse>> getPastCoursesForStudent(String studentUid) async {
 }
 
 List<Student> studentList = [];
-
 List<Student> graduatingStudentsList = [];
 List<Student> newStudentList = [];
 List<Student> ineligibleStudentList = [];
 
+Future<List<Student>> getNewStudents() async {
+  newStudentList.clear();
+  try {
+    // Access the Firestore instance
+    FirebaseFirestore firestore = FirebaseFirestore.instance;
+
+    // Query the "graduatingStudents" collection
+    QuerySnapshot<Map<String, dynamic>> querySnapshot =
+        await firestore.collection('newStudents').get();
+
+    for (QueryDocumentSnapshot<Map<String, dynamic>> document
+        in querySnapshot.docs) {
+      Map<String, dynamic> userData = document.data();
+      Student newStudent = Student(
+          uid: document.id,
+          displayname: Map<String, String>.from(userData['displayname']),
+          enrolledCourses: await getEnrolledCoursesForStudent(document.id),
+          pastCourses: await getPastCoursesForStudent(document.id),
+          role: userData['role'],
+          email: userData['email'],
+          idnumber: userData['idnumber'],
+          status: userData['status'],
+          degree: await getDegreeForStudent(document.id));
+
+      newStudentList.add(newStudent);
+      print('adding new student');
+    }
+  } catch (e) {
+    print(e);
+  }
+  return newStudentList;
+}
+
 Future<List<Student>> getGraduatingStudents() async {
   graduatingStudentsList.clear();
-  FirebaseFirestore firestore = FirebaseFirestore.instance;
-
-  QuerySnapshot<Map<String, dynamic>> querySnapshot =
-      await firestore.collection('graduatingStudents').get();
 
   try {
     // Access the Firestore instance
@@ -172,7 +200,6 @@ Future<List<Student>> getGraduatingStudents() async {
 Future<List<Student>> convertToStudentList(List<user> users) async {
   studentList.clear();
   ineligibleStudentList.clear();
-  newStudentList.clear();
   for (var user in users) {
     if (user.role == 'Graduate Student') {
       List<EnrolledCourseData> enrolledCourses =
@@ -193,19 +220,7 @@ Future<List<Student>> convertToStudentList(List<user> users) async {
         degree: degree,
         status: status,
       ));
-      if (user.idnumber.toString().startsWith('124')) {
-        newStudentList.add(Student(
-          uid: user.uid,
-          displayname: user.displayname,
-          role: user.role,
-          email: user.email,
-          idnumber: user.idnumber,
-          enrolledCourses: enrolledCourses,
-          pastCourses: pastCourses,
-          degree: degree,
-          status: status,
-        ));
-      }
+
       if (!isGraduatingWithinTimeFrame(degree, user.idnumber.toString())) {
         ineligibleStudentList.add(Student(
           uid: user.uid,

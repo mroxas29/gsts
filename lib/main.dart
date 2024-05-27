@@ -28,6 +28,7 @@ void main() async {
   runApp(const MaterialApp(
     title: 'Login Page',
     home: LoginPage(),
+    debugShowCheckedModeBanner: false,
   ));
 }
 
@@ -37,9 +38,11 @@ class LoginPage extends StatefulWidget {
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
+ bool isEng501MChecked = false;
 
 TextEditingController passwordTextController = TextEditingController();
 TextEditingController emailTextController = TextEditingController();
+bool shownRecoGuide = false;
 late user currentUser;
 late Student? currentStudent;
 // Display students enrolled in the specific course
@@ -396,7 +399,6 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void route() async {
-    
     User? authuser = FirebaseAuth.instance.currentUser;
     await retrieveAllPOS();
     await FirebaseFirestore.instance
@@ -467,7 +469,14 @@ class _LoginPageState extends State<LoginPage> {
               builder: (context) => GradStudentscreen(),
             ),
           );
-        } else {
+        }else if(documentSnapshot.get('role') == "Academic Programming Officer (APO)"){
+
+        } else if(documentSnapshot.get('role') ==
+            "DIT Secretary"){
+
+        }
+        
+        else {
           wrongCreds = true;
         }
       } else {
@@ -495,6 +504,7 @@ class _LoginPageState extends State<LoginPage> {
       await getCourseDemandsFromFirestore();
       await convertToStudentList(users);
       await getGraduatingStudents();
+      await getNewStudents();
       route();
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') {

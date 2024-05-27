@@ -14,6 +14,7 @@ import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/main.dart';
 import 'package:sysadmindb/app/models/user.dart';
+import 'package:sysadmindb/ui/deRF_dialog.dart';
 import 'package:sysadmindb/ui/forms/addcourse.dart';
 import 'package:sysadmindb/ui/forms/form.dart';
 import 'package:sysadmindb/ui/dashboard/gsc_dash.dart';
@@ -1273,6 +1274,7 @@ class _MainViewState extends State<Gscscreen> {
 
   Future<void> addEnrolledStudents(
       List<String> students, String courseCode) async {
+    print(courseCode);
     Course course = Course(
         uid: 'blank',
         coursecode: 'Select a course',
@@ -1302,19 +1304,18 @@ class _MainViewState extends State<Gscscreen> {
       type: course.type,
       program: course.program,
     );
-    await FirebaseFirestore.instance
-        .collection('courses')
-        .doc(enrolledCourse.uid)
-        .update({'numstudents': students.length - 1});
 
-    for (String student in students) {
-      for (Student s in studentList) {
-        if (student.contains(s.idnumber.toString())) {
-          print(s.idnumber);
-          print('${s.displayname['firstname']} ${s.displayname['lastname']}');
+    for (Student s in studentList) {
+      for (String studentId in students) {
+        if (studentId
+            .toLowerCase()
+            .contains(s.idnumber.toString().toLowerCase())) {
+          print('$studentId: ${s.idnumber}');
+          // Iterate over each course in the student's enrolledCourses
+          if (!(s.enrolledCourses
+              .any((course) => course.coursecode == courseCode))) {
+            print("Adding this course to: ${s.displayname['firstname']}");
 
-          if (s.enrolledCourses.any(
-              (eCourse) => eCourse.coursecode != enrolledCourse.coursecode)) {
             await FirebaseFirestore.instance
                 .collection('users')
                 .doc(s.uid)
@@ -1322,7 +1323,6 @@ class _MainViewState extends State<Gscscreen> {
               'enrolledCourses':
                   FieldValue.arrayUnion([enrolledCourse.toJson()]),
             });
-
             await FirebaseFirestore.instance
                 .collection('studentpos')
                 .doc(s.uid)
@@ -1330,13 +1330,42 @@ class _MainViewState extends State<Gscscreen> {
               'enrolledCourses':
                   FieldValue.arrayUnion([enrolledCourse.toJson()]),
             });
+
+            await FirebaseFirestore.instance
+                .collection('courses')
+                .doc(enrolledCourse.uid)
+                .update({'numstudents': FieldValue.increment(1)});
+            print('incremented');
           }
         }
       }
-    }
 
-    await getCoursesFromFirestore();
-    await addUserFromFirestore();
+/*
+      if (students.any((student) => student.contains(s.idnumber.toString()))) {
+        print('${s.idnumber}: ${s.displayname['firstname']}');
+        if (!s.enrolledCourses.any(
+            (eCourse) => eCourse.coursecode == enrolledCourse.coursecode)) {
+          // Add the enrolled course to the student's enrolledCourses array if it's not already enrolled
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(s.uid)
+              .update({
+            'enrolledCourses': FieldValue.arrayUnion([enrolledCourse.toJson()]),
+          });
+          await FirebaseFirestore.instance
+              .collection('studentpos')
+              .doc(s.uid)
+              .update({
+            'enrolledCourses': FieldValue.arrayUnion([enrolledCourse.toJson()]),
+          });
+          await FirebaseFirestore.instance
+              .collection('courses')
+              .doc(enrolledCourse.uid)
+              .update({'numstudents': FieldValue.increment(1)});
+          print('incremented');
+        }
+      }*/
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -1457,12 +1486,15 @@ class _MainViewState extends State<Gscscreen> {
                                     if (lineNum > 4) {
                                       studentLines.add(line);
                                     }
-                                    print(line);
                                     lineNum++;
                                   }
-
                                   await addEnrolledStudents(
                                       studentLines, courseLine);
+
+                                  setState(() {
+                                    getCoursesFromFirestore();
+                                    addUserFromFirestore();
+                                  });
                                 },
                                 style: ElevatedButton.styleFrom(
                                     padding: EdgeInsets.all(20),
@@ -2361,20 +2393,18 @@ class _MainViewState extends State<Gscscreen> {
                                                                 recommendedRemedialCourses
                                                                     .add(
                                                                         course);
-                                                                print(
-                                                                    'ADded Bridging course');
                                                               } else {
                                                                 recommendedPriorityCourses
                                                                     .add(
                                                                         course);
-                                                                print(
-                                                                    'ADded prio course');
                                                               }
                                                             });
                                                           },
                                                           allCourses: courses,
                                                           selectedStudentPOS:
                                                               selectedPOS!,
+                                                          syAndTerm:
+                                                              "${selectedPOS!.schoolYears[selectedYearIndex!].name} ${term.name}",
                                                         )
                                                       ],
                                                     ),
@@ -2383,20 +2413,6 @@ class _MainViewState extends State<Gscscreen> {
                                               ),
                                             );
                                           }),
-                                          ElevatedButton(
-                                            onPressed: () async {
-                                              final data = await service
-                                                  .createRecommendationForm(
-                                                      selectedPOS!,
-                                                      recommendedRemedialCourses,
-                                                      recommendedPriorityCourses);
-                                              await service.savePdfFile(
-                                                  "DeRF_${selectedPOS!.idnumber}.pdf",
-                                                  data);
-                                            }, // Disable the button when no course is added
-                                            child: Text(
-                                                "Download Recommendation Form"),
-                                          ),
                                         ]),
                                   ),
                                 ],

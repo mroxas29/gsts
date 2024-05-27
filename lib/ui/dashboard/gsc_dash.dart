@@ -9,6 +9,7 @@ import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/app/models/term.dart';
 import 'package:sysadmindb/app/models/user.dart';
+import 'package:sysadmindb/ui/dashboard_utils/Notifications/notification_button.dart';
 import 'package:sysadmindb/ui/info_page/deviatedInfoPage.dart';
 import 'package:sysadmindb/ui/forms/form.dart';
 import 'package:sysadmindb/ui/info_page/studentInfoPage.dart';
@@ -83,11 +84,11 @@ List<StudentPOS> getDeviatedStudents() {
 
 class _DesktopScaffoldState extends State<DesktopScaffold> {
   String filter = '';
-
+  late List<String> notifications = [];
   List<StudentPOS> deviated = getDeviatedStudents();
 
   List<Student> filteredStudents = studentList; // Declare filteredStudents
-  int toShow = 5;
+  int toShow = 4;
   bool showClicked = false;
 
   Widget buildRanking(List<StudentPOS> studentpos) {
@@ -220,8 +221,6 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                     SizedBox(
                       width: 20,
                     ),
-
-                    
                     Expanded(
                       flex: 1,
                       child: Column(
@@ -403,8 +402,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
 
     // Get the next SY and term
     List<String> sytermParts = getNextSYandTerm().split(" ");
-    print("NEXT SY AND TERM: ${sytermParts.toString()}");
-
+   
     List<Course> generalCourses = [];
 // Iterate through each StudentPOS
     for (int i = 0; i < studentpos.length; i++) {
@@ -449,8 +447,6 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
 
 // Sort uniqueCourses based on occurrence count
     uniqueCourses.sort((a, b) => b.value.compareTo(a.value));
-    print(
-        "UNIQUE COURSES:::  ${uniqueCourses.length} ${getCurrentSYandTerm()}");
     return Expanded(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
@@ -623,6 +619,43 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
   bool graduatingStudentsClicked = false;
   @override
   void initState() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (newStudentList.isNotEmpty) {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('New Students'),
+              content: SingleChildScrollView(
+                child: ListBody(
+                  children: [
+                    Text(
+                        'There are new students for the upcoming term ${getNextSYandTerm()}\n'),
+                    Text(
+                      'Click the "New Students" tile on the dashboard to show more info about each student.',
+                      style: TextStyle(
+                          fontStyle: FontStyle.italic, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      notifications.add('Create the DeRF for new students');
+                    });
+                    Navigator.pop(context); // Close the dialog
+                  },
+                  child: Text('OK'),
+                ),
+              ],
+            );
+          },
+        );
+      }
+    });
+
     super.initState();
   }
 
@@ -636,6 +669,12 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
               fontSize: 38, fontFamily: 'inter', fontWeight: FontWeight.w700),
           textAlign: TextAlign.center,
         ),
+        actions: [
+          NotificationButton(
+            notificationCount: notifications.length,
+            notifications: notifications,
+          )
+        ],
         backgroundColor: Colors.transparent,
       ),
       backgroundColor: Colors.white,
@@ -687,11 +726,6 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                   int totalStudents = studentList
                                       .length; // Total number of students
 
-                                  int newStudents = studentList
-                                      .where((student) => student.idnumber
-                                          .toString()
-                                          .startsWith('123'))
-                                      .length; // Number of new students
                                   int deviatedStudents = deviatedStudentList
                                       .length; // Number of deviated students
 
@@ -771,7 +805,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                     totalStudentsClicked
                         ? "Total Students (${getCurrentSYandTerm()})"
                         : newStudentsClicked
-                            ? "New Students (${getCurrentSYandTerm()})"
+                            ? "New Students for (${getNextSYandTerm()})"
                             : deviatedStudentsClicked
                                 ? "Deviated Students (${getCurrentSYandTerm()})"
                                 : graduatingStudentsClicked

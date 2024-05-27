@@ -532,8 +532,11 @@ class PdfInvoiceService {
   Future<Uint8List> createRecommendationForm(
       StudentPOS studentPOS,
       List<Course> recommendedRemedialCourses,
-      List<Course> recommendedPriorityCourses) async {
+      List<Course> recommendedPriorityCourses,
+      bool isEng501MChecked) async {
     final pdf = pw.Document();
+
+    int startCount = isEng501MChecked ? 2 : 3;
 
     final image = (await rootBundle.load("assets/images/dlsulogo.png"))
         .buffer
@@ -638,10 +641,6 @@ class PdfInvoiceService {
                                   pw.TextStyle(fontWeight: pw.FontWeight.bold),
                               textAlign: pw.TextAlign.center, // Center the text
                             ),
-                            pw.Text(
-                              "Name of Applicant (Last Name, First Name)",
-                              textAlign: pw.TextAlign.center, // Center the text
-                            ),
                           ],
                         ),
                         pw.SizedBox(width: 50), // Add space between the columns
@@ -702,26 +701,38 @@ class PdfInvoiceService {
                           pw.Row(
                             children: [
                               pw.Container(
-                                width: 10,
-                                height: 10,
-                                margin: pw.EdgeInsets.only(right: 5),
-                                decoration: pw.BoxDecoration(
-                                  border: pw.Border.all(color: PdfColors.black),
-                                ),
-                              ),
+                                  width: 10,
+                                  height: 10,
+                                  margin: pw.EdgeInsets.only(right: 5),
+                                  decoration: pw.BoxDecoration(
+                                    border:
+                                        pw.Border.all(color: PdfColors.black),
+                                  ),
+                                  child: pw.Center(
+                                      child: pw.Text(
+                                          isEng501MChecked ? ' ' : 'X',
+                                          style: pw.TextStyle(
+                                              fontSize: 8,
+                                              color: PdfColors.black)))),
                               pw.Text("Exempted from course"),
                             ],
                           ),
                           pw.Row(
                             children: [
                               pw.Container(
-                                width: 10,
-                                height: 10,
-                                margin: pw.EdgeInsets.only(right: 5),
-                                decoration: pw.BoxDecoration(
-                                  border: pw.Border.all(color: PdfColors.black),
-                                ),
-                              ),
+                                  width: 10,
+                                  height: 10,
+                                  margin: pw.EdgeInsets.only(right: 5),
+                                  decoration: pw.BoxDecoration(
+                                    border:
+                                        pw.Border.all(color: PdfColors.black),
+                                  ),
+                                  child: pw.Center(
+                                      child: pw.Text(
+                                          isEng501MChecked ? 'X' : ' ',
+                                          style: pw.TextStyle(
+                                              fontSize: 8,
+                                              color: PdfColors.black)))),
                               pw.Text("NOT Exempted from course",
                                   style: pw.TextStyle(fontSize: 10)),
                             ],
@@ -810,13 +821,9 @@ class PdfInvoiceService {
                                   decoration: TextDecoration.underline),
                             ),
                             pw.Text(
-                              "1.2. ENG501M/ENGF01M",
-                              style: pw.TextStyle(
-                                  fontSize: 10,
-                                  decoration: TextDecoration.underline),
-                            ),
-                            pw.Text(
-                              "1.3. ${recommendedRemedialCourses[0].coursecode}: ${recommendedRemedialCourses[0].coursename}",
+                              isEng501MChecked
+                                  ? "1.$startCount. ENG501M/ENGF01M"
+                                  : "1.$startCount. ${recommendedRemedialCourses[0].coursecode}: ${recommendedRemedialCourses[0].coursename}",
                               style: pw.TextStyle(
                                   fontSize: 10,
                                   decoration: TextDecoration.underline),
@@ -832,7 +839,7 @@ class PdfInvoiceService {
                                 i < recommendedRemedialCourses.length;
                                 i++)
                               pw.Text(
-                                "1.${i + 1}. ${recommendedRemedialCourses[i].coursecode}: ${recommendedRemedialCourses[i].coursename}",
+                                "1.${i + startCount}. ${recommendedRemedialCourses[i].coursecode}: ${recommendedRemedialCourses[i].coursename}",
                                 style: pw.TextStyle(
                                     fontSize: 10,
                                     decoration: TextDecoration.underline),
