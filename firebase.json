@@ -15,12 +15,12 @@
     }
   },
   "hosting": {
-    "public": "web",
+    "public": "lib/ui",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
       {
         "source": "**",
-        "destination": "/index.html"
+        "destination": "/main.dart"
       }
     ]
   }
