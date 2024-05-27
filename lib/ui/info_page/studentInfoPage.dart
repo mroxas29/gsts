@@ -16,6 +16,7 @@ import 'package:sysadmindb/ui/deRF_dialog.dart';
 import 'package:sysadmindb/ui/forms/addcourse.dart';
 import 'package:sysadmindb/ui/dashboard/gsc_dash.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:html' as html;
 
 class StudentInfoPage extends StatefulWidget {
   final Student student;
@@ -642,6 +643,37 @@ class StudentInfoPageState extends State<StudentInfoPage>
                                 }
                               : null, // Disable the button when no course is added
                           child: Text("Save changes"),
+                        ),
+                        SizedBox(
+                          width: 20,
+                        ),
+                        TextButton(
+                          onPressed: () async {
+                            String? hostname = html.window.location.hostname;
+                            int port = html.window.location.port.isEmpty
+                                ? 80
+                                : int.parse(html.window.location.port);
+
+                            // html.window.open( 'http://localhost:$port/assets/pdfs/RoxasResume.pdf','_blank');
+                            final data =
+                                await service.createInvoice(widget.studentpos);
+                            service.savePdfFile(
+                                "POS_${widget.studentpos.idnumber}.pdf", data);
+                          },
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.download_rounded,
+                                  color: Colors.blue), // Download icon
+                              SizedBox(
+                                  width:
+                                      8), // Add spacing between icon and text
+                              Text(
+                                'Download POS in PDF',
+                                style: TextStyle(color: Colors.blue),
+                              ),
+                            ],
+                          ),
                         ),
                         SizedBox(
                           width: 20,
