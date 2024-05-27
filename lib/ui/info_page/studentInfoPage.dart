@@ -315,9 +315,6 @@ class StudentInfoPageState extends State<StudentInfoPage>
         duration: Duration(seconds: 2),
       ),
     );
-
-    // Update the state after all asynchronous operations complete
-    setState(() {});
   }
 
   Student fetchStudentInfo(Student student) {
@@ -903,8 +900,124 @@ class StudentInfoPageState extends State<StudentInfoPage>
                                                           .terms[termIndex]
                                                           .termcourses
                                                           .add(course);
+                                                      int totalunits = widget
+                                                          .studentpos
+                                                          .schoolYears[syIndex]
+                                                          .terms[termIndex]
+                                                          .termcourses
+                                                          .fold(
+                                                              0,
+                                                              (total, course) =>
+                                                                  total +
+                                                                  course.units);
+
+                                                      if (widget.studentpos
+                                                                  .status ==
+                                                              'Part Time' &&
+                                                          totalunits > 6) {
+                                                        showDialog(
+                                                          context: context,
+                                                          builder: (BuildContext
+                                                              context) {
+                                                            return AlertDialog(
+                                                              title: Text(
+                                                                  'Units Exceeding'),
+                                                              content: Text(
+                                                                  "The student is a ${widget.studentpos.status} student, it is recommended that they take at most 6 units per term."),
+                                                              actions: [
+                                                                TextButton(
+                                                                  onPressed:
+                                                                      () {
+                                                                    setState(
+                                                                        () {
+                                                                      widget
+                                                                          .studentpos
+                                                                          .schoolYears[
+                                                                              syIndex]
+                                                                          .terms[
+                                                                              termIndex]
+                                                                          .termcourses
+                                                                          .remove(
+                                                                              course);
+                                                                    });
+
+                                                                    Navigator.pop(
+                                                                        context,
+                                                                        false); // No, do not delete
+                                                                  },
+                                                                  child: Text(
+                                                                      "Don't add"),
+                                                                ),
+                                                                TextButton(
+                                                                  onPressed:
+                                                                      () {
+                                                                    Navigator.pop(
+                                                                        context,
+                                                                        false); // No, do not delete
+                                                                  },
+                                                                  child: Text(
+                                                                      'Add course'),
+                                                                ),
+                                                              ],
+                                                            );
+                                                          },
+                                                        );
+                                                      }
+
+                                                      if (widget.studentpos
+                                                                  .status ==
+                                                              'Full Time' &&
+                                                          totalunits > 12) {
+                                                        showDialog(
+                                                          context: context,
+                                                          builder: (BuildContext
+                                                              context) {
+                                                            return AlertDialog(
+                                                              title: Text(
+                                                                  'Units Exceeding'),
+                                                              content: Text(
+                                                                  "The student is a ${widget.studentpos.status} student, it is recommended that they take at most 12 units per term."),
+                                                              actions: [
+                                                                TextButton(
+                                                                  onPressed:
+                                                                      () {
+                                                                    setState(
+                                                                        () {
+                                                                      widget
+                                                                          .studentpos
+                                                                          .schoolYears[
+                                                                              syIndex]
+                                                                          .terms[
+                                                                              termIndex]
+                                                                          .termcourses
+                                                                          .remove(
+                                                                              course);
+                                                                    });
+
+                                                                    Navigator.pop(
+                                                                        context,
+                                                                        false); // No, do not delete
+                                                                  },
+                                                                  child: Text(
+                                                                      "Don't add"),
+                                                                ),
+                                                                TextButton(
+                                                                  onPressed:
+                                                                      () {
+                                                                    Navigator.pop(
+                                                                        context,
+                                                                        false); // No, do not delete
+                                                                  },
+                                                                  child: Text(
+                                                                      'Add course'),
+                                                                ),
+                                                              ],
+                                                            );
+                                                          },
+                                                        );
+                                                      }
+
                                                       posEdited = true;
-                                                      getDeviatedStudents();
 
                                                       if (course.type ==
                                                           'Bridging/Remedial Courses') {
@@ -914,6 +1027,7 @@ class StudentInfoPageState extends State<StudentInfoPage>
                                                         recommendedPriorityCourses
                                                             .add(course);
                                                       }
+                                                      getDeviatedStudents();
                                                     });
                                                   },
                                                   allCourses: courses,

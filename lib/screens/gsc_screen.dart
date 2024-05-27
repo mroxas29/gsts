@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'package:side_navigation/side_navigation.dart';
 import 'package:sysadmindb/api/email/invoice_service.dart';
 import 'package:sysadmindb/api/calendar/test_calendar.dart';
+import 'package:sysadmindb/app/models/AcademicCalendar.dart';
 import 'package:sysadmindb/app/models/DeviatedStudents.dart';
 import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/enrolledcourses.dart';
@@ -856,6 +857,7 @@ class _MainViewState extends State<Gscscreen> {
                               // Handle the click event for the ListTile
                               currentStudent = enrolledStudent[i];
                               studentPOS = StudentPOS(
+                                acceptanceTerm: getCurrentSYandTerm(),
                                   schoolYears: defaultschoolyears,
                                   uid: enrolledStudent[i].uid,
                                   displayname: enrolledStudent[i].displayname,
@@ -1271,6 +1273,8 @@ class _MainViewState extends State<Gscscreen> {
       throw 'Could not launch $url';
     }
   }
+
+  
 
   Future<void> addEnrolledStudents(
       List<String> students, String courseCode) async {

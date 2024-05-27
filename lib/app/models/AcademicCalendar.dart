@@ -12,7 +12,16 @@ String getCurrentSYandTerm() {
   DateTime now = DateTime.now();
   for (AcademicCalendar calendar in academicCalendars) {
     if (now.isAfter(calendar.startDate) && now.isBefore(calendar.endDate)) {
-      return "${now.year - 1}-${now.year} ${calendar.term}";
+      int startYear = calendar.startDate.year;
+      int endYear = calendar.endDate.year;
+
+      // Adjust the start year and end year to match the academic year format
+      if (now.month < calendar.startDate.month) {
+        startYear -= 1;
+        endYear -= 1;
+      }
+
+      return "${calendar.term} of AY $startYear-$endYear";
     }
   }
   return "No current term found";

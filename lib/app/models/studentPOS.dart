@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart';
+import 'package:sysadmindb/app/models/AcademicCalendar.dart';
 import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/enrolledcourses.dart';
 import 'package:sysadmindb/app/models/pastcourses.dart';
@@ -11,7 +12,7 @@ import 'dart:core';
 
 class StudentPOS extends Student {
   List<SchoolYear> schoolYears;
-
+  String acceptanceTerm;
   StudentPOS({
     required this.schoolYears,
     required String uid,
@@ -23,6 +24,7 @@ class StudentPOS extends Student {
     required String status,
     required List<EnrolledCourseData> enrolledCourses,
     required List<PastCourse> pastCourses,
+    required this.acceptanceTerm,
   }) : super(
             uid: uid,
             displayname: displayname,
@@ -43,6 +45,7 @@ class StudentPOS extends Student {
 
     return StudentPOS(
         schoolYears: schoolYears,
+        acceptanceTerm: json['acceptanceTerm'],
         uid: json['uid'],
         displayname: Map<String, String>.from(
             json['displayname'] as Map<String, dynamic>),
@@ -65,7 +68,9 @@ class StudentPOS extends Student {
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = <String, dynamic>{
       'schoolYears': schoolYears.map((year) => year.toJson()).toList(),
+      'acceptanceTerm': getCurrentSYandTerm()
     };
+
     data.addAll(super.toJson());
     return data;
   }
@@ -73,6 +78,7 @@ class StudentPOS extends Student {
 
 void studentPOSDefault() {
   studentPOS = StudentPOS(
+      acceptanceTerm: getCurrentSYandTerm(),
       schoolYears: defaultschoolyears,
       uid: currentStudent!.uid,
       displayname: currentStudent!.displayname,
@@ -174,6 +180,7 @@ void initializeSchoolYears() async {
 
 List<SchoolYear> schoolyears = studentPOS.schoolYears;
 StudentPOS studentPOS = StudentPOS(
+    acceptanceTerm: getCurrentSYandTerm(),
     schoolYears: defaultschoolyears,
     uid: currentStudent!.uid,
     displayname: currentStudent!.displayname,
@@ -222,6 +229,7 @@ StudentPOS generatePOSforMIT(
 
   // Initialize a new StudentPOS
   StudentPOS newStudentPOS = StudentPOS(
+    acceptanceTerm: getCurrentSYandTerm(),
     schoolYears: studentpos.schoolYears,
     uid: student.uid,
     displayname: student.displayname,
@@ -376,6 +384,7 @@ StudentPOS generatePOSforMSIT(
 
   // Initialize a new StudentPOS
   StudentPOS newStudentPOS = StudentPOS(
+    acceptanceTerm: getCurrentSYandTerm(),
     schoolYears: studentpos.schoolYears,
     uid: student.uid,
     displayname: student.displayname,

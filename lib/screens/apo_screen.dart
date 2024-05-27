@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:side_navigation/side_navigation.dart';
+import 'package:sysadmindb/app/models/AcademicCalendar.dart';
 import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/faculty.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
@@ -427,6 +428,7 @@ class _MainViewState extends State<Apo> {
                               // Handle the click event for the ListTile
                               currentStudent = enrolledStudent[i];
                               studentPOS = StudentPOS(
+                                acceptanceTerm: getCurrentSYandTerm(),
                                   schoolYears: defaultschoolyears,
                                   uid: enrolledStudent[i].uid,
                                   displayname: enrolledStudent[i].displayname,

@@ -2,11 +2,13 @@ import 'dart:html' as html;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:open_document/open_document.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/widgets.dart%20';
+import 'package:sysadmindb/app/models/AcademicCalendar.dart';
 import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
 
@@ -35,6 +37,19 @@ class PdfInvoiceService {
     );
 
     return pdf.save();
+  }
+
+  String capitalize(String input) {
+    if (input.isEmpty) {
+      return '';
+    }
+    return input[0].toUpperCase() + input.substring(1);
+  }
+
+  String getCurrentDate() {
+    final DateTime now = DateTime.now();
+    final DateFormat formatter = DateFormat('MM/dd/yyyy');
+    return formatter.format(now);
   }
 
   Future<Uint8List> createInvoice(StudentPOS studentPOS) async {
@@ -150,48 +165,9 @@ class PdfInvoiceService {
                 "PROGRAM OF STUDY",
                 style: pw.TextStyle(fontSize: 18),
               ),
-              pw.SizedBox(height: 25),
-              pw.Row(
-                mainAxisAlignment:
-                    pw.MainAxisAlignment.start, // Corrected alignment
-                children: [
-                  pw.Column(
-                    crossAxisAlignment:
-                        pw.CrossAxisAlignment.start, // Align children left
-                    children: [
-                      pw.Text(
-                        "ID Number: ",
-                        style: pw.TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      pw.Text(
-                        "Student Name: ",
-                        style: pw.TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      pw.Text(
-                        "Student email: ",
-                        style: pw.TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      pw.Text(
-                        "Degree: ",
-                        style: pw.TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  pw.Column(
-                    crossAxisAlignment:
-                        pw.CrossAxisAlignment.start, // Align children left
-                    children: [
-                      pw.Text(studentPOS.idnumber.toString()),
-                      pw.Text(
-                        "${studentPOS.displayname['lastname']}, ${studentPOS.displayname['firstname']}",
-                      ),
-                      pw.Text(studentPOS.email),
-                      pw.Text(studentPOS.degree),
-                    ],
-                  )
-                ],
+              pw.Text(
+                "For students accepted on ${studentPOS.acceptanceTerm}",
+                style: pw.TextStyle(fontSize: 18),
               ),
               pw.SizedBox(height: 50),
               pw.Table(
@@ -324,7 +300,7 @@ class PdfInvoiceService {
                             style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                           ),
                           pw.Text(
-                            'Ms. Lissa Magpantay\nDate:',
+                            'Ms. Lissa Magpantay\nDate:${getCurrentDate()}',
                             textAlign: pw.TextAlign.left,
                             style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                           ),
@@ -347,7 +323,7 @@ class PdfInvoiceService {
                             style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                           ),
                           pw.Text(
-                            'Dr. Marnel Peradilla\nDate:',
+                            'Dr. Ronald Pascual\nDate:',
                             textAlign: pw.TextAlign.left,
                             style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                           ),
@@ -370,7 +346,7 @@ class PdfInvoiceService {
                             style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                           ),
                           pw.Text(
-                            'DIT Student Name and Signature\nID#:\nDate:',
+                            '${capitalize(studentPOS.displayname['firstname']!)} ${capitalize(studentPOS.displayname['lastname']!)}\nID#: ${studentPOS.idnumber}\nDate:${getCurrentDate()}',
                             textAlign: pw.TextAlign.left,
                             style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                           ),
@@ -636,7 +612,7 @@ class PdfInvoiceService {
                             ),
                             pw.SizedBox(height: 15),
                             pw.Text(
-                              "${studentPOS.displayname['lastname']}, ${studentPOS.displayname['firstname']}",
+                              "${capitalize(studentPOS.displayname['lastname']!)}, ${capitalize(studentPOS.displayname['firstname']!)}",
                               style:
                                   pw.TextStyle(fontWeight: pw.FontWeight.bold),
                               textAlign: pw.TextAlign.center, // Center the text

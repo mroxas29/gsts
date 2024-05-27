@@ -193,6 +193,8 @@ class _AddCourseButtonState extends State<AddCourseButton> {
                             ),
                           );
                         } else {
+                          
+                        
                           // If the course doesn't exist, add it to the POS
                           widget.onCourseAdded(course);
                           // Reset TextField and suggestions
