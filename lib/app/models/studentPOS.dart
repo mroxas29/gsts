@@ -214,7 +214,6 @@ int countCourseOccurrences(
   print(occurrences);
   return occurrences;
 }
-
 StudentPOS generatePOSforMIT(
   Student student,
   StudentPOS studentpos,
@@ -260,7 +259,7 @@ StudentPOS generatePOSforMIT(
       for (var term in year.terms) {
         if (!excludeTerms.contains(term) &&
             term.termcourses.length < 2 &&
-            term.termcourses.fold<int>(0, (acc, course) => acc + course.units) +
+            term.termcourses.fold<int>(0, (acc, c) => acc + c.units) +
                     course.units <=
                 maxUnitsPerTerm) {
           int count = studentPOSList
@@ -316,21 +315,40 @@ StudentPOS generatePOSforMIT(
     }
   }
 
-  // Find the term for CIS411M and OEX after all other courses have been added
-  Term? termForCisOex = findBestTermForCourse(cis411m, capstoneTerms);
-  if (termForCisOex != null) {
-    termForCisOex.termcourses.add(cis411m);
-    capstoneTerms.add(termForCisOex);
-    if (termForCisOex.termcourses
-                .fold<int>(0, (acc, course) => acc + course.units) +
-            oex.units <=
-        maxUnitsPerTerm) {
-      termForCisOex.termcourses.add(oex);
+  // Find the term for CIS411M after all other courses have been added
+  Term? termForCis = findBestTermForCourse(cis411m, capstoneTerms);
+  if (termForCis != null) {
+    termForCis.termcourses.add(cis411m);
+    capstoneTerms.add(termForCis);
+  }
+
+  // Ensure OEX is the only course in its term
+  Term? termForOex;
+  for (var year in newStudentPOS.schoolYears) {
+    for (var term in year.terms) {
+      if (term.termcourses.isEmpty) {
+        termForOex = term;
+        break;
+      }
     }
+    if (termForOex != null) break;
+  }
+  if (termForOex != null) {
+    termForOex.termcourses.add(oex);
+    capstoneTerms.add(termForOex);
   }
 
   // Find the term for CAPROP and CAPFIND after CIS411M and OEX
-  Term? termForCapstone = findBestTermForCourse(caprop, capstoneTerms);
+  Term? termForCapstone;
+  for (var year in newStudentPOS.schoolYears) {
+    for (var term in year.terms) {
+      if (term.termcourses.isEmpty && !capstoneTerms.contains(term)) {
+        termForCapstone = term;
+        break;
+      }
+    }
+    if (termForCapstone != null) break;
+  }
   if (termForCapstone != null) {
     termForCapstone.termcourses.add(caprop);
     termForCapstone.termcourses.add(capfind);
@@ -345,8 +363,7 @@ StudentPOS generatePOSforMIT(
         for (var term in year.terms) {
           if (!capstoneTerms.contains(term) &&
               term.termcourses.length < 2 &&
-              term.termcourses
-                          .fold<int>(0, (acc, course) => acc + course.units) +
+              term.termcourses.fold<int>(0, (acc, c) => acc + c.units) +
                       course.units <=
                   maxUnitsPerTerm) {
             term.termcourses.add(course);
@@ -359,7 +376,6 @@ StudentPOS generatePOSforMIT(
 
   return newStudentPOS;
 }
-
 StudentPOS generatePOSforMSIT(
   Student student,
   StudentPOS studentpos,

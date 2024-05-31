@@ -4,6 +4,7 @@ import 'package:sysadmindb/app/models/AcademicCalendar.dart';
 import 'package:sysadmindb/app/models/DeviatedStudents.dart';
 import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/SchoolYear.dart';
+import 'package:sysadmindb/app/models/en-19.dart';
 import 'package:sysadmindb/app/models/faculty.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
@@ -236,13 +237,16 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                 // Handle the click event for the ListTile
                                 await retrieveStudentPOS(
                                     fulfillingStudentPOS[i].uid);
-
-                                Navigator.push(
+                                EN19Form? en19details;
+                                await EN19Form.getFormFromFirestore(
+                                    fulfillingStudentPOS[i].uid);
+                                await Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => StudentInfoPage(
                                       student: fulfillingStudentPOS[i],
                                       studentpos: fulfillingStudentPOS[i],
+                                      en19: _retrievedForm!,
                                     ),
                                   ),
                                 );
@@ -402,7 +406,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
 
     // Get the next SY and term
     List<String> sytermParts = getNextSYandTerm().split(" ");
-   
+
     List<Course> generalCourses = [];
 // Iterate through each StudentPOS
     for (int i = 0; i < studentpos.length; i++) {
@@ -659,6 +663,16 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
     super.initState();
   }
 
+  EN19Form? _retrievedForm;
+
+  Future<void> retrieveEN19Form(String uid) async {
+    EN19Form? form = await EN19Form.getFormFromFirestore(uid);
+
+    setState(() {
+      _retrievedForm = form;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -828,6 +842,8 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                       studentList[index].uid);
 
                                   late DeviatedStudent devStudent;
+                                  await retrieveEN19Form(
+                                      studentList[index].uid);
                                   bool isDeviated = false;
                                   for (DeviatedStudent student
                                       in deviatedStudentList) {
@@ -844,6 +860,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                         builder: (context) => DeviatedInfoPage(
                                           student: devStudent,
                                           studentpos: studentPOS,
+                                          en19: _retrievedForm!!,
                                         ),
                                       ),
                                     );
@@ -854,6 +871,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                         builder: (context) => StudentInfoPage(
                                           student: studentList[index],
                                           studentpos: studentPOS,
+                                          en19: _retrievedForm!!,
                                         ),
                                       ),
                                     );
@@ -877,13 +895,16 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                     onTap: () async {
                                       await retrieveStudentPOS(
                                           newStudentList[index].uid);
-
+                                      EN19Form? en19details;
+                                      await EN19Form.getFormFromFirestore(
+                                          newStudentList[index].uid);
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
                                           builder: (context) => StudentInfoPage(
                                             student: newStudentList[index],
                                             studentpos: studentPOS,
+                                            en19: _retrievedForm!,
                                           ),
                                         ),
                                       );
@@ -928,6 +949,11 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                           deviatedStudentList[index]
                                               .studentPOS
                                               .uid);
+                                      EN19Form? en19details;
+                                      await EN19Form.getFormFromFirestore(
+                                          deviatedStudentList[index]
+                                              .studentPOS
+                                              .uid);
                                       for (Course c
                                           in deviatedStudentList[index]
                                               .deviatedCourses) {
@@ -940,6 +966,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                               DeviatedInfoPage(
                                             student: deviatedStudentList[index],
                                             studentpos: studentPOS,
+                                            en19: _retrievedForm!,
                                           ),
                                         ),
                                       );
@@ -985,14 +1012,18 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                     onTap: () async {
                                       await retrieveStudentPOS(
                                           ineligibleStudentList[index].uid);
-
+                                      EN19Form? en19details;
+                                      await EN19Form.getFormFromFirestore(
+                                          ineligibleStudentList[index].uid);
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
                                           builder: (context) => StudentInfoPage(
-                                              student:
-                                                  ineligibleStudentList[index],
-                                              studentpos: studentPOS),
+                                            student:
+                                                ineligibleStudentList[index],
+                                            studentpos: studentPOS,
+                                            en19: _retrievedForm!,
+                                          ),
                                         ),
                                       );
                                     },
@@ -1034,14 +1065,18 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                     onTap: () async {
                                       await retrieveStudentPOS(
                                           graduatingStudentsList[index].uid);
-
+                                      EN19Form? en19details;
+                                      await EN19Form.getFormFromFirestore(
+                                          graduatingStudentsList[index].uid);
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
                                           builder: (context) => StudentInfoPage(
-                                              student:
-                                                  graduatingStudentsList[index],
-                                              studentpos: studentPOS),
+                                            student:
+                                                graduatingStudentsList[index],
+                                            studentpos: studentPOS,
+                                            en19: _retrievedForm!,
+                                          ),
                                         ),
                                       );
                                     },

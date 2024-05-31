@@ -8,6 +8,7 @@ import 'package:sysadmindb/api/email/invoice_service.dart';
 import 'package:sysadmindb/app/models/DeviatedStudents.dart';
 import 'package:sysadmindb/app/models/SchoolYear.dart';
 import 'package:sysadmindb/app/models/courses.dart';
+import 'package:sysadmindb/app/models/en-19.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/app/models/term.dart';
@@ -21,14 +22,16 @@ import 'dart:html' as html;
 class StudentInfoPage extends StatefulWidget {
   final Student student;
   StudentPOS studentpos;
-
-  StudentInfoPage({required this.student, required this.studentpos});
+  EN19Form? en19;
+  StudentInfoPage(
+      {required this.student, required this.studentpos, required this.en19});
 
   @override
   StudentInfoPageState createState() => StudentInfoPageState();
 }
 
-late Future<ListResult> futurefiles;
+late Future<ListResult> documentations;
+late Future<ListResult> defenseForms;
 
 class StudentInfoPageState extends State<StudentInfoPage>
     with SingleTickerProviderStateMixin {
@@ -82,7 +85,7 @@ class StudentInfoPageState extends State<StudentInfoPage>
         ],
       )),
       buildDocDataCell(course, context,
-          "${widget.studentpos.idnumber}/${course.coursecode}_${widget.studentpos.idnumber}.pdf")
+          "${widget.studentpos.idnumber}/Documentations/${course.coursecode}_${widget.studentpos.idnumber}.pdf")
     ]);
   }
 
@@ -270,12 +273,12 @@ class StudentInfoPageState extends State<StudentInfoPage>
     }
   }
 
-  Future<void> uploadFile(String coursecode) async {
+  Future<void> uploadDocFile(String coursecode) async {
     FilePickerResult? result = await FilePicker.platform.pickFiles();
     if (result != null) {
       PlatformFile file = result.files.first;
       String fileName =
-          '${widget.studentpos.idnumber}/${coursecode}_${widget.studentpos.idnumber}.pdf';
+          '${widget.studentpos.idnumber}/Documentations/${coursecode}_${widget.studentpos.idnumber}.pdf';
 
       Uint8List fileBytes = file.bytes!;
       final ref = FirebaseStorage.instance.ref().child(fileName);
@@ -283,8 +286,11 @@ class StudentInfoPageState extends State<StudentInfoPage>
     }
 
     setState(() {
-      futurefiles = FirebaseStorage.instance
-          .ref('/${widget.studentpos.idnumber}')
+      documentations = FirebaseStorage.instance
+          .ref('/${widget.studentpos.idnumber}/Documentations')
+          .listAll();
+      defenseForms = FirebaseStorage.instance
+          .ref('/${widget.studentpos.idnumber}/Defense Forms')
           .listAll();
     });
   }
@@ -409,8 +415,11 @@ class StudentInfoPageState extends State<StudentInfoPage>
   @override
   void initState() {
     super.initState();
-    futurefiles = FirebaseStorage.instance
-        .ref('/${widget.studentpos.idnumber}')
+    documentations = FirebaseStorage.instance
+        .ref('/${widget.studentpos.idnumber}/Documentations')
+        .listAll();
+    defenseForms = FirebaseStorage.instance
+        .ref('/${currentStudent!.idnumber}/Defense Forms')
         .listAll();
     _tabController = TabController(length: 3, vsync: this);
     if (_tabController.index == 2 &&
@@ -438,7 +447,69 @@ class StudentInfoPageState extends State<StudentInfoPage>
     }
   }
 
+  bool hasEn19Form = true;
   List<DataRow> rows = [];
+  Future<void> uploadEn19File() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles();
+    if (result != null) {
+      PlatformFile file = result.files.first;
+      String fileName =
+          '${widget.student.idnumber}/Defense Forms/EN-19Form_${widget.student.idnumber}.pdf';
+      Uint8List fileBytes = file.bytes!;
+
+                            // Create EN19Form object
+      EN19Form form = EN19Form(
+          proposedTitle: widget.en19!.proposedTitle,
+          lastName: _capitalize(widget.student.displayname['lastname']!),
+          firstName: _capitalize(widget.student.displayname['firstname']!),
+          middleName: '',
+          idNumber: currentStudent!.idnumber.toString(),
+          college: 'Computer Studies',
+          program: widget.student.degree,
+          passedComprehensiveExams: false,
+          submittedCertificate: false,
+          adviserName: widget.en19!.adviserName,
+          enrollmentStage: widget.en19!.enrollmentStage,
+          date: DateTime.now(),
+          leadPanel: 'No lead panel assigned',
+          panelMembers: [],
+          defenseDate: 'No defense date set',
+          signedByGSC: true);
+
+      form.saveFormToFirestore(form, widget.student.uid);
+      final ref = FirebaseStorage.instance.ref().child(fileName);
+      await ref.putData(fileBytes);
+      print('File uploaded successfully');
+    } else {
+      print('No file selected');
+    }
+  }
+
+  Future<void> downloadEN19File() async {
+    String fileName =
+        '${widget.student.idnumber}/Defense Forms/EN-19Form_${widget.student.idnumber}.pdf';
+    final imageUrl =
+        await FirebaseStorage.instance.ref().child(fileName).getDownloadURL();
+    if (await canLaunch(imageUrl.toString())) {
+      await launch(imageUrl.toString());
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to download file'),
+        ),
+      );
+    }
+
+    // Implement file download logic using the URL
+  }
+
+  Future<void> checkIfFormExists() async {
+    bool exists = await EN19Form.hasEn19Form(widget.student.uid);
+    setState(() {
+      hasEn19Form = exists;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.studentpos.degree.contains('MIT')) {
@@ -484,6 +555,7 @@ class StudentInfoPageState extends State<StudentInfoPage>
                             width: MediaQuery.sizeOf(context).width / 3,
                             child: SingleChildScrollView(
                               child: Card(
+                                
                                 color: Colors.white,
                                 shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8.0)),
@@ -1183,6 +1255,132 @@ class StudentInfoPageState extends State<StudentInfoPage>
                         rows: rows,
                       ),
                     ),
+                    SizedBox(
+                      height: 10,
+                    ),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'EN-19 Data: ',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.all(16.0),
+                          width: 400,
+                          child: Stack(
+                            children: [
+                              Card(
+                                elevation: 4.0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10.0),
+                                ),
+                                margin: EdgeInsets.only(
+                                    top: 24.0), // Extra margin for icons
+                                child: Padding(
+                                  padding: EdgeInsets.all(16.0),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        widget.en19!.proposedTitle,
+                                        style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      SizedBox(height: 16),
+                                      Text(
+                                        'Enrollment Stage:',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        widget.en19!.enrollmentStage,
+                                        style: TextStyle(fontSize: 14),
+                                      ),
+                                      SizedBox(height: 16),
+                                      Text(
+                                        'Adviser Name:',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        widget.en19!.adviserName,
+                                        style: TextStyle(fontSize: 14),
+                                      ),
+                                      SizedBox(height: 16),
+                                      Text(
+                                        'Lead Panel:',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        widget.en19!.leadPanel,
+                                        style: TextStyle(fontSize: 14),
+                                      ),
+                                      SizedBox(height: 16),
+                                      Text(
+                                        'Panel Members:',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        widget.en19!.panelMembers.join('\n'),
+                                        style: TextStyle(fontSize: 14),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                right: 16,
+                                top: 8,
+                                child: Column(
+                                  children: [
+                                    IconButton(
+                                      icon: Icon(Icons.file_download),
+                                      onPressed: downloadEN19File,
+                                      tooltip: 'Download EN-19 Form',
+                                    ),
+                                    Text(
+                                      'Download EN-19 Form',
+                                      style: TextStyle(fontSize: 10),
+                                    ),
+                                    IconButton(
+                                      icon: Icon(Icons.file_upload),
+                                      onPressed: uploadEn19File,
+                                      tooltip: 'Upload EN-19 Form, make sure that the upload en-19 form is signed',
+                                    ),
+                                    Text(
+                                      'Upload EN-19 Form',
+                                      style: TextStyle(fontSize: 10),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ), // Set the desired width here
+                        )
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -1207,7 +1405,7 @@ DataCell buildDocDataCell(
     SizedBox(
       width: MediaQuery.of(context).size.width / 7,
       child: FutureBuilder<ListResult>(
-        future: futurefiles,
+        future: documentations,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(

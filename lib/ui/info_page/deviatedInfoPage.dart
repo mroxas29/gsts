@@ -9,6 +9,7 @@ import 'package:sysadmindb/app/models/AcademicCalendar.dart';
 import 'package:sysadmindb/app/models/DeviatedStudents.dart';
 import 'package:sysadmindb/app/models/SchoolYear.dart';
 import 'package:sysadmindb/app/models/courses.dart';
+import 'package:sysadmindb/app/models/en-19.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/app/models/term.dart';
@@ -21,7 +22,7 @@ class DeviatedInfoPage extends StatefulWidget {
   final DeviatedStudent student;
   StudentPOS studentpos;
 
-  DeviatedInfoPage({required this.student, required this.studentpos});
+  DeviatedInfoPage({required this.student, required this.studentpos, required EN19Form en19});
 
   @override
   _DeviatedInfoPage createState() => _DeviatedInfoPage();

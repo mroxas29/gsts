@@ -64,7 +64,6 @@ void showAddNewUserForm(
     'Coordinator',
     'Graduate Student',
     'Admin',
-    'Academic Programming Officer (APO)',
     'DIT Secretary'
   ];
   List<String> degrees = [

@@ -57,10 +57,10 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/images/bg.png
     - assets/images/loaderOld.gif
     - assets/images/dlsuccsLogo.png
     - assets/images/dlsulogo.png
     - assets/images/De_La_Salle_University_Seal.png
+    - assets/images/DLSU-Registrar.png
 flutter_intl:
   enabled: true

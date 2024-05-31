@@ -10,7 +10,9 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/widgets.dart%20';
 import 'package:sysadmindb/app/models/AcademicCalendar.dart';
 import 'package:sysadmindb/app/models/courses.dart';
+import 'package:sysadmindb/app/models/en-19.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
+import 'package:sysadmindb/app/models/student_user.dart';
 
 class CustomRow {
   final String itemName;
@@ -23,16 +25,1043 @@ class CustomRow {
 }
 
 class PdfInvoiceService {
-  Future<Uint8List> createHelloWorld() {
+  Future<Uint8List> createEN19(EN19Form en19) async {
     final pdf = pw.Document();
+
+    final image = (await rootBundle.load("assets/images/DLSU-Registrar.png"))
+        .buffer
+        .asUint8List();
     pdf.addPage(
       pw.Page(
-        pageFormat: PdfPageFormat.a4,
-        build: (pw.Context context) {
-          return pw.Center(
-            child: pw.Text("Hello World"),
-          );
-        },
+        build: (context) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Row(children: [
+              pw.SizedBox(
+                  height: 50,
+                  width: 125,
+                  child: pw.Image(pw.MemoryImage(image))),
+              pw.Spacer(),
+              pw.Text('EN-19-202101',
+                  style: pw.TextStyle(fontWeight: FontWeight.bold))
+            ]),
+            pw.Center(
+                child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.center,
+                    children: [
+                  pw.SizedBox(height: 10),
+                  pw.Text('ENROLLMENT OF THESIS/DISSERTATION WRITING',
+                      style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 17,
+                          decoration: TextDecoration.underline)),
+                  pw.Text('(for GRADUATE STUDENTS only)',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold))
+                ])),
+            pw.SizedBox(height: 10),
+            pw.Text('PLEASE PRINT',
+                style: pw.TextStyle(fontWeight: FontWeight.bold)),
+            pw.Container(
+              width: double.infinity,
+              height: 17,
+              color: PdfColors.black,
+              child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceEvenly,
+                children: [
+                  pw.Text(
+                    'PERSONAL INFORMATION',
+                    style: pw.TextStyle(
+                      color: PdfColors.white,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.Text(
+                    'PROPOSED TITLE',
+                    style: pw.TextStyle(
+                      color: PdfColors.white,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            pw.Container(
+              child: pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Expanded(
+                    flex: 1,
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        // Rows 1-5 for personal information
+                        pw.Container(
+                          decoration: pw.BoxDecoration(
+                            border: pw.Border.all(color: PdfColors.black),
+                          ),
+                          child: pw.Row(
+                            children: [
+                              pw.Text('LAST NAME    '),
+                              pw.Expanded(
+                                child: pw.Container(
+                                    height: 20,
+                                    decoration: pw.BoxDecoration(
+                                      border:
+                                          pw.Border.all(color: PdfColors.black),
+                                    ),
+                                    child: pw.Text(en19.lastName)),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Add other rows for personal information here
+                        pw.Container(
+                          decoration: pw.BoxDecoration(
+                            border: pw.Border.all(color: PdfColors.black),
+                          ),
+                          child: pw.Row(
+                            children: [
+                              pw.Text('FIRST NAME   '),
+                              pw.Expanded(
+                                child: pw.Container(
+                                    height: 20,
+                                    decoration: pw.BoxDecoration(
+                                      border:
+                                          pw.Border.all(color: PdfColors.black),
+                                    ),
+                                    child: pw.Text(en19.firstName)),
+                              ),
+                            ],
+                          ),
+                        ),
+                        pw.Container(
+                          decoration: pw.BoxDecoration(
+                            border: pw.Border.all(color: PdfColors.black),
+                            color: PdfColors.black,
+                          ),
+                          child: pw.Row(
+                            mainAxisAlignment: pw.MainAxisAlignment.center,
+                            crossAxisAlignment: pw.CrossAxisAlignment.center,
+                            children: [
+                              pw.Text(
+                                'ACADEMIC INFORMATION',
+                                style: pw.TextStyle(
+                                    color: PdfColors.white,
+                                    fontWeight: pw.FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                        pw.Container(
+                          decoration: pw.BoxDecoration(
+                            border: pw.Border.all(color: PdfColors.black),
+                          ),
+                          child: pw.Row(
+                            children: [
+                              pw.Text('ID NUMBER    '),
+                              pw.Expanded(
+                                child: pw.Container(
+                                    height: 20,
+                                    decoration: pw.BoxDecoration(
+                                      border:
+                                          pw.Border.all(color: PdfColors.black),
+                                    ),
+                                    child: pw.Text(en19.idNumber)),
+                              ),
+                            ],
+                          ),
+                        ),
+                        pw.Container(
+                          decoration: pw.BoxDecoration(
+                            border: pw.Border.all(color: PdfColors.black),
+                          ),
+                          child: pw.Row(
+                            children: [
+                              pw.Text('COLLEGE OF   '),
+                              pw.Expanded(
+                                child: pw.Container(
+                                    height: 20,
+                                    decoration: pw.BoxDecoration(
+                                      border:
+                                          pw.Border.all(color: PdfColors.black),
+                                    ),
+                                    child: pw.Text(en19.college)),
+                              ),
+                            ],
+                          ),
+                        ),
+                        pw.Container(
+                          decoration: pw.BoxDecoration(
+                            border: pw.Border.all(color: PdfColors.black),
+                          ),
+                          child: pw.Row(
+                            children: [
+                              pw.Text('PROGRAM      '),
+                              pw.Expanded(
+                                child: pw.Container(
+                                    height: 20,
+                                    decoration: pw.BoxDecoration(
+                                      border:
+                                          pw.Border.all(color: PdfColors.black),
+                                    ),
+                                    child: pw.Text(en19.program)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  pw.Expanded(
+                    flex: 1,
+                    child: pw.Container(
+                      height: 115,
+                      decoration: pw.BoxDecoration(
+                        border: pw.Border.all(color: PdfColors.black),
+                      ),
+                      child: pw.Row(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          // Rows for proposed title
+                          pw.SizedBox(width: 5),
+                          pw.Row(
+                            children: [
+                              pw.Container(
+                                  padding: pw.EdgeInsets.all(8),
+                                  width: 10,
+                                  height: 10,
+                                  decoration: pw.BoxDecoration(
+                                    border:
+                                        pw.Border.all(color: PdfColors.black),
+                                  ),
+                                  child: pw.Center(
+                                      child: pw.Text(
+                                          en19.proposedTitle == 'Thesis'
+                                              ? 'X'
+                                              : '',
+                                          style: pw.TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: pw.FontWeight.bold,
+                                              color: PdfColors.black)))),
+                              pw.SizedBox(width: 5),
+                              pw.Text('Thesis   '),
+                            ],
+                          ),
+                          pw.SizedBox(height: 10),
+                          pw.Row(
+                            children: [
+                              pw.Container(
+                                  padding: pw.EdgeInsets.all(8),
+                                  width: 10,
+                                  height: 10,
+                                  decoration: pw.BoxDecoration(
+                                    border:
+                                        pw.Border.all(color: PdfColors.black),
+                                  ),
+                                  child: pw.Center(
+                                      child: pw.Text(
+                                          en19.proposedTitle == 'Dissertation'
+                                              ? 'X'
+                                              : '',
+                                          style: pw.TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: pw.FontWeight.bold,
+                                              color: PdfColors.black)))),
+                              pw.SizedBox(width: 5),
+                              pw.Text('Dissertation'),
+                            ],
+                          ),
+                          // Add other rows for proposed title here
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            pw.Container(
+              width: double.infinity,
+              height: 17,
+              color: PdfColors.black,
+              child: pw.Column(
+                mainAxisAlignment: pw.MainAxisAlignment.center,
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                children: [
+                  pw.Text(
+                    'EVALUATION OF RECORDS',
+                    style: pw.TextStyle(
+                      color: PdfColors.white,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            pw.Container(
+              width: double.infinity,
+              height: 15,
+              color: PdfColors.black,
+              child: pw.Column(
+                mainAxisAlignment: pw.MainAxisAlignment.center,
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                children: [
+                  pw.Text(
+                    '(DO NOT FILL)',
+                    style: pw.TextStyle(
+                      color: PdfColors.white,
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            pw.Container(
+              child: pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Expanded(
+                    flex: 1,
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        // Rows 1-5 for personal information
+                        pw.Container(
+                            decoration: pw.BoxDecoration(
+                              border: pw.Border.all(color: PdfColors.black),
+                            ),
+                            child: pw.Row(children: [
+                              pw.Text('Passed Comprehensive Examinations'),
+                            ])),
+                        // Add other rows for personal information here
+                        pw.Container(
+                            height: 15,
+                            decoration: pw.BoxDecoration(
+                              border: pw.Border.all(color: PdfColors.black),
+                            ),
+                            child: pw.Row(children: [
+                              pw.Text(
+                                  'Submitted Certificate of Academic Completion',
+                                  style: pw.TextStyle(fontSize: 10)),
+                            ])),
+                        pw.Container(
+                            height: 30,
+                            decoration: pw.BoxDecoration(
+                              border: pw.Border.all(color: PdfColors.black),
+                            ),
+                            child: pw.Row(children: [
+                              pw.Text('Evaluated by'),
+                            ])),
+                      ],
+                    ),
+                  ),
+                  pw.Expanded(
+                    flex: 1,
+                    child: pw.Column(children: [
+                      pw.Container(
+                        decoration: pw.BoxDecoration(
+                          border: pw.Border.all(color: PdfColors.black),
+                        ),
+                        child: pw.Row(
+                          crossAxisAlignment: pw.CrossAxisAlignment.center,
+                          children: [
+                            // Rows for proposed title
+                            pw.SizedBox(width: 5),
+                            pw.Row(
+                              children: [
+                                pw.Container(
+                                  padding: pw.EdgeInsets.all(8),
+                                  width: 10,
+                                  height: 10,
+                                  decoration: pw.BoxDecoration(
+                                    border:
+                                        pw.Border.all(color: PdfColors.black),
+                                  ),
+                                ),
+                                pw.SizedBox(width: 5),
+                                pw.Text('Yes'),
+                              ],
+                            ),
+                            pw.SizedBox(width: 10),
+                            pw.Row(
+                              children: [
+                                pw.Container(
+                                  padding: pw.EdgeInsets.all(8),
+                                  width: 10,
+                                  height: 10,
+                                  decoration: pw.BoxDecoration(
+                                    border:
+                                        pw.Border.all(color: PdfColors.black),
+                                  ),
+                                ),
+                                pw.SizedBox(width: 5),
+                                pw.Text('No'),
+                              ],
+                            ),
+                            pw.SizedBox(width: 10),
+                            pw.Row(
+                              children: [
+                                pw.Container(
+                                  padding: pw.EdgeInsets.all(8),
+                                  width: 10,
+                                  height: 10,
+                                  decoration: pw.BoxDecoration(
+                                    border:
+                                        pw.Border.all(color: PdfColors.black),
+                                  ),
+                                ),
+                                pw.SizedBox(width: 5),
+                                pw.Text('NA'),
+                              ],
+                            ),
+                            // Add other rows for proposed title here
+                          ],
+                        ),
+                      ),
+                      pw.Container(
+                        height: 15,
+                        decoration: pw.BoxDecoration(
+                          border: pw.Border.all(color: PdfColors.black),
+                        ),
+                        child: pw.Row(
+                          crossAxisAlignment: pw.CrossAxisAlignment.center,
+                          children: [
+                            // Rows for proposed title
+                            pw.SizedBox(width: 5),
+                            pw.Row(
+                              children: [
+                                pw.Container(
+                                  padding: pw.EdgeInsets.all(8),
+                                  width: 10,
+                                  height: 10,
+                                  decoration: pw.BoxDecoration(
+                                    border:
+                                        pw.Border.all(color: PdfColors.black),
+                                  ),
+                                ),
+                                pw.SizedBox(width: 5),
+                                pw.Text('Yes'),
+                              ],
+                            ),
+                            pw.SizedBox(width: 10),
+                            pw.Row(
+                              children: [
+                                pw.Container(
+                                  padding: pw.EdgeInsets.all(8),
+                                  width: 10,
+                                  height: 10,
+                                  decoration: pw.BoxDecoration(
+                                    border:
+                                        pw.Border.all(color: PdfColors.black),
+                                  ),
+                                ),
+                                pw.SizedBox(width: 5),
+                                pw.Text('No'),
+                              ],
+                            ),
+                            pw.SizedBox(width: 10),
+                            pw.Row(
+                              children: [
+                                pw.Container(
+                                  padding: pw.EdgeInsets.all(8),
+                                  width: 10,
+                                  height: 10,
+                                  decoration: pw.BoxDecoration(
+                                    border:
+                                        pw.Border.all(color: PdfColors.black),
+                                  ),
+                                ),
+                                pw.SizedBox(width: 5),
+                                pw.Text('NA'),
+                              ],
+                            ),
+                            // Add other rows for proposed title here
+                          ],
+                        ),
+                      ),
+                      pw.Container(
+                        height: 30,
+                        decoration: pw.BoxDecoration(
+                          border: pw.Border.all(color: PdfColors.black),
+                        ),
+                        child: pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.center,
+                          mainAxisAlignment: pw.MainAxisAlignment.center,
+                          children: [
+                            // Rows for proposed title
+                            pw.SizedBox(width: 5),
+                            pw.Row(
+                              crossAxisAlignment: pw.CrossAxisAlignment.center,
+                              children: [
+                                pw.SizedBox(width: 5),
+                                pw.Text('_____________________'),
+                              ],
+                            ),
+                            pw.SizedBox(width: 10),
+                            pw.Row(
+                              crossAxisAlignment: pw.CrossAxisAlignment.center,
+                              children: [
+                                pw.SizedBox(width: 5),
+                                pw.Text('Signature/Date',
+                                    style: pw.TextStyle(fontSize: 8)),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ]),
+                  ),
+                ],
+              ),
+            ),
+            pw.Container(
+              width: double.infinity,
+              height: 20,
+              color: PdfColors.black,
+              child: pw.Column(
+                mainAxisAlignment: pw.MainAxisAlignment.center,
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                children: [
+                  pw.Text(
+                    'ENROLLMENT STAGE',
+                    style: pw.TextStyle(
+                      color: PdfColors.white,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            pw.Container(
+              width: double.infinity,
+              height: 17,
+              color: PdfColors.black,
+              child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceEvenly,
+                children: [
+                  pw.Text(
+                    'THESIS WRITING',
+                    style: pw.TextStyle(
+                      color: PdfColors.white,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.Text(
+                    'DISSERTATION WRITING',
+                    style: pw.TextStyle(
+                      color: PdfColors.white,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            pw.Container(
+              child: pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Expanded(
+                    flex: 1,
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        // Rows 1-5 for personal information
+                        pw.Container(
+                            height: 100,
+                            decoration: pw.BoxDecoration(
+                              border: pw.Border.all(color: PdfColors.black),
+                            ),
+                            child: pw.Column(children: [
+                              pw.Row(
+                                  mainAxisAlignment:
+                                      pw.MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    pw.Column(children: [
+                                      for (int i = 1; i <= 4; i++)
+                                        pw.Row(
+                                          children: [
+                                            pw.Center(
+                                              child: pw.Container(
+                                                  padding: pw.EdgeInsets.all(8),
+                                                  width: 10,
+                                                  height: 10,
+                                                  decoration: pw.BoxDecoration(
+                                                    border: pw.Border.all(
+                                                        color: PdfColors.black),
+                                                  ),
+                                                  child: pw.Text(
+                                                      en19.enrollmentStage ==
+                                                              'Thesis $i'
+                                                          ? 'X'
+                                                          : '',
+                                                      style: pw.TextStyle(
+                                                          fontSize: 12,
+                                                          fontWeight: pw
+                                                              .FontWeight.bold,
+                                                          color: PdfColors
+                                                              .black))),
+                                            ),
+                                            pw.SizedBox(width: 5),
+                                            pw.Text('Thesis $i'),
+                                          ],
+                                        ),
+                                    ]),
+                                    pw.Column(children: [
+                                      for (int i = 5; i <= 9; i++)
+                                        pw.Row(
+                                          children: [
+                                            pw.Center(
+                                              child: pw.Container(
+                                                  padding: pw.EdgeInsets.all(8),
+                                                  width: 10,
+                                                  height: 10,
+                                                  decoration: pw.BoxDecoration(
+                                                    border: pw.Border.all(
+                                                        color: PdfColors.black),
+                                                  ),
+                                                  child: pw.Text(
+                                                      en19.enrollmentStage ==
+                                                              'Thesis $i'
+                                                          ? 'X'
+                                                          : '',
+                                                      style: pw.TextStyle(
+                                                          fontSize: 12,
+                                                          fontWeight: pw
+                                                              .FontWeight.bold,
+                                                          color: PdfColors
+                                                              .black))),
+                                            ),
+                                            pw.SizedBox(width: 5),
+                                            pw.Text('Thesis $i'),
+                                          ],
+                                        ),
+                                    ])
+                                  ])
+                            ])),
+                      ],
+                    ),
+                  ),
+                  pw.Expanded(
+                    flex: 1,
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        // Rows 1-5 for personal information
+                        pw.Container(
+                            height: 100,
+                            decoration: pw.BoxDecoration(
+                              border: pw.Border.all(color: PdfColors.black),
+                            ),
+                            child: pw.Column(children: [
+                              pw.Row(
+                                  mainAxisAlignment:
+                                      pw.MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    pw.Column(children: [
+                                      for (int i = 1; i <= 5; i++)
+                                        pw.Row(
+                                          children: [
+                                            pw.Center(
+                                              child: pw.Container(
+                                                  padding: pw.EdgeInsets.all(8),
+                                                  width: 10,
+                                                  height: 10,
+                                                  decoration: pw.BoxDecoration(
+                                                    border: pw.Border.all(
+                                                        color: PdfColors.black),
+                                                  ),
+                                                  child: pw.Text(
+                                                      en19.enrollmentStage ==
+                                                              'Dissertation $i'
+                                                          ? 'X'
+                                                          : '',
+                                                      style: pw.TextStyle(
+                                                          fontSize: 12,
+                                                          fontWeight: pw
+                                                              .FontWeight.bold,
+                                                          color: PdfColors
+                                                              .black))),
+                                            ),
+                                            pw.SizedBox(width: 5),
+                                            pw.Text('Dissertation $i',
+                                                style:
+                                                    pw.TextStyle(fontSize: 10)),
+                                          ],
+                                        ),
+                                    ]),
+                                    pw.Column(children: [
+                                      for (int i = 6; i <= 10; i++)
+                                        pw.Row(
+                                          children: [
+                                            pw.Center(
+                                              child: pw.Container(
+                                                  padding: pw.EdgeInsets.all(8),
+                                                  width: 10,
+                                                  height: 10,
+                                                  decoration: pw.BoxDecoration(
+                                                    border: pw.Border.all(
+                                                        color: PdfColors.black),
+                                                  ),
+                                                  child: pw.Text(
+                                                      en19.enrollmentStage ==
+                                                              'Dissertation $i'
+                                                          ? 'X'
+                                                          : '',
+                                                      style: pw.TextStyle(
+                                                          fontSize: 12,
+                                                          fontWeight: pw
+                                                              .FontWeight.bold,
+                                                          color: PdfColors
+                                                              .black))),
+                                            ),
+                                            pw.SizedBox(width: 5),
+                                            pw.Text('Dissertation $i',
+                                                style:
+                                                    pw.TextStyle(fontSize: 10)),
+                                          ],
+                                        ),
+                                    ]),
+                                    pw.Column(children: [
+                                      for (int i = 10; i <= 15; i++)
+                                        pw.Row(
+                                          children: [
+                                            pw.Center(
+                                              child: pw.Container(
+                                                  padding: pw.EdgeInsets.all(8),
+                                                  width: 10,
+                                                  height: 10,
+                                                  decoration: pw.BoxDecoration(
+                                                    border: pw.Border.all(
+                                                        color: PdfColors.black),
+                                                  ),
+                                                  child: pw.Text(
+                                                      en19.enrollmentStage ==
+                                                              'Dissertation $i'
+                                                          ? 'X'
+                                                          : '',
+                                                      style: pw.TextStyle(
+                                                          fontSize: 12,
+                                                          fontWeight: pw
+                                                              .FontWeight.bold,
+                                                          color: PdfColors
+                                                              .black))),
+                                            ),
+                                            pw.SizedBox(width: 5),
+                                            pw.Text('Dissertation $i',
+                                                style:
+                                                    pw.TextStyle(fontSize: 10)),
+                                          ],
+                                        ),
+                                    ])
+                                  ])
+                            ])),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            pw.Container(
+              width: double.infinity,
+              height: 17,
+              color: PdfColors.black,
+              child: pw.Column(
+                mainAxisAlignment: pw.MainAxisAlignment.center,
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                children: [
+                  pw.Text(
+                    'NAME OF THESIS/DISSERTATION ADVISER',
+                    style: pw.TextStyle(
+                      color: PdfColors.white,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            pw.Container(
+              width: double.infinity,
+              height: 15,
+              color: PdfColors.black,
+              child: pw.Column(
+                mainAxisAlignment: pw.MainAxisAlignment.center,
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                children: [
+                  pw.Text(
+                    '(PLEASE PRINT)',
+                    style: pw.TextStyle(
+                      color: PdfColors.white,
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            pw.Container(
+                padding: pw.EdgeInsets.all(8),
+                width: double.infinity,
+                height: 20,
+                decoration: pw.BoxDecoration(
+                  border: pw.Border.all(color: PdfColors.black),
+                ),
+                child: pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.center,
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [pw.Text(en19.adviserName)])),
+            pw.Container(
+              width: double.infinity,
+              height: 15,
+              color: PdfColors.black,
+              child: pw.Column(
+                mainAxisAlignment: pw.MainAxisAlignment.center,
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                children: [
+                  pw.Text(
+                    'APPROVED FOR ENROLLMENT',
+                    style: pw.TextStyle(
+                      color: PdfColors.white,
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            pw.Container(
+              child: pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Expanded(
+                    flex: 1,
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        // Rows 1-5 for personal information
+                        pw.Container(
+                            height: 50,
+                            width: double.infinity,
+                            decoration: pw.BoxDecoration(
+                              border: pw.Border.all(color: PdfColors.black),
+                            ),
+                            child: pw.Column(children: [
+                              pw.Text('CHAIR /GS PROGRAM COORDINATOR',
+                                  style: pw.TextStyle(fontSize: 8)),
+                              pw.SizedBox(height: 10),
+                              pw.Text('Ms. Lissa Magpantay',
+                                  style: pw.TextStyle(
+                                      decoration: pw.TextDecoration.underline)),
+                              pw.Text('SIGNATURE OVER PRINTED NAME/DATE',
+                                  style: pw.TextStyle(fontSize: 8)),
+                            ])),
+                      ],
+                    ),
+                  ),
+                  pw.Expanded(
+                    flex: 1,
+                    child: pw.Column(children: [
+                      pw.Container(
+                        height: 50,
+                        width: double.infinity,
+                        decoration: pw.BoxDecoration(
+                          border: pw.Border.all(color: PdfColors.black),
+                        ),
+                        child: pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.center,
+                          mainAxisAlignment: pw.MainAxisAlignment.center,
+                          children: [
+                            pw.Container(
+                                height: 50,
+                                width: double.infinity,
+                                decoration: pw.BoxDecoration(
+                                  border: pw.Border.all(color: PdfColors.black),
+                                ),
+                                child: pw.Column(children: [
+                                  pw.Text('FACULTY ADVISER',
+                                      style: pw.TextStyle(fontSize: 8)),
+                                  pw.SizedBox(height: 10),
+                                  pw.Text(en19.adviserName,
+                                      style: pw.TextStyle(
+                                          decoration:
+                                              pw.TextDecoration.underline)),
+                                  pw.Text('SIGNATURE OVER PRINTED NAME/DATE',
+                                      style: pw.TextStyle(fontSize: 8)),
+                                ])),
+                          ],
+                        ),
+                      ),
+                    ]),
+                  ),
+                ],
+              ),
+            ),
+            pw.Container(
+              width: double.infinity,
+              height: 20,
+              color: PdfColors.black,
+              child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.center,
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                children: [
+                  pw.Text(
+                    'STUDENT CONFORME',
+                    style: pw.TextStyle(
+                      color: PdfColors.white,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            pw.Expanded(
+              flex: 1,
+              child: pw.Column(children: [
+                pw.Container(
+                  height: 50,
+                  width: double.infinity,
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(color: PdfColors.black),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.center,
+                    mainAxisAlignment: pw.MainAxisAlignment.center,
+                    children: [
+                      pw.Container(
+                          height: 50,
+                          width: double.infinity,
+                          decoration: pw.BoxDecoration(
+                            border: pw.Border.all(color: PdfColors.black),
+                          ),
+                          child: pw.Column(children: [
+                            pw.Text(
+                                "1. I have understood the 'Instructions' AND 'Terms and Conditions' at the back of this form and agree to the same.",
+                                style: pw.TextStyle(fontSize: 8)),
+                            pw.SizedBox(height: 10),
+                            pw.Text(
+                                '${en19.firstName} ${en19.lastName} ${getCurrentDate()}',
+                                style: pw.TextStyle(
+                                    decoration: pw.TextDecoration.underline)),
+                            pw.Text('SIGNATURE OVER PRINTED NAME/DATE',
+                                style: pw.TextStyle(fontSize: 8)),
+                          ])),
+                    ],
+                  ),
+                ),
+              ]),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    pdf.addPage(
+      pw.Page(
+        build: (context) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Row(children: [
+              pw.SizedBox(
+                height: 50,
+                width: 125,
+              ),
+              pw.Spacer(),
+              pw.Text('EN-19-202101',
+                  style: pw.TextStyle(fontWeight: FontWeight.bold))
+            ]),
+            pw.Container(
+              width: double.infinity,
+              height: 25,
+              color: PdfColors.black,
+              child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.center,
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                children: [
+                  pw.Text(
+                    'ALL RIGHTS RESERVED. Parts of this material may be reproduced provided (1) the material is not altered; (2) the use is non-commercial;\n(3) De La Salle University is acknowledged as source; and (4) DLSU is notified through academic.services@dlsu.edu.ph. ',
+                    style: pw.TextStyle(color: PdfColors.white, fontSize: 7),
+                  ),
+                ],
+              ),
+            ),
+            pw.Container(
+              width: double.infinity,
+              height: 25,
+              color: PdfColors.black,
+              child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.center,
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                children: [
+                  pw.Text(
+                    'INSTRUCTIONS TO THE STUDENT',
+                    style: pw.TextStyle(
+                        color: PdfColors.white,
+                        fontSize: 10,
+                        fontWeight: pw.FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+            pw.Container(
+                height: 100,
+                width: double.infinity,
+                decoration: pw.BoxDecoration(
+                  border: pw.Border.all(color: PdfColors.black),
+                ),
+                child: pw.Column(children: [
+                  pw.Text(
+                      "1. This form must be accomplished must submitted to the Office of the University Registrar through a google\nform when all (except Associate Registrar) necessary signatures have been completed. Application forms with\nincomplete signatures/email endorsement will not be accepted for processing",
+                      style: pw.TextStyle(fontSize: 8)),
+                  pw.SizedBox(height: 5),
+                  pw.Text(
+                      "2. If eligible, an assessment of the relevant fees for the application will be available through MLS Print EAF four\nworking days after submission.",
+                      style: pw.TextStyle(fontSize: 8)),
+                  pw.SizedBox(height: 5),
+                  pw.Text(
+                      "3. The assessment will be printed in the Enrollment Assessment Form (EAF) that the student must download\nthrough their MLS Account. Pay the assessed amount through the official payment method released by the\nFinance and Accounting Office (FAO).",
+                      style: pw.TextStyle(fontSize: 8)),
+                  pw.SizedBox(height: 5),
+                ])),
+            pw.Container(
+              width: double.infinity,
+              height: 25,
+              color: PdfColors.black,
+              child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.center,
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                children: [
+                  pw.Text(
+                    'TERMS AND CONDITIONS',
+                    style: pw.TextStyle(
+                        color: PdfColors.white,
+                        fontSize: 10,
+                        fontWeight: pw.FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+            pw.Container(
+                height: 100,
+                width: double.infinity,
+                decoration: pw.BoxDecoration(
+                  border: pw.Border.all(color: PdfColors.black),
+                ),
+                child: pw.Column(children: [
+                  pw.Text(
+                      "1. To be able to enroll for thesis/dissertation writing, the student must have completed all academic\nrequirements and have passed all applicable comprehensive examinations.",
+                      style: pw.TextStyle(fontSize: 8)),
+                  pw.SizedBox(height: 5),
+                  pw.Text(
+                      "2. Thesis/dissertation Writing may be enrolled up to the end of Week 2 of the term only. Complete and detailed\nschedules can be found at\nhttps://www.dlsu.edu.ph/wp-content/uploads/pdf/registrar/schedules/enroll_gs.pdf",
+                      style: pw.TextStyle(fontSize: 8)),
+                  pw.SizedBox(height: 5),
+                  pw.Text(
+                      "3. Other policies covering thesis/dissertation writing are covered in the Graduate Student Handbook:\nhttps://www.dlsu.edu.ph/wp-content/uploads/pdf/registrar/student-handbook.pdf",
+                      style: pw.TextStyle(fontSize: 8)),
+                  pw.SizedBox(height: 5),
+                  pw.Text(
+                      "4. The enrollment is deemed final once reflected in the Student's EAF and can no longer withdraw the\napplication.",
+                      style: pw.TextStyle(fontSize: 8)),
+                  pw.SizedBox(height: 5),
+                ])),
+          ],
+        ),
       ),
     );
 

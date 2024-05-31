@@ -9,6 +9,7 @@ import 'package:sysadmindb/api/calendar/test_calendar.dart';
 import 'package:sysadmindb/app/models/AcademicCalendar.dart';
 import 'package:sysadmindb/app/models/DeviatedStudents.dart';
 import 'package:sysadmindb/app/models/courses.dart';
+import 'package:sysadmindb/app/models/en-19.dart';
 import 'package:sysadmindb/app/models/enrolledcourses.dart';
 import 'package:sysadmindb/app/models/faculty.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
@@ -870,13 +871,16 @@ class _MainViewState extends State<Gscscreen> {
                                   degree: enrolledStudent[i].degree,
                                   status: enrolledStudent[i].status);
                               await retrieveStudentPOS(currentStudent!.uid);
-
+                              EN19Form? en19details;
+                              await EN19Form.getFormFromFirestore(
+                                  currentStudent!.uid);
                               Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                       builder: (context) => StudentInfoPage(
                                             student: enrolledStudent[i],
                                             studentpos: studentPOS,
+                                            en19: en19details!,
                                           )));
                             },
                             child: ListTile(
@@ -1857,7 +1861,9 @@ class _MainViewState extends State<Gscscreen> {
                             }
 
                             await retrieveStudentPOS(selectedStudent!.uid);
-
+                            EN19Form? en19details;
+                            await EN19Form.getFormFromFirestore(
+                               selectedStudent.uid);
                             late DeviatedStudent devStudent;
                             bool isDeviated = false;
                             for (DeviatedStudent student
@@ -1875,6 +1881,7 @@ class _MainViewState extends State<Gscscreen> {
                                   builder: (context) => DeviatedInfoPage(
                                     student: devStudent,
                                     studentpos: studentPOS,
+                                    en19: en19details!,
                                   ),
                                 ),
                               );
@@ -1885,6 +1892,7 @@ class _MainViewState extends State<Gscscreen> {
                                   builder: (context) => StudentInfoPage(
                                     student: selectedStudent!,
                                     studentpos: studentPOS,
+                                    en19: en19details!,
                                   ),
                                 ),
                               );

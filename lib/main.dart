@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:sysadmindb/api/email/invoice_service.dart';
 import 'package:sysadmindb/app/models/coursedemand.dart';
 import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/enrolledcourses.dart';
@@ -38,7 +39,8 @@ class LoginPage extends StatefulWidget {
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
- bool isEng501MChecked = false;
+
+bool isEng501MChecked = false;
 
 TextEditingController passwordTextController = TextEditingController();
 TextEditingController emailTextController = TextEditingController();
@@ -164,10 +166,10 @@ class _LoginPageState extends State<LoginPage> {
 
   final db = FirebaseFirestore.instance;
   final _auth = FirebaseAuth.instance;
+
   @override
   Widget build(BuildContext context) {
-    //  final GlobalKey<State> _LoaderDialog = GlobalKey<State>();
-
+   
     double screenHeight = MediaQuery.of(context).size.height;
     return WillPopScope(
       onWillPop: () async => false,
@@ -469,14 +471,8 @@ class _LoginPageState extends State<LoginPage> {
               builder: (context) => GradStudentscreen(),
             ),
           );
-        }else if(documentSnapshot.get('role') == "Academic Programming Officer (APO)"){
-
-        } else if(documentSnapshot.get('role') ==
-            "DIT Secretary"){
-
-        }
-        
-        else {
+        } else if (documentSnapshot.get('role') == "DIT Secretary") {
+        } else {
           wrongCreds = true;
         }
       } else {

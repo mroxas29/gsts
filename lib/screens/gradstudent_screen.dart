@@ -12,6 +12,7 @@ import 'package:sysadmindb/api/email/invoice_service.dart';
 import 'package:sysadmindb/app/models/AcademicCalendar.dart';
 import 'package:sysadmindb/app/models/coursedemand.dart';
 import 'package:sysadmindb/app/models/courses.dart';
+import 'package:sysadmindb/app/models/en-19.dart';
 import 'package:sysadmindb/app/models/enrolledcourses.dart';
 import 'package:sysadmindb/app/models/pastcourses.dart';
 import 'package:sysadmindb/app/models/SchoolYear.dart';
@@ -22,6 +23,8 @@ import 'package:sysadmindb/main.dart';
 import 'package:sysadmindb/ui/forms/form.dart';
 import 'package:sysadmindb/api/calendar/test_calendar.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+import 'dart:html' as html;
 
 void main() {
   runApp(
@@ -41,12 +44,26 @@ class StudentProfileScreen extends StatefulWidget {
   State<StudentProfileScreen> createState() => _StudentProfileScreenState();
 }
 
+int getTotalUnits() {
+  int totalUnitsCompleted = currentStudent!.pastCourses
+      .where((course) => course.grade >= 2.0)
+      .fold(0, (sum, course) => sum + course.units);
+  return totalUnitsCompleted;
+}
+
 int unitsCompleted =
     currentStudent!.pastCourses.fold(0, (int sum, PastCourse pastCourse) {
   return sum + pastCourse.units;
 });
-late Future<ListResult> futurefiles;
-int filescount = 0;
+late Future<ListResult> documentations;
+late Future<ListResult> defenseForms;
+
+String _capitalize(String input) {
+  if (input.isEmpty) {
+    return '';
+  }
+  return input[0].toUpperCase() + input.substring(1);
+}
 
 ConfettiController _confettiController =
     ConfettiController(duration: const Duration(seconds: 5));
@@ -79,13 +96,6 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
       lastNameController.text = currentUser.displayname['lastname']!;
       idNumberController.text = currentUser.idnumber.toString();
     }
-  }
-
-  String _capitalize(String input) {
-    if (input.isEmpty) {
-      return '';
-    }
-    return input[0].toUpperCase() + input.substring(1);
   }
 
   @override
@@ -458,6 +468,7 @@ class CurriculumAuditScreen extends StatefulWidget {
 }
 
 class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
+  
   void _deleteEnrolledCourse(
     EnrolledCourseData enrolledCourse,
     bool fromEnrolled,
@@ -2107,10 +2118,31 @@ class CapstoneProjectScreen extends StatefulWidget {
 
 class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
   PlatformFile? pickedFile;
+  EN19Form? _retrievedForm;
+  bool hasEn19Form = false;
+
+    Future<void> retrieveEN19Form() async {
+    EN19Form? form = await EN19Form.getFormFromFirestore(currentStudent!.uid);
+
+    setState(() {
+      _retrievedForm = form;
+    });
+  }
+
+   
+  Future<void> checkIfFormExists() async {
+    bool exists = await EN19Form.hasEn19Form(currentStudent!.uid);
+ 
+    setState(() {
+      hasEn19Form = exists;
+    });
+  }
 
   @override
   void initState() {
     super.initState();
+    checkIfFormExists();
+    retrieveEN19Form();
     _confettiController =
         ConfettiController(duration: const Duration(seconds: 5));
   }
@@ -2148,7 +2180,7 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
 
     List<DataRow> rows = [];
 
-    Future<void> uploadFile(String coursecode) async {
+    Future<void> uploadDocFile(String coursecode) async {
       if (currentStudent!.enrolledCourses
               .any((course) => course.coursecode == coursecode) ||
           currentStudent!.pastCourses
@@ -2157,7 +2189,7 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
         if (result != null) {
           PlatformFile file = result.files.first;
           String fileName =
-              '${currentStudent!.idnumber}/${coursecode}_${currentStudent!.idnumber}.pdf';
+              '${currentStudent!.idnumber}/Documentations/${coursecode}_${currentStudent!.idnumber}.pdf';
 
           Uint8List fileBytes = file.bytes!;
           final ref = FirebaseStorage.instance.ref().child(fileName);
@@ -2165,8 +2197,8 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
         }
 
         setState(() {
-          futurefiles = FirebaseStorage.instance
-              .ref('/${currentStudent!.idnumber}')
+          documentations = FirebaseStorage.instance
+              .ref('/${currentStudent!.idnumber}/Documentations')
               .listAll();
         });
       } else {
@@ -2177,6 +2209,22 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
           ),
         );
       }
+    }
+
+    Future<void> uploadEN19File(var en19) async {
+      PlatformFile file = en19.files.first;
+      String fileName =
+          '${currentStudent!.idnumber}/Defense Forms/EN-19Form_${currentStudent!.idnumber}.pdf';
+
+      Uint8List fileBytes = file.bytes!;
+      final ref = FirebaseStorage.instance.ref().child(fileName);
+      await ref.putData(fileBytes);
+
+      setState(() {
+        defenseForms = FirebaseStorage.instance
+            .ref('/${currentStudent!.idnumber}/Defense Forms')
+            .listAll();
+      });
     }
 
     DataCell buildDocDataCell(
@@ -2192,7 +2240,7 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
         SizedBox(
           width: MediaQuery.of(context).size.width / 8,
           child: FutureBuilder<ListResult>(
-            future: futurefiles,
+            future: documentations,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return Center(
@@ -2202,7 +2250,6 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                 return Text('Error: ${snapshot.error}');
               } else if (snapshot.hasData) {
                 var files = snapshot.data!.items;
-                filescount = files.length;
                 // Find the file with the specified course code
                 var file = files.firstWhere(
                     (file) => file.name.contains(course.coursecode),
@@ -2241,7 +2288,7 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                           onPressed: () async {
                             // Prompt the user to select a file
 
-                            await uploadFile(course.coursecode);
+                            await uploadDocFile(course.coursecode);
                           },
                         ),
                       ],
@@ -2259,7 +2306,7 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                       onPressed: () async {
                         // Prompt the user to select a file
 
-                        await uploadFile(course.coursecode);
+                        await uploadDocFile(course.coursecode);
                       },
                     ),
                   );
@@ -2324,8 +2371,192 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
           ],
         )),
         buildDocDataCell(course, context,
-            "${currentStudent!.idnumber}/${course.coursecode}_${currentStudent!.idnumber}.pdf")
+            "${currentStudent!.idnumber}/Documentations/${course.coursecode}_${currentStudent!.idnumber}.pdf")
       ]);
+    }
+
+    Future<void> uploadGeneratedPdf(Uint8List data) async {
+      String fileName =
+          '${currentStudent!.idnumber}/Defense Forms/EN-19Form_${currentStudent!.idnumber}.pdf';
+      final ref = FirebaseStorage.instance.ref().child(fileName);
+      await ref.putData(data);
+      print('Generated PDF uploaded successfully');
+    }
+
+    void showEN19FormDialog(BuildContext context) {
+      String selectedType = 'Thesis';
+      int selectedNumber = 1;
+      String adviserPrefix = 'Mr';
+      TextEditingController adviserNameController = TextEditingController();
+      bool isAdviserNameEmpty = false;
+
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return StatefulBuilder(
+            builder: (context, setState) {
+              return AlertDialog(
+                title: Text('Fill EN19 Form'),
+                content: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      SizedBox(
+                        height: 10,
+                      ),
+                      Text(
+                        'Proposed Title',
+                        style: TextStyle(fontSize: 15),
+                      ),
+                      DropdownButton<String>(
+                        value: selectedType,
+                        onChanged: (String? newValue) {
+                          setState(() {
+                            selectedType = newValue!;
+                            selectedNumber =
+                                1; // Reset the number on type change
+                          });
+                        },
+                        items: ['Thesis', 'Dissertation']
+                            .map<DropdownMenuItem<String>>((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+                        }).toList(),
+                      ),
+                      SizedBox(
+                        height: 10,
+                      ),
+                      Text(
+                        'Enrollment Stage',
+                        style: TextStyle(fontSize: 15),
+                      ),
+                      DropdownButton<int>(
+                        value: selectedNumber,
+                        onChanged: (int? newValue) {
+                          setState(() {
+                            selectedNumber = newValue!;
+                          });
+                        },
+                        items: List.generate(selectedType == 'Thesis' ? 9 : 15,
+                                (index) => index + 1)
+                            .map<DropdownMenuItem<int>>((int value) {
+                          return DropdownMenuItem<int>(
+                            value: value,
+                            child: Text('$selectedType $value'),
+                          );
+                        }).toList(),
+                      ),
+                      SizedBox(
+                        height: 10,
+                      ),
+                      Text(
+                        'Adviser',
+                        style: TextStyle(fontSize: 15),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          DropdownButton<String>(
+                            value: adviserPrefix,
+                            onChanged: (String? newValue) {
+                              setState(() {
+                                adviserPrefix = newValue!;
+                              });
+                            },
+                            items: ['Mr', 'Ms']
+                                .map<DropdownMenuItem<String>>((String value) {
+                              return DropdownMenuItem<String>(
+                                value: value,
+                                child: Text(value),
+                              );
+                            }).toList(),
+                          ),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: TextField(
+                              controller: adviserNameController,
+                              decoration: InputDecoration(
+                                  hintText: 'Enter adviser name',
+                                  errorText: isAdviserNameEmpty
+                                      ? 'This is a required field'
+                                      : null),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      setState(() {
+                        isAdviserNameEmpty = adviserNameController.text.isEmpty;
+                      });
+                      if (isAdviserNameEmpty) {
+                        // Do not close the dialog if the adviser name is empty
+                        return;
+                      }
+
+                      // Collect form data
+                      String adviserName =
+                          '$adviserPrefix ${adviserNameController.text}';
+                      String enrollmentStage = '$selectedType $selectedNumber';
+
+                      // Create EN19Form object
+                      EN19Form form = EN19Form(
+                          proposedTitle: selectedType,
+                          lastName: _capitalize(
+                              currentStudent!.displayname['lastname']!),
+                          firstName: _capitalize(
+                              currentStudent!.displayname['firstname']!),
+                          middleName: '',
+                          idNumber: currentStudent!.idnumber.toString(),
+                          college: 'Computer Studies',
+                          program: currentStudent!.degree,
+                          passedComprehensiveExams: false,
+                          submittedCertificate: false,
+                          adviserName: adviserName,
+                          enrollmentStage: enrollmentStage,
+                          date: DateTime.now(),
+                          leadPanel: 'No lead panel assigned',
+                          panelMembers: [],
+                          defenseDate: 'No defense date set',
+                          signedByGSC: false);
+
+                      form.saveFormToFirestore(form, currentStudent!.uid);
+                      // Handle form submission logic here
+                      String? hostname = html.window.location.hostname;
+                      int port = html.window.location.port.isEmpty
+                          ? 80
+                          : int.parse(html.window.location.port);
+
+                      // html.window.open( 'http://localhost:$port/assets/pdfs/RoxasResume.pdf','_blank');
+                      final data = await service.createEN19(form);
+                      service.savePdfFile(
+                          "EN-19Form_${currentStudent!.idnumber}.pdf", data);
+                      await uploadGeneratedPdf(data);
+
+                      Navigator.of(context).pop();
+                    },
+                    child: Text('Submit'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
     }
 
     if (currentStudent!.degree.contains('MIT')) {
@@ -2363,7 +2594,102 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                   rows: rows,
                 ),
               ),
-              buildCompletedButton(filescount, rows.length),
+              SizedBox(
+                  height: 10), // Optional: Adjust the space from top if needed
+              Text(
+                'Defense Requirements',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
+              Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _retrievedForm!.signedByGSC
+                        ? 'EN-19 Form (Signed by GSC)'
+                        : 'EN-19 Form (Signature Required)',
+                    style: TextStyle(
+                      color: _retrievedForm!.signedByGSC
+                          ? Colors.green
+                          : Colors.grey,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      showEN19FormDialog(context);
+                    },
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          hasEn19Form
+                              ? 'You have already sent and EN-19 form, send again?'
+                              : 'Send EN-19 Form to the Graduate School Coordinator',
+                          style: TextStyle(
+                              color: hasEn19Form ? Colors.grey : Colors.blue),
+                        ),
+                        SizedBox(width: 8), // Add spacing between icon and text
+
+                        Icon(Icons.send_rounded,
+                            color: hasEn19Form
+                                ? Colors.grey
+                                : Colors.blue), // Download icon
+                      ],
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: hasEn19Form
+                        ? () async {
+                            String fileName =
+                                '${currentStudent!.idnumber}/Defense Forms/EN-19Form_${currentStudent!.idnumber}.pdf';
+                            final imageUrl = await FirebaseStorage.instance
+                                .ref()
+                                .child(fileName)
+                                .getDownloadURL();
+                            if (await canLaunch(imageUrl.toString())) {
+                              await launch(imageUrl.toString());
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Failed to download file'),
+                                ),
+                              );
+                            }
+                          }
+                        : null,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Download EN-19',
+                          style: TextStyle(fontSize: 10),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 20),
+              Row(
+                children: [
+                  buildCompletedButton(unitsCompleted, rows.length),
+                  Tooltip(
+                    message:
+                        'Total units completed is ${getTotalUnits()} units (Required: 36 units)', // Display the list of students
+                    child: Icon(
+                      Icons.info_outline,
+                      color: Colors.blue,
+                      size: 16,
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -2371,15 +2697,17 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
     );
   }
 
-  Widget buildCompletedButton(int filescounts, int rowsLength) {
+
+
+  Widget buildCompletedButton(int unitsCompleted, int rowsLength) {
     return Column(
       children: [
         Text('Ready to graduate?'),
+        SizedBox(height: 5),
         ElevatedButton(
-          onPressed: filescounts == rowsLength
+          onPressed: unitsCompleted != 36
               ? null
               : () {
-                  print(filescounts);
                   print(rowsLength);
                   _confettiController.play();
 
@@ -2462,8 +2790,12 @@ class _MainViewState extends State<GradStudentscreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    futurefiles =
-        FirebaseStorage.instance.ref('/${currentStudent!.idnumber}').listAll();
+    documentations = FirebaseStorage.instance
+        .ref('/${currentStudent!.idnumber}/Documentations')
+        .listAll();
+    defenseForms = FirebaseStorage.instance
+        .ref('/${currentStudent!.idnumber}/Defense Forms')
+        .listAll();
   }
 
   Color getColorForCourseType(Course course) {
@@ -2637,17 +2969,6 @@ class _MainViewState extends State<GradStudentscreen>
           ],
         ),
       ),
-
-      // CALENDAR PAGE || Following guide: https://www.youtube.com/watch?v=6Gxa-v7Zh7I&ab_channel=AIwithFlutter
-      CalendarSF(),
-
-      Center(
-        child: Text(
-          'Inbox',
-          textDirection: TextDirection.ltr,
-          style: TextStyle(fontFamily: 'Inter', fontSize: 100),
-        ),
-      ),
       Scaffold(
         appBar: AppBar(
           title: Text('Student Hub', style: TextStyle(color: Colors.white)),
@@ -2685,6 +3006,17 @@ class _MainViewState extends State<GradStudentscreen>
             CapstoneProjectScreen(),
             StudentProfileScreen(),
           ],
+        ),
+      ),
+
+      // CALENDAR PAGE || Following guide: https://www.youtube.com/watch?v=6Gxa-v7Zh7I&ab_channel=AIwithFlutter
+      CalendarSF(),
+
+      Center(
+        child: Text(
+          'Inbox',
+          textDirection: TextDirection.ltr,
+          style: TextStyle(fontFamily: 'Inter', fontSize: 100),
         ),
       ),
     ];
@@ -2803,16 +3135,16 @@ class _MainViewState extends State<GradStudentscreen>
                   label: 'Program of Study',
                 ),
                 SideNavigationBarItem(
+                  icon: Icons.school,
+                  label: 'Student Hub',
+                ),
+                SideNavigationBarItem(
                   icon: Icons.event,
                   label: 'Calendar',
                 ),
                 SideNavigationBarItem(
                   icon: Icons.message,
                   label: 'Inbox',
-                ),
-                SideNavigationBarItem(
-                  icon: Icons.school,
-                  label: 'Student Hub',
                 ),
               ],
               onTap: (index) {

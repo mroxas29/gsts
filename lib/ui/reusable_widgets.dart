@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:sysadmindb/api/email/invoice_service.dart';
 import 'package:sysadmindb/app/models/User.dart';
+import 'package:sysadmindb/screens/gradstudent_screen.dart';
 
+PdfInvoiceService pdfInvoiceService = PdfInvoiceService();
 Container signInSignUpButton(
     BuildContext context, bool isLogin, Function onTap, bool isPressed) {
   return Container(
@@ -8,7 +11,9 @@ Container signInSignUpButton(
     height: 50,
     margin: const EdgeInsets.fromLTRB(0, 10, 0, 20),
     child: ElevatedButton.icon(
-      onPressed: () {
+      onPressed: () async {
+        //  final GlobalKey<State> _LoaderDialog = GlobalKey<State>();
+
         onTap();
       },
       style: ButtonStyle(
@@ -97,5 +102,3 @@ class LoaderDialog {
     );
   }
 }
-
-
