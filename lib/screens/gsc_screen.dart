@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'package:side_navigation/side_navigation.dart';
 import 'package:sysadmindb/api/email/invoice_service.dart';
 import 'package:sysadmindb/api/calendar/test_calendar.dart';
+import 'package:sysadmindb/api/email/test_gmail.dart';
 import 'package:sysadmindb/app/models/AcademicCalendar.dart';
 import 'package:sysadmindb/app/models/DeviatedStudents.dart';
 import 'package:sysadmindb/app/models/courses.dart';
@@ -35,6 +36,17 @@ void main() {
 
 class Gscscreen extends StatefulWidget {
   const Gscscreen({Key? key}) : super(key: key);
+  
+
+  /*launchInbox(String gmail) async{
+    const gmail = 'https://mail.google.com/a/dlsu.edu.ph';
+
+    if (await launchInbox(gmail)) {
+      await launchInbox(gmail);
+    } else {
+      throw 'Could not open $gmail';
+    }
+  }*/
 
   @override
   _MainViewState createState() => _MainViewState();
@@ -74,7 +86,7 @@ class _MainViewState extends State<Gscscreen> {
 
   /// The currently selected index of the bar
   int selectedIndex = 0;
-
+  
   @override
   initState() {
     setState(() {
@@ -2443,11 +2455,14 @@ class _MainViewState extends State<Gscscreen> {
       // CALENDAR PAGE || Following guide: https://www.youtube.com/watch?v=6Gxa-v7Zh7I&ab_channel=AIwithFlutter
       CalendarSF(),
 
-      // INBOX PAGE
-      Column(
+      // INBOX PAGE (Redirect to User's Currently Logged in DLSU Email via link of https://mail.google.com/a/dlsu.edu.ph)
+      /*Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [Text("Inbox")]),
+          children: [Text("Inbox")]),*/
+      LaunchGMail(),
+
+          
       SingleChildScrollView(
           physics:
               BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
@@ -2779,7 +2794,7 @@ class _MainViewState extends State<Gscscreen> {
                   label: 'Calendar',
                 ),
                 SideNavigationBarItem(
-                  icon: Icons.message,
+                  icon: Icons.email,
                   label: 'Inbox',
                 ),
                 SideNavigationBarItem(
