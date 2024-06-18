@@ -23,6 +23,7 @@ import 'package:sysadmindb/ui/forms/form.dart';
 import 'package:sysadmindb/ui/dashboard/gsc_dash.dart';
 import 'package:sysadmindb/ui/info_page/deviatedInfoPage.dart';
 import 'package:sysadmindb/ui/info_page/studentInfoPage.dart';
+import 'package:url_launcher/link.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:html' as html;
 import 'package:flutter/services.dart';
@@ -2746,37 +2747,78 @@ class _MainViewState extends State<Gscscreen> {
                     ),
                   )),
               footer: SideNavigationBarFooter(
-                  label: Row(
+                  label: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  ElevatedButton.icon(
-                    icon: Icon(
-                      Icons.logout,
-                      color: Color(0xFF747475),
-                    ),
-                    label: Text(
-                      'Log Out',
-                      style: TextStyle(color: Color(0xFF747475)),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                    ),
-                    onPressed: () {
-                      users.clear();
-                      courses.clear();
-                      activecourses.clear();
-                      studentList.clear();
+                  
+                  // DLSU GMail Hyperlink
+                  Row(
+                    mainAxisSize: MainAxisSize.max,
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: <Widget>[
+                          Link(
+                            target: LinkTarget.blank,
+                            uri: Uri.parse('https://mail.google.com/a/dlsu.edu.ph'),
+                            builder: (context, followLink) => ElevatedButton.icon
+                              (
+                                onPressed: followLink, 
 
-                      correctCreds = false;
-                      foundCourse.clear();
-                      wrongCreds = false;
-                      enrolledStudent.clear();
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => LoginPage()),
-                      );
-                    },
-                  ),
+                                icon: Icon(
+                                  Icons.open_in_new,
+                                  color: Color.fromARGB(255, 255, 255, 255)),
+
+                                label: Text(
+                                  'DLSU GMail',
+                                  style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)),),
+                                  
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Color.fromARGB(255, 16, 97, 0),
+
+                              ),
+
+                                
+                            ),
+                          )
+                        ]
+                    ),
+
+
+
+                  // Log Out Button
+                  Row(
+                    mainAxisSize: MainAxisSize.max,
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: <Widget>[
+                          ElevatedButton.icon(
+                            icon: Icon(
+                              Icons.logout,
+                              color: Color.fromARGB(255, 255, 255, 255),
+                            ),
+                            label: Text(
+                              'Log Out',
+                              style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color.fromARGB(255, 172, 31, 31),
+                            ),
+                            onPressed: () {
+                              users.clear();
+                              courses.clear();
+                              activecourses.clear();
+                              studentList.clear();
+
+                              correctCreds = false;
+                              foundCourse.clear();
+                              wrongCreds = false;
+                              enrolledStudent.clear();
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => LoginPage()),
+                              );
+                            },
+                          ),
+                        ]
+                    )
                 ],
               )),
               selectedIndex: selectedIndex,
