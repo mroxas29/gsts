@@ -1,13 +1,19 @@
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:intl/intl.dart';
 import 'package:side_navigation/side_navigation.dart';
 import 'package:sysadmindb/api/email/invoice_service.dart';
 import 'package:sysadmindb/api/calendar/test_calendar.dart';
+import 'package:sysadmindb/api/email/test_gmail.dart';
+import 'package:sysadmindb/app/models/AcademicCalendar.dart';
 import 'package:sysadmindb/app/models/DeviatedStudents.dart';
 import 'package:sysadmindb/app/models/courses.dart';
+import 'package:sysadmindb/app/models/en-19.dart';
 import 'package:sysadmindb/app/models/enrolledcourses.dart';
 import 'package:sysadmindb/app/models/faculty.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
@@ -15,11 +21,14 @@ import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/main.dart';
 import 'package:sysadmindb/app/models/user.dart';
 import 'package:sysadmindb/ui/deRF_dialog.dart';
+import 'package:sysadmindb/ui/defense_card.dart';
+import 'package:sysadmindb/ui/defense_sched.dart';
 import 'package:sysadmindb/ui/forms/addcourse.dart';
 import 'package:sysadmindb/ui/forms/form.dart';
 import 'package:sysadmindb/ui/dashboard/gsc_dash.dart';
 import 'package:sysadmindb/ui/info_page/deviatedInfoPage.dart';
 import 'package:sysadmindb/ui/info_page/studentInfoPage.dart';
+import 'package:url_launcher/link.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:html' as html;
 import 'package:flutter/services.dart';
@@ -33,6 +42,17 @@ void main() {
 
 class Gscscreen extends StatefulWidget {
   const Gscscreen({Key? key}) : super(key: key);
+  
+
+  /*launchInbox(String gmail) async{
+    const gmail = 'https://mail.google.com/a/dlsu.edu.ph';
+
+    if (await launchInbox(gmail)) {
+      await launchInbox(gmail);
+    } else {
+      throw 'Could not open $gmail';
+    }
+  }*/
 
   @override
   _MainViewState createState() => _MainViewState();
@@ -72,7 +92,9 @@ class _MainViewState extends State<Gscscreen> {
 
   /// The currently selected index of the bar
   int selectedIndex = 0;
-
+  String selectedProgramFilter = 'All';
+  List<EN19Form> filteredDefenses = [];
+  
   @override
   initState() {
     setState(() {
@@ -84,7 +106,18 @@ class _MainViewState extends State<Gscscreen> {
 
     print("set state for found users");
     super.initState();
+    filterDefenses();
     //getCourseDemandsFromFirestore();
+  }
+
+  void filterDefenses() {
+    if (selectedProgramFilter == 'All') {
+      filteredDefenses = allDefenseForms;
+    } else {
+      filteredDefenses = allDefenseForms
+          .where((defense) => defense.program == selectedProgramFilter)
+          .toList();
+    }
   }
 
   void _editFacultyData(BuildContext context, Faculty faculty) {
@@ -856,6 +889,7 @@ class _MainViewState extends State<Gscscreen> {
                               // Handle the click event for the ListTile
                               currentStudent = enrolledStudent[i];
                               studentPOS = StudentPOS(
+                                  acceptanceTerm: getCurrentSYandTerm(),
                                   schoolYears: defaultschoolyears,
                                   uid: enrolledStudent[i].uid,
                                   displayname: enrolledStudent[i].displayname,
@@ -868,13 +902,16 @@ class _MainViewState extends State<Gscscreen> {
                                   degree: enrolledStudent[i].degree,
                                   status: enrolledStudent[i].status);
                               await retrieveStudentPOS(currentStudent!.uid);
-
+                              EN19Form? en19details;
+                              await EN19Form.getFormFromFirestore(
+                                  currentStudent!.uid);
                               Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                       builder: (context) => StudentInfoPage(
                                             student: enrolledStudent[i],
                                             studentpos: studentPOS,
+                                            en19: en19details!,
                                           )));
                             },
                             child: ListTile(
@@ -1115,6 +1152,18 @@ class _MainViewState extends State<Gscscreen> {
                 .toLowerCase()
                 .contains(query.toLowerCase()) ||
             studentPOS.email
+                .toString()
+                .toLowerCase()
+                .contains(query.toLowerCase()) ||
+            studentPOS.degree
+                .toString()
+                .toLowerCase()
+                .contains(query.toLowerCase()) ||
+            studentPOS.status
+                .toString()
+                .toLowerCase()
+                .contains(query.toLowerCase()) ||
+            studentPOS.acceptanceTerm
                 .toString()
                 .toLowerCase()
                 .contains(query.toLowerCase()));
@@ -1380,7 +1429,289 @@ class _MainViewState extends State<Gscscreen> {
   List<Course> recommendedPriorityCourses = [];
 
   // FOR CALENDAR
+
+  TimeOfDay? tryParseTime(String timeString) {
+    if (timeString == "No time set") {
+      return null;
+    }
+
+    try {
+      // Split the timeString into hours and minutes
+      List<String> parts = timeString.split(':');
+      int hours = int.parse(parts[0]);
+      int minutes =
+          int.parse(parts[1].split(' ')[0]); // Extract minutes without AM/PM
+
+      // Convert 12-hour format to 24-hour format
+      if (timeString.contains('PM') && hours < 12) {
+        hours += 12;
+      } else if (timeString.contains('AM') && hours == 12) {
+        hours = 0;
+      }
+
+      // Create and return the TimeOfDay object
+      return TimeOfDay(hour: hours, minute: minutes);
+    } catch (e) {
+      print("Error parsing time: $e");
+      return null;
+    }
+  }
+
+  DateTime? tryParseDate(String dateString) {
+    if (dateString == "No date set") {
+      return null;
+    }
+    try {
+      // Try parsing with your expected date format (adjust if needed)
+      return DateFormat('yyyy-MM-dd')
+          .parse(dateString); // Assuming YYYY-MM-DD format
+    } catch (e) {
+      print("Error parsing date: $e");
+      return null;
+    }
+  }
+
+  Color getRandomColor() {
+    final Random random = Random();
+    return Color.fromARGB(
+      255,
+      random.nextInt(256),
+      random.nextInt(256),
+      random.nextInt(256),
+    );
+  }
+
+  // Function to capitalize the first letter of a string
+  String capitalizeFirstLetter(String text) {
+    return text.replaceFirst(RegExp(r'^[a-z]'), text[0].toUpperCase());
+  }
+
   DateTime currentDate = DateTime.now();
+  void showDefenseDetailsDialog(BuildContext context, EN19Form defense) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        final TextEditingController dateController = TextEditingController(
+          text: defense.defenseDate != "No date set"
+              ? defense.defenseDate
+              : "No date set",
+        );
+        TimeOfDay selectedTime = defense.defenseTime != "No time set"
+            ? tryParseTime(defense.defenseTime) ?? TimeOfDay.now()
+            : TimeOfDay.now();
+
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Row(
+                children: [
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: getRandomColor(),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'Defense details for ${capitalizeFirstLetter(defense.firstName)} ${capitalizeFirstLetter(defense.lastName)}',
+                  ),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          defense.defenseDate != "No date set"
+                              ? dateController.text
+                              : 'No date set',
+                          style: TextStyle(
+                              color: defense.defenseDate != "No date set"
+                                  ? Colors.black
+                                  : Colors.grey),
+                        ),
+                        Text(
+                          defense.defenseTime == 'No time set'
+                              ? 'No time set'
+                              : selectedTime.format(context),
+                          style: TextStyle(
+                              color: defense.defenseTime != "No time set"
+                                  ? Colors.black
+                                  : Colors.grey),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Text(
+                          'Verdict:',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 20),
+                        ),
+                        SizedBox(width: 5),
+                        Text(defense.verdict,
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 17)),
+                      ],
+                    ),
+                    SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Text(
+                          'ID Number:',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(width: 5),
+                        Text(defense.idNumber),
+                      ],
+                    ),
+                    SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Text(
+                          'Enrollment Stage:',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(width: 5),
+                        Text(defense.enrollmentStage),
+                      ],
+                    ),
+                    SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Text(
+                          'Title:',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(width: 5),
+                        Text(defense.mainTitle),
+                      ],
+                    ),
+                    SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Text(
+                          'Adviser:',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(width: 5),
+                        Text(defense.adviserName),
+                      ],
+                    ),
+                    SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Icon(Icons.people), // Icon for leadPanel
+                        SizedBox(width: 5),
+                        Text('Lead Panel: ${defense.leadPanel}'),
+                      ],
+                    ),
+                    SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Text('Panel Members:'),
+                        SizedBox(width: 5),
+                        // Icon for panelMembers (if more than 1)
+                        defense.panelMembers.length > 1
+                            ? Icon(Icons.people)
+                            : SizedBox(width: 24),
+                        SizedBox(width: 5),
+                        // Text for panelMembers (if any)
+                        Text(defense.panelMembers.join("\n")),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  child: Text('Cancel'),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+                TextButton(
+                  child: Text('See student profile'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    Student? student = studentList.firstWhere((student) =>
+                        student.idnumber.toString() == defense.idNumber);
+                    late DeviatedStudent devStudent;
+                    bool isStudentDeviated = false;
+                    for (DeviatedStudent devstudent in deviatedStudentList) {
+                      if (devstudent.studentPOS.idnumber == student.idnumber) {
+                        devStudent = devstudent;
+                        isStudentDeviated = true;
+                      }
+                    }
+
+                    if (isStudentDeviated) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => DeviatedInfoPage(
+                            student: devStudent,
+                            studentpos: studentPOS,
+                            en19: defense,
+                          ),
+                        ),
+                      );
+                    } else {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => StudentInfoPage(
+                            student: student,
+                            studentpos: studentPOS,
+                            en19: defense,
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  List<EN19Form> getPastDefenseSchedules(List<EN19Form> allDefenseForms) {
+    // Define the date and time format used in defenseDate and defenseTime
+    final DateFormat dateFormat = DateFormat('MMMM d, yyyy');
+    final DateFormat timeFormat = DateFormat('hh:mm a');
+
+    DateTime parseDefenseDateTime(String date, String time) {
+      final DateTime parsedDate = dateFormat.parse(date);
+      final DateTime parsedTime = timeFormat.parse(time);
+
+      return DateTime(parsedDate.year, parsedDate.month, parsedDate.day,
+          parsedTime.hour, parsedTime.minute);
+    }
+
+    final DateTime now = DateTime.now();
+
+    List<EN19Form> pastSchedules = allDefenseForms.where((defense) {
+      if (defense.defenseDate == 'No date set' ||
+          defense.defenseTime == 'No time set') {
+        return false;
+      }
+
+      final DateTime defenseDateTime =
+          parseDefenseDateTime(defense.defenseDate, defense.defenseTime);
+      return defenseDateTime.isBefore(now);
+    }).toList();
+
+    return pastSchedules;
+  }
+
+  String selectedFilter = 'All';
 
   @override
   Widget build(BuildContext context) {
@@ -1391,6 +1722,34 @@ class _MainViewState extends State<Gscscreen> {
     bool isMatching =
         confirmNewPasswordController.text == newPasswordController.text;
     bool curpassinc = false;
+
+    int toDoCount = allDefenseForms
+        .where((defense) =>
+            defense.panelMembers.isNotEmpty ||
+            defense.defenseDate != 'No date set')
+        .length;
+
+    List<String> scheduledDates = allDefenseForms
+        .map((defense) => defense.defenseDate)
+        .where((date) => date != "No date set")
+        .toSet()
+        .toList();
+
+    List<EN19Form> noScheduleDates = allDefenseForms
+        .where((defense) =>
+            defense.defenseDate == 'No date set' ||
+            defense.defenseTime == 'No time set')
+        .toList();
+
+    List<EN19Form> hasSchedDates = allDefenseForms
+        .where((defense) =>
+            defense.defenseDate != 'No date set' &&
+            defense.defenseTime != 'No time set')
+        .toList();
+
+    List<EN19Form> pastDefenses = getPastDefenseSchedules(hasSchedDates);
+// Remove pastDefenses from hasSchedDates
+    hasSchedDates.removeWhere((defense) => pastDefenses.contains(defense));
 
     /// Views to display
     List<Widget> views = [
@@ -1433,7 +1792,7 @@ class _MainViewState extends State<Gscscreen> {
                       children: [
                         Row(
                           children: [
-                            Column(
+                            Row(
                               children: [
                                 Container(
                                   margin: const EdgeInsets.only(left: 25),
@@ -1442,66 +1801,99 @@ class _MainViewState extends State<Gscscreen> {
                                         fontSize: 20,
                                         fontWeight: FontWeight.bold,
                                       )),
-                                )
+                                ),
+                                SizedBox(width: 20,),
+                                Row(
+                                  children: [
+                                    Text(
+                                      "Filter by: ",
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    DropdownButton<String>(
+                                      value: selectedFilter,
+                                      items: <String>[
+                                        'All',
+                                        'Offered',
+                                        'Not offered'
+                                      ].map((String value) {
+                                        return DropdownMenuItem<String>(
+                                          value: value,
+                                          child: Text(value),
+                                        );
+                                      }).toList(),
+                                      onChanged: (String? newValue) {
+                                        setState(() {
+                                          selectedFilter = newValue!;
+                                        });
+                                      },
+                                    ),
+                                  ],
+                                ),
                               ],
                             ),
                             Spacer(),
-                            TextButton(
-                                onPressed: () async {
-                                  PdfDocument document = PdfDocument(
-                                      inputBytes: await _readDocumentData());
-                                  //Create a new instance of the PdfTextExtractor.
-                                  PdfTextExtractor extractor =
-                                      PdfTextExtractor(document);
+                            Tooltip(
+                              message: 'Upload class list',
+                              child: TextButton(
+                                  onPressed: () async {
+                                    PdfDocument document = PdfDocument(
+                                        inputBytes: await _readDocumentData());
+                                    //Create a new instance of the PdfTextExtractor.
+                                    PdfTextExtractor extractor =
+                                        PdfTextExtractor(document);
 
-                                  //Extract all the text from the document.
-                                  String text =
-                                      extractor.extractText(layoutText: true);
+                                    //Extract all the text from the document.
+                                    String text =
+                                        extractor.extractText(layoutText: true);
 
-                                  // Split the text into lines
-                                  List<String> lines = text.split('\n');
+                                    // Split the text into lines
+                                    List<String> lines = text.split('\n');
 
-                                  // Process each line
-                                  String termLine = '';
-                                  String courseLine = '';
-                                  List<String> studentLines = [];
-                                  int lineNum = 0;
+                                    // Process each line
+                                    String termLine = '';
+                                    String courseLine = '';
+                                    List<String> studentLines = [];
+                                    int lineNum = 0;
 
-                                  for (String line in lines) {
-                                    // Do something with each line
+                                    for (String line in lines) {
+                                      // Do something with each line
 
-                                    if (line.toLowerCase().contains('term') &&
-                                        line.toLowerCase().contains('sy.')) {
-                                      termLine = line;
-                                    } else {
-                                      for (Course course in courses) {
-                                        if (line.contains(course.coursecode)) {
-                                          courseLine = line.substring(
-                                              0, line.indexOf(' '));
-                                          break; // Exit loop once a course code is found
+                                      if (line.toLowerCase().contains('term') &&
+                                          line.toLowerCase().contains('sy.')) {
+                                        termLine = line;
+                                      } else {
+                                        for (Course course in courses) {
+                                          if (line
+                                              .contains(course.coursecode)) {
+                                            courseLine = line.substring(
+                                                0, line.indexOf(' '));
+                                            break; // Exit loop once a course code is found
+                                          }
                                         }
                                       }
-                                    }
 
-                                    if (lineNum > 4) {
-                                      studentLines.add(line);
+                                      if (lineNum > 4) {
+                                        studentLines.add(line);
+                                      }
+                                      lineNum++;
                                     }
-                                    lineNum++;
-                                  }
-                                  await addEnrolledStudents(
-                                      studentLines, courseLine);
+                                    await addEnrolledStudents(
+                                        studentLines, courseLine);
 
-                                  setState(() {
-                                    getCoursesFromFirestore();
-                                    addUserFromFirestore();
-                                  });
-                                },
-                                style: ElevatedButton.styleFrom(
-                                    padding: EdgeInsets.all(20),
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(25))),
-                                child: Icon(Icons.upload)),
+                                    setState(() {
+                                      getCoursesFromFirestore();
+                                      addUserFromFirestore();
+                                    });
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                      padding: EdgeInsets.all(20),
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(25))),
+                                  child: Icon(Icons.upload)),
+                            ),
                             Column(
                               children: [
                                 SizedBox(
@@ -1545,59 +1937,77 @@ class _MainViewState extends State<Gscscreen> {
                         ),
                         Expanded(
                             child: SizedBox(
-                          width: 100.0,
-                          height: 200.0,
-                          child: ListView.builder(
-                              // shrinkWrap: true,
+                                width: 100.0,
+                                height: 200.0,
+                                child: ListView.builder(
+                                  itemCount: foundCourse.length,
+                                  itemBuilder: (context, index) {
+                                    bool showCourse = false;
+                                    if (selectedFilter == 'All') {
+                                      showCourse = true;
+                                    } else if (selectedFilter == 'Offered' &&
+                                        foundCourse[index].isactive) {
+                                      showCourse = true;
+                                    } else if (selectedFilter ==
+                                            'Not offered' &&
+                                        !foundCourse[index].isactive) {
+                                      showCourse = true;
+                                    }
 
-                              itemCount: foundCourse.length,
-                              itemBuilder: (context, index) => InkWell(
-                                    onTap: () {
-                                      enrolledStudent.clear();
-                                      _editCourseData(
-                                          context, foundCourse[index]);
-                                    },
-                                    child: Card(
-                                      key: ValueKey(foundCourse[index]),
-                                      color: Colors.white,
-                                      elevation: 4,
-                                      margin: EdgeInsets.symmetric(
-                                          vertical: 10, horizontal: 5),
-                                      child: ListTile(
-                                        title: Text(
-                                          foundCourse[index].coursecode,
-                                          style: const TextStyle(
-                                            fontSize: 20.0,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        subtitle: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.start,
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                                "${foundCourse[index].facultyassigned}\n${foundCourse[index].coursename}"),
-                                            Text(
-                                              foundCourse[index].isactive
-                                                  ? 'Active'
-                                                  : 'Inactive',
-                                              style: TextStyle(
-                                                color:
-                                                    foundCourse[index].isactive
-                                                        ? Colors.green
-                                                        : Colors.red,
+                                    return showCourse
+                                        ? InkWell(
+                                            onTap: () {
+                                              enrolledStudent.clear();
+                                              _editCourseData(
+                                                  context, foundCourse[index]);
+                                            },
+                                            child: Card(
+                                              key: ValueKey(foundCourse[index]),
+                                              color: Colors.white,
+                                              elevation: 4,
+                                              margin: EdgeInsets.symmetric(
+                                                  vertical: 10, horizontal: 5),
+                                              child: ListTile(
+                                                title: Text(
+                                                  foundCourse[index].coursecode,
+                                                  style: const TextStyle(
+                                                    fontSize: 20.0,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                                subtitle: Column(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.start,
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      "${foundCourse[index].facultyassigned}\n${foundCourse[index].coursename}",
+                                                    ),
+                                                    Text(
+                                                      foundCourse[index]
+                                                              .isactive
+                                                          ? 'Offered'
+                                                          : 'Not-Offered',
+                                                      style: TextStyle(
+                                                        color:
+                                                            foundCourse[index]
+                                                                    .isactive
+                                                                ? Colors.green
+                                                                : Colors.red,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                trailing: Text(
+                                                  "Enrolled Students: ${foundCourse[index].numstudents.toString()}",
+                                                ),
                                               ),
-                                            )
-                                          ],
-                                        ),
-                                        trailing: Text(
-                                            "Enrolled Students: ${foundCourse[index].numstudents.toString()}"),
-                                      ),
-                                    ),
-                                  )),
-                        ))
+                                            ),
+                                          )
+                                        : Container(); // Return an empty container if the course shouldn't be shown
+                                  },
+                                )))
                       ]),
 
                   //FACULTY TAB
@@ -1853,7 +2263,9 @@ class _MainViewState extends State<Gscscreen> {
                             }
 
                             await retrieveStudentPOS(selectedStudent!.uid);
-
+                            EN19Form? en19details =
+                                await EN19Form.getFormFromFirestore(
+                                    selectedStudent.uid);
                             late DeviatedStudent devStudent;
                             bool isDeviated = false;
                             for (DeviatedStudent student
@@ -1871,6 +2283,7 @@ class _MainViewState extends State<Gscscreen> {
                                   builder: (context) => DeviatedInfoPage(
                                     student: devStudent,
                                     studentpos: studentPOS,
+                                    en19: en19details!,
                                   ),
                                 ),
                               );
@@ -1881,6 +2294,7 @@ class _MainViewState extends State<Gscscreen> {
                                   builder: (context) => StudentInfoPage(
                                     student: selectedStudent!,
                                     studentpos: studentPOS,
+                                    en19: en19details!,
                                   ),
                                 ),
                               );
@@ -2428,14 +2842,362 @@ class _MainViewState extends State<Gscscreen> {
             )),
       ),
 
+      //DEFENSES SCREEN
+      Scaffold(
+        appBar: PreferredSize(
+          preferredSize: Size.fromHeight(kToolbarHeight),
+          child: Row(
+            children: [
+              Expanded(
+                child: DefenseSchedulesAppBar(
+                  currentStudentIndex: hasSchedDates.length,
+                  totalStudents: allDefenseForms.length,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: DropdownButton<String>(
+                  value: selectedProgramFilter,
+                  onChanged: (newValue) {
+                    setState(() {
+                      selectedProgramFilter = newValue!;
+                      filterDefenses();
+                    });
+                  },
+                  items: ['All', 'MIT', 'MSIT']
+                      .map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        body: Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 2,
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Text(
+                        'To-Schedule',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          for (EN19Form defense in noScheduleDates.where(
+                              (sched) =>
+                                  selectedProgramFilter == 'All' ||
+                                  sched.program == selectedProgramFilter))
+                            MouseRegion(
+                              cursor: SystemMouseCursors.click,
+                              child: GestureDetector(
+                                onTap: () {
+                                  showDefenseDetailsDialog(context, defense);
+                                },
+                                child: DefenseCard(
+                                  defense: defense,
+                                  cardColor: Color.fromARGB(255, 53, 98, 134),
+                                ),
+                              ),
+                            ),
+                          if (noScheduleDates
+                              .where((sched) =>
+                                  (selectedProgramFilter == 'All' ||
+                                      sched.program == selectedProgramFilter))
+                              .isEmpty)
+                            Text('No new defenses to set dates'),
+                        ],
+                      ),
+                    ),
+                    SizedBox(
+                      height: 20,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Text(
+                        'Defenses Scheduled',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          for (EN19Form defense in hasSchedDates.where((sched) {
+                            if (selectedProgramFilter == 'All' ||
+                                sched.program == selectedProgramFilter) {
+                              return true;
+                            }
+                            return false;
+                          }))
+                            MouseRegion(
+                              cursor: SystemMouseCursors.click,
+                              child: GestureDetector(
+                                onTap: () {
+                                  showDefenseDetailsDialog(context, defense);
+                                },
+                                child: DefenseCard(
+                                  defense: defense,
+                                  cardColor: Color.fromARGB(255, 7, 104, 28),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(
+                      height: 20,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Text(
+                        'Finished Defenses (Submit a panel report)',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: pastDefenses.where((defense) {
+                            if (selectedProgramFilter == 'All') {
+                              return true;
+                            } else if (selectedProgramFilter ==
+                                defense.program) {
+                              return true;
+                            }
+                            return false;
+                          }).map((defense) {
+                            return MouseRegion(
+                              cursor: SystemMouseCursors.click,
+                              child: GestureDetector(
+                                onTap: () {
+                                  showDefenseDetailsDialog(context, defense);
+                                },
+                                child: DefenseCard(
+                                  defense: defense,
+                                  cardColor:
+
+                                      // Handle parse error if needed
+                                      Color.fromARGB(255, 0, 0, 0),
+                                ),
+                              ),
+                            );
+                          }).toList()),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Expanded(
+              flex: 1, // Takes 1/3 of the screen
+              child: Column(
+                children: [
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border(
+                          left: BorderSide(
+                            color: Color.fromARGB(52, 88, 88, 88),
+                            width: 1.0,
+                          ),
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: ListView.builder(
+                          itemCount: scheduledDates.length,
+                          itemBuilder: (context, index) {
+                            String dateString = scheduledDates[index];
+                            DateTime date = dateString == "No date set"
+                                ? DateTime.now()
+                                : DateFormat("MMMM d, yyyy").parse(dateString);
+
+                            String formattedDate = dateString == "No date set"
+                                ? dateString
+                                : DateFormat('d MMMM').format(date);
+
+                            // Filter defense forms for the current date
+                            List<EN19Form> defensesForDate = filteredDefenses
+                                .where((defense) =>
+                                    defense.defenseDate == dateString)
+                                .toList();
+
+                            defensesForDate.sort((a, b) {
+                              // Handle cases where time is not specified
+                              if (a.defenseTime == "No defense time set") {
+                                return 1;
+                              }
+                              if (b.defenseTime == "No defense time set") {
+                                return -1;
+                              }
+
+                              // Parse and compare time strings
+                              try {
+                                // Parse time strings to DateTime objects
+                                DateTime timeA =
+                                    DateFormat('hh:mm a').parse(a.defenseTime);
+                                DateTime timeB =
+                                    DateFormat('hh:mm a').parse(b.defenseTime);
+
+                                // Compare the parsed DateTime objects
+                                return timeA.compareTo(
+                                    timeB); // Compare in ascending order
+                              } catch (e) {
+                                print("Error parsing time: $e");
+                                return 0; // Default to no change in sorting order
+                              }
+                            });
+                            return Padding(
+                              padding: const EdgeInsets.all(10.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    padding: EdgeInsets.only(left: 8),
+                                    child: Text(
+                                      formattedDate,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18,
+                                        color: Colors
+                                            .grey, // Grey color for the date
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(height: 8),
+                                  // Sorted defenses for the current date by time
+                                  ...defensesForDate.map((defense) => InkWell(
+                                        onTap: () {
+                                          // Handle click event
+                                          showDefenseDetailsDialog(
+                                              context, defense);
+                                          print('Clicked ${defense.program}');
+                                        },
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        vertical: 8),
+                                                child: Row(
+                                                  children: [
+                                                    Text(
+                                                      defense.defenseTime ??
+                                                          'No time specified',
+                                                      style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                    SizedBox(width: 10),
+                                                    Container(
+                                                      width:
+                                                          3, // Increased width for the separator line
+                                                      height: 20,
+                                                      color: Color((Random()
+                                                                          .nextDouble() *
+                                                                      0xFFFFFF)
+                                                                  .toInt() <<
+                                                              0)
+                                                          .withOpacity(1.0),
+                                                    ),
+                                                    SizedBox(width: 10),
+                                                    Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        Text(
+                                                          defense.program,
+                                                          style: TextStyle(
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            color: Colors
+                                                                .grey, // Grey color for the degree
+                                                            fontSize:
+                                                                12, // Adjusted font size
+                                                          ),
+                                                        ),
+                                                        Text(
+                                                          '${defense.firstName} ${defense.lastName}',
+                                                          style: TextStyle(
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              SizedBox(height: 8),
+                                            ],
+                                          ),
+                                        ),
+                                      )),
+                                  SizedBox(height: 20),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+
       // CALENDAR PAGE || Following guide: https://www.youtube.com/watch?v=6Gxa-v7Zh7I&ab_channel=AIwithFlutter
       CalendarSF(),
 
-      // INBOX PAGE
-      Column(
+      // INBOX PAGE (Redirect to User's Currently Logged in DLSU Email via link of https://mail.google.com/a/dlsu.edu.ph)
+      /*Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [Text("Inbox")]),
+          children: [Text("Inbox")]),*/
+      LaunchGMail(),
+
+          
       SingleChildScrollView(
           physics:
               BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
@@ -2719,37 +3481,78 @@ class _MainViewState extends State<Gscscreen> {
                     ),
                   )),
               footer: SideNavigationBarFooter(
-                  label: Row(
+                  label: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  ElevatedButton.icon(
-                    icon: Icon(
-                      Icons.logout,
-                      color: Color(0xFF747475),
-                    ),
-                    label: Text(
-                      'Log Out',
-                      style: TextStyle(color: Color(0xFF747475)),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                    ),
-                    onPressed: () {
-                      users.clear();
-                      courses.clear();
-                      activecourses.clear();
-                      studentList.clear();
+                  
+                  // DLSU GMail Hyperlink
+                  Row(
+                    mainAxisSize: MainAxisSize.max,
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: <Widget>[
+                          Link(
+                            target: LinkTarget.blank,
+                            uri: Uri.parse('https://mail.google.com/a/dlsu.edu.ph'),
+                            builder: (context, followLink) => ElevatedButton.icon
+                              (
+                                onPressed: followLink, 
 
-                      correctCreds = false;
-                      foundCourse.clear();
-                      wrongCreds = false;
-                      enrolledStudent.clear();
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => LoginPage()),
-                      );
-                    },
-                  ),
+                                icon: Icon(
+                                  Icons.open_in_new,
+                                  color: Color.fromARGB(255, 255, 255, 255)),
+
+                                label: Text(
+                                  'DLSU GMail',
+                                  style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)),),
+                                  
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Color.fromARGB(255, 16, 97, 0),
+
+                              ),
+
+                                
+                            ),
+                          )
+                        ]
+                    ),
+
+
+
+                  // Log Out Button
+                  Row(
+                    mainAxisSize: MainAxisSize.max,
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: <Widget>[
+                          ElevatedButton.icon(
+                            icon: Icon(
+                              Icons.logout,
+                              color: Color.fromARGB(255, 255, 255, 255),
+                            ),
+                            label: Text(
+                              'Log Out',
+                              style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color.fromARGB(255, 172, 31, 31),
+                            ),
+                            onPressed: () {
+                              users.clear();
+                              courses.clear();
+                              activecourses.clear();
+                              studentList.clear();
+
+                              correctCreds = false;
+                              foundCourse.clear();
+                              wrongCreds = false;
+                              enrolledStudent.clear();
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => LoginPage()),
+                              );
+                            },
+                          ),
+                        ]
+                    )
                 ],
               )),
               selectedIndex: selectedIndex,
@@ -2762,12 +3565,13 @@ class _MainViewState extends State<Gscscreen> {
                   icon: Icons.book,
                   label: 'Program Management',
                 ),
+                SideNavigationBarItem(icon: Icons.schedule, label: 'Defenses'),
                 SideNavigationBarItem(
                   icon: Icons.calendar_month_outlined,
                   label: 'Calendar',
                 ),
                 SideNavigationBarItem(
-                  icon: Icons.message,
+                  icon: Icons.email,
                   label: 'Inbox',
                 ),
                 SideNavigationBarItem(

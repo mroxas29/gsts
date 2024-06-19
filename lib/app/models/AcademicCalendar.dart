@@ -12,10 +12,34 @@ String getCurrentSYandTerm() {
   DateTime now = DateTime.now();
   for (AcademicCalendar calendar in academicCalendars) {
     if (now.isAfter(calendar.startDate) && now.isBefore(calendar.endDate)) {
-      return "${now.year - 1}-${now.year} ${calendar.term}";
+      int startYear = calendar.startDate.year - 1;
+      int endYear = calendar.endDate.year;
+
+      // Adjust the start year and end year to match the academic year format
+      if (now.month < calendar.startDate.month) {
+        startYear -= 1;
+        endYear -= 1;
+      }
+
+      return "${calendar.term} of AY $startYear-$endYear";
     }
   }
   return "No current term found";
+}
+
+String reformatSYandTerm(String syTerm) {
+  // Match the string with the pattern "Term X of AY YYYY-YYYY"
+  RegExp pattern = RegExp(r"Term (\d) of AY (\d{4})-(\d{4})");
+  Match? match = pattern.firstMatch(syTerm);
+
+  if (match != null) {
+    String term = match.group(1)!;
+    String startYear = match.group(2)!;
+    String endYear = match.group(3)!;
+    return "$startYear-$endYear Term $term";
+  }
+
+  return "Invalid format";
 }
 
 String getNextSYandTerm() {

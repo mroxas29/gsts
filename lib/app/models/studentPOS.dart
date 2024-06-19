@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart';
+import 'package:sysadmindb/app/models/AcademicCalendar.dart';
 import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/enrolledcourses.dart';
 import 'package:sysadmindb/app/models/pastcourses.dart';
@@ -11,7 +12,7 @@ import 'dart:core';
 
 class StudentPOS extends Student {
   List<SchoolYear> schoolYears;
-
+  String acceptanceTerm;
   StudentPOS({
     required this.schoolYears,
     required String uid,
@@ -23,6 +24,7 @@ class StudentPOS extends Student {
     required String status,
     required List<EnrolledCourseData> enrolledCourses,
     required List<PastCourse> pastCourses,
+    required this.acceptanceTerm,
   }) : super(
             uid: uid,
             displayname: displayname,
@@ -43,6 +45,7 @@ class StudentPOS extends Student {
 
     return StudentPOS(
         schoolYears: schoolYears,
+        acceptanceTerm: json['acceptanceTerm'],
         uid: json['uid'],
         displayname: Map<String, String>.from(
             json['displayname'] as Map<String, dynamic>),
@@ -65,7 +68,9 @@ class StudentPOS extends Student {
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = <String, dynamic>{
       'schoolYears': schoolYears.map((year) => year.toJson()).toList(),
+      'acceptanceTerm': getCurrentSYandTerm()
     };
+
     data.addAll(super.toJson());
     return data;
   }
@@ -73,6 +78,7 @@ class StudentPOS extends Student {
 
 void studentPOSDefault() {
   studentPOS = StudentPOS(
+      acceptanceTerm: getCurrentSYandTerm(),
       schoolYears: defaultschoolyears,
       uid: currentStudent!.uid,
       displayname: currentStudent!.displayname,
@@ -174,6 +180,7 @@ void initializeSchoolYears() async {
 
 List<SchoolYear> schoolyears = studentPOS.schoolYears;
 StudentPOS studentPOS = StudentPOS(
+    acceptanceTerm: getCurrentSYandTerm(),
     schoolYears: defaultschoolyears,
     uid: currentStudent!.uid,
     displayname: currentStudent!.displayname,
@@ -207,7 +214,6 @@ int countCourseOccurrences(
   print(occurrences);
   return occurrences;
 }
-
 StudentPOS generatePOSforMIT(
   Student student,
   StudentPOS studentpos,
@@ -222,6 +228,7 @@ StudentPOS generatePOSforMIT(
 
   // Initialize a new StudentPOS
   StudentPOS newStudentPOS = StudentPOS(
+    acceptanceTerm: getCurrentSYandTerm(),
     schoolYears: studentpos.schoolYears,
     uid: student.uid,
     displayname: student.displayname,
@@ -252,7 +259,7 @@ StudentPOS generatePOSforMIT(
       for (var term in year.terms) {
         if (!excludeTerms.contains(term) &&
             term.termcourses.length < 2 &&
-            term.termcourses.fold<int>(0, (acc, course) => acc + course.units) +
+            term.termcourses.fold<int>(0, (acc, c) => acc + c.units) +
                     course.units <=
                 maxUnitsPerTerm) {
           int count = studentPOSList
@@ -308,21 +315,40 @@ StudentPOS generatePOSforMIT(
     }
   }
 
-  // Find the term for CIS411M and OEX after all other courses have been added
-  Term? termForCisOex = findBestTermForCourse(cis411m, capstoneTerms);
-  if (termForCisOex != null) {
-    termForCisOex.termcourses.add(cis411m);
-    capstoneTerms.add(termForCisOex);
-    if (termForCisOex.termcourses
-                .fold<int>(0, (acc, course) => acc + course.units) +
-            oex.units <=
-        maxUnitsPerTerm) {
-      termForCisOex.termcourses.add(oex);
+  // Find the term for CIS411M after all other courses have been added
+  Term? termForCis = findBestTermForCourse(cis411m, capstoneTerms);
+  if (termForCis != null) {
+    termForCis.termcourses.add(cis411m);
+    capstoneTerms.add(termForCis);
+  }
+
+  // Ensure OEX is the only course in its term
+  Term? termForOex;
+  for (var year in newStudentPOS.schoolYears) {
+    for (var term in year.terms) {
+      if (term.termcourses.isEmpty) {
+        termForOex = term;
+        break;
+      }
     }
+    if (termForOex != null) break;
+  }
+  if (termForOex != null) {
+    termForOex.termcourses.add(oex);
+    capstoneTerms.add(termForOex);
   }
 
   // Find the term for CAPROP and CAPFIND after CIS411M and OEX
-  Term? termForCapstone = findBestTermForCourse(caprop, capstoneTerms);
+  Term? termForCapstone;
+  for (var year in newStudentPOS.schoolYears) {
+    for (var term in year.terms) {
+      if (term.termcourses.isEmpty && !capstoneTerms.contains(term)) {
+        termForCapstone = term;
+        break;
+      }
+    }
+    if (termForCapstone != null) break;
+  }
   if (termForCapstone != null) {
     termForCapstone.termcourses.add(caprop);
     termForCapstone.termcourses.add(capfind);
@@ -337,8 +363,7 @@ StudentPOS generatePOSforMIT(
         for (var term in year.terms) {
           if (!capstoneTerms.contains(term) &&
               term.termcourses.length < 2 &&
-              term.termcourses
-                          .fold<int>(0, (acc, course) => acc + course.units) +
+              term.termcourses.fold<int>(0, (acc, c) => acc + c.units) +
                       course.units <=
                   maxUnitsPerTerm) {
             term.termcourses.add(course);
@@ -351,7 +376,6 @@ StudentPOS generatePOSforMIT(
 
   return newStudentPOS;
 }
-
 StudentPOS generatePOSforMSIT(
   Student student,
   StudentPOS studentpos,
@@ -376,6 +400,7 @@ StudentPOS generatePOSforMSIT(
 
   // Initialize a new StudentPOS
   StudentPOS newStudentPOS = StudentPOS(
+    acceptanceTerm: getCurrentSYandTerm(),
     schoolYears: studentpos.schoolYears,
     uid: student.uid,
     displayname: student.displayname,

@@ -9,6 +9,7 @@ import 'package:sysadmindb/app/models/AcademicCalendar.dart';
 import 'package:sysadmindb/app/models/DeviatedStudents.dart';
 import 'package:sysadmindb/app/models/SchoolYear.dart';
 import 'package:sysadmindb/app/models/courses.dart';
+import 'package:sysadmindb/app/models/en-19.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/app/models/term.dart';
@@ -20,12 +21,18 @@ import 'package:url_launcher/url_launcher.dart';
 class DeviatedInfoPage extends StatefulWidget {
   final DeviatedStudent student;
   StudentPOS studentpos;
-
-  DeviatedInfoPage({required this.student, required this.studentpos});
+  EN19Form? en19;
+  DeviatedInfoPage(
+      {required this.student,
+      required this.studentpos,
+      required EN19Form en19});
 
   @override
   _DeviatedInfoPage createState() => _DeviatedInfoPage();
 }
+
+late Future<ListResult> documentations;
+late Future<ListResult> defenseForms;
 
 class _DeviatedInfoPage extends State<DeviatedInfoPage>
     with SingleTickerProviderStateMixin {
@@ -691,8 +698,9 @@ class _DeviatedInfoPage extends State<DeviatedInfoPage>
                                                   allCourses: courses,
                                                   selectedStudentPOS:
                                                       widget.studentpos,
-                                                  syAndTerm: 
-                                               "${widget.studentpos.schoolYears[widget.studentpos.schoolYears.indexOf(year)].name} ${widget.studentpos.schoolYears[widget.studentpos.schoolYears.indexOf(year)].terms[widget.studentpos.schoolYears[widget.studentpos.schoolYears.indexOf(year)].terms.indexOf(term)].name}", )
+                                                  syAndTerm:
+                                                      "${widget.studentpos.schoolYears[widget.studentpos.schoolYears.indexOf(year)].name} ${widget.studentpos.schoolYears[widget.studentpos.schoolYears.indexOf(year)].terms[widget.studentpos.schoolYears[widget.studentpos.schoolYears.indexOf(year)].terms.indexOf(term)].name}",
+                                                )
                                               ],
                                             ),
                                           ),

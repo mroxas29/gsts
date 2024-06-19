@@ -1,13 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:sysadmindb/api/email/invoice_service.dart';
+import 'package:sysadmindb/app/models/AcademicCalendar.dart';
 import 'package:sysadmindb/app/models/coursedemand.dart';
 import 'package:sysadmindb/app/models/courses.dart';
+import 'package:sysadmindb/app/models/en-19.dart';
 import 'package:sysadmindb/app/models/enrolledcourses.dart';
 import 'package:sysadmindb/app/models/faculty.dart';
 import 'package:sysadmindb/app/models/pastcourses.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/app/models/user.dart';
+import 'package:sysadmindb/screens/dit_sec_screen.dart';
 import 'package:sysadmindb/screens/gradstudent_screen.dart';
 import 'package:sysadmindb/screens/gsc_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -15,6 +19,7 @@ import 'package:sysadmindb/screens/sysad.dart';
 import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sysadmindb/ui/reusable_widgets.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // ignore: implementation_imports
 import 'package:flutter/src/widgets/container.dart' as contain;
@@ -38,8 +43,10 @@ class LoginPage extends StatefulWidget {
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
- bool isEng501MChecked = false;
 
+bool isEng501MChecked = false;
+
+List<EN19Form> allDefenseForms = [];
 TextEditingController passwordTextController = TextEditingController();
 TextEditingController emailTextController = TextEditingController();
 bool shownRecoGuide = false;
@@ -53,8 +60,10 @@ String curpass = passwordTextController.text;
 
 final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
+
 class ArrowPainter extends CustomPainter {
   @override
+  
   void paint(Canvas canvas, Size size) {
     Paint paint = Paint()
       ..color = Color.fromARGB(255, 25, 87, 27) // Set the color of the arrow
@@ -164,10 +173,9 @@ class _LoginPageState extends State<LoginPage> {
 
   final db = FirebaseFirestore.instance;
   final _auth = FirebaseAuth.instance;
+
   @override
   Widget build(BuildContext context) {
-    //  final GlobalKey<State> _LoaderDialog = GlobalKey<State>();
-
     double screenHeight = MediaQuery.of(context).size.height;
     return WillPopScope(
       onWillPop: () async => false,
@@ -469,14 +477,14 @@ class _LoginPageState extends State<LoginPage> {
               builder: (context) => GradStudentscreen(),
             ),
           );
-        }else if(documentSnapshot.get('role') == "Academic Programming Officer (APO)"){
-
-        } else if(documentSnapshot.get('role') ==
-            "DIT Secretary"){
-
-        }
-        
-        else {
+        } else if (documentSnapshot.get('role') == "DIT Secretary") {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DITSec(),
+            ),
+          );
+        } else {
           wrongCreds = true;
         }
       } else {
@@ -486,6 +494,14 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void signIn(String email, String password) async {
+    /*
+    //THIS IS FOR TESTING PDF FILES 
+    PdfInvoiceService test = PdfInvoiceService();
+   
+    final data = await service.createPanelChairReport(allDefenseForms[0]);
+    service.savePdfFile("testreport.pdf", data);
+    
+    */
     try {
       UserCredential userCredential =
           await FirebaseAuth.instance.signInWithEmailAndPassword(
@@ -505,6 +521,7 @@ class _LoginPageState extends State<LoginPage> {
       await convertToStudentList(users);
       await getGraduatingStudents();
       await getNewStudents();
+      allDefenseForms = await getAllFormsFromFirestore();
       route();
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') {

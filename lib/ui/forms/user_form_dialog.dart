@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:sysadmindb/api/email/sendemail.dart';
+import 'package:sysadmindb/app/models/AcademicCalendar.dart';
 import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
@@ -63,7 +64,6 @@ void showAddNewUserForm(
     'Coordinator',
     'Graduate Student',
     'Admin',
-    'Academic Programming Officer (APO)',
     'DIT Secretary'
   ];
   List<String> degrees = [
@@ -299,6 +299,7 @@ void showAddNewUserForm(
                     });
 
                     studentPOS = StudentPOS(
+                        acceptanceTerm: getCurrentSYandTerm(),
                         schoolYears: defaultschoolyears,
                         uid: userID,
                         displayname: _userData.displayname,

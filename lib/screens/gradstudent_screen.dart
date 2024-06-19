@@ -12,6 +12,7 @@ import 'package:sysadmindb/api/email/invoice_service.dart';
 import 'package:sysadmindb/app/models/AcademicCalendar.dart';
 import 'package:sysadmindb/app/models/coursedemand.dart';
 import 'package:sysadmindb/app/models/courses.dart';
+import 'package:sysadmindb/app/models/en-19.dart';
 import 'package:sysadmindb/app/models/enrolledcourses.dart';
 import 'package:sysadmindb/app/models/pastcourses.dart';
 import 'package:sysadmindb/app/models/SchoolYear.dart';
@@ -22,6 +23,8 @@ import 'package:sysadmindb/main.dart';
 import 'package:sysadmindb/ui/forms/form.dart';
 import 'package:sysadmindb/api/calendar/test_calendar.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+import 'dart:html' as html;
 
 void main() {
   runApp(
@@ -41,12 +44,26 @@ class StudentProfileScreen extends StatefulWidget {
   State<StudentProfileScreen> createState() => _StudentProfileScreenState();
 }
 
+int getTotalUnits() {
+  int totalUnitsCompleted = currentStudent!.pastCourses
+      .where((course) => course.grade >= 2.0)
+      .fold(0, (sum, course) => sum + course.units);
+  return totalUnitsCompleted;
+}
+
 int unitsCompleted =
     currentStudent!.pastCourses.fold(0, (int sum, PastCourse pastCourse) {
   return sum + pastCourse.units;
 });
-late Future<ListResult> futurefiles;
-int filescount = 0;
+late Future<ListResult> documentations;
+late Future<ListResult> defenseForms;
+
+String _capitalize(String input) {
+  if (input.isEmpty) {
+    return '';
+  }
+  return input[0].toUpperCase() + input.substring(1);
+}
 
 ConfettiController _confettiController =
     ConfettiController(duration: const Duration(seconds: 5));
@@ -79,13 +96,6 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
       lastNameController.text = currentUser.displayname['lastname']!;
       idNumberController.text = currentUser.idnumber.toString();
     }
-  }
-
-  String _capitalize(String input) {
-    if (input.isEmpty) {
-      return '';
-    }
-    return input[0].toUpperCase() + input.substring(1);
   }
 
   @override
@@ -133,7 +143,8 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                       child: Card(
                         color: Colors.white,
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8.0)),
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
                         elevation: 4.0,
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(10, 10, 200, 70),
@@ -150,24 +161,87 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                               Text(
                                 "${_capitalize(firstNameController.text)} ${_capitalize(lastNameController.text)} ",
                                 style: TextStyle(
-                                    fontSize: 34,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color.fromARGB(255, 23, 71, 25)),
+                                  fontSize: 34,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color.fromARGB(255, 23, 71, 25),
+                                ),
                               ),
-                              Text(currentStudent!.degree.contains('MSIT')
-                                  ? 'Master of Science in Information Technology - ${currentStudent!.idnumber.toString()}'
-                                  : 'Master in Information Technology - ${currentStudent!.idnumber.toString()}'),
+                              Text(
+                                currentStudent!.degree.contains('MSIT')
+                                    ? 'Master of Science in Information Technology - ${currentStudent!.idnumber}'
+                                    : 'Master in Information Technology - ${currentStudent!.idnumber}',
+                              ),
                               Text(currentStudent!.email),
-                              Text('Enrollment Status: ${currentUser.status}'),
+                              Row(
+                                children: [
+                                  Text('Enrollment Status: '),
+                                  DropdownButton<String>(
+                                    value: currentUser.status,
+                                    items: <String>[
+                                      'Full Time',
+                                      'Part Time',
+                                      'LOA'
+                                    ].map((String value) {
+                                      return DropdownMenuItem<String>(
+                                        value: value,
+                                        child: Text(value),
+                                      );
+                                    }).toList(),
+                                    onChanged: (String? newValue) {
+                                      if (newValue != null) {
+                                        showDialog(
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return AlertDialog(
+                                              title: Text('Confirm Change'),
+                                              content: Text(
+                                                  'Are you sure you want to change your enrollment status to $newValue?'),
+                                              actions: <Widget>[
+                                                TextButton(
+                                                  onPressed: () {
+                                                    Navigator.of(context)
+                                                        .pop(); // Close the dialog
+                                                  },
+                                                  child: Text('Cancel'),
+                                                ),
+                                                TextButton(
+                                                  onPressed: () {
+                                                    setState(() {
+                                                      currentUser.status =
+                                                          newValue;
+                                                      // Update the user's enrollment status in the database or other storage here
+                                                    });
+                                                    // Update Firestore to reflect the changes
+                                                    FirebaseFirestore.instance
+                                                        .collection('users')
+                                                        .doc(currentUser.uid)
+                                                        .update({
+                                                      'status':
+                                                          currentUser.status,
+                                                    });
+                                                    Navigator.of(context)
+                                                        .pop(); // Close the dialog
+                                                  },
+                                                  child: Text('Confirm'),
+                                                ),
+                                              ],
+                                            );
+                                          },
+                                        );
+                                      }
+                                    },
+                                  ),
+                                ],
+                              ),
                               Text(
                                 isValidPass
                                     ? '🔒 Your password is secure'
                                     : '✖ Your password is not secure',
                                 style: TextStyle(
-                                    color: isValidPass
-                                        ? Colors.green
-                                        : Colors.red),
-                              )
+                                  color:
+                                      isValidPass ? Colors.green : Colors.red,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -2105,12 +2179,33 @@ class CapstoneProjectScreen extends StatefulWidget {
   State<CapstoneProjectScreen> createState() => _CapstoneProjectScreenState();
 }
 
+Reference emptyReference = FirebaseStorage.instance.ref(); // Or any other path
+
 class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
   PlatformFile? pickedFile;
+  EN19Form? _retrievedForm;
+  bool hasEn19Form = false;
+  Future<void> retrieveEN19Form() async {
+    EN19Form? form = await EN19Form.getFormFromFirestore(currentStudent!.uid);
+
+    setState(() {
+      _retrievedForm = form;
+    });
+  }
+
+  Future<void> checkIfFormExists() async {
+    bool exists = await EN19Form.hasEn19Form(currentStudent!.uid);
+
+    setState(() {
+      hasEn19Form = exists;
+    });
+  }
 
   @override
   void initState() {
     super.initState();
+    checkIfFormExists();
+    retrieveEN19Form();
     _confettiController =
         ConfettiController(duration: const Duration(seconds: 5));
   }
@@ -2148,7 +2243,7 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
 
     List<DataRow> rows = [];
 
-    Future<void> uploadFile(String coursecode) async {
+    Future<void> uploadDocFile(String coursecode) async {
       if (currentStudent!.enrolledCourses
               .any((course) => course.coursecode == coursecode) ||
           currentStudent!.pastCourses
@@ -2157,7 +2252,7 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
         if (result != null) {
           PlatformFile file = result.files.first;
           String fileName =
-              '${currentStudent!.idnumber}/${coursecode}_${currentStudent!.idnumber}.pdf';
+              '${currentStudent!.idnumber}/Documentations/${coursecode}_${currentStudent!.idnumber}.pdf';
 
           Uint8List fileBytes = file.bytes!;
           final ref = FirebaseStorage.instance.ref().child(fileName);
@@ -2165,8 +2260,8 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
         }
 
         setState(() {
-          futurefiles = FirebaseStorage.instance
-              .ref('/${currentStudent!.idnumber}')
+          documentations = FirebaseStorage.instance
+              .ref('/${currentStudent!.idnumber}/Documentations')
               .listAll();
         });
       } else {
@@ -2179,20 +2274,398 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
       }
     }
 
+    Future<void> uploadGeneratedPdf(Uint8List data, String form) async {
+      String fileName =
+          '${currentStudent!.idnumber}/Defense Forms/${form}_${currentStudent!.idnumber}.pdf';
+      final ref = FirebaseStorage.instance.ref().child(fileName);
+      await ref.putData(data);
+      print('Generated PDF uploaded successfully');
+    }
+
+    Future<void> uploadEN19File(EN19Form formDetails) async {
+      bool confirmSign = false;
+      bool signedByGSC = false;
+      bool signedByAdviser = false;
+
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return StatefulBuilder(builder: (context, setState) {
+            return SingleChildScrollView(
+              child: AlertDialog(
+                title: Text('Confirm Signatories'),
+                content: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                        'Please confirm that the document that will be\nuploaded is signed by the Coordinator and your Adviser.'),
+                    SizedBox(
+                      height: 10,
+                    ),
+                    Text(
+                      'Signed by Coordinator?',
+                      style: TextStyle(fontSize: 15),
+                    ),
+                    SizedBox(
+                      height: 10,
+                    ),
+                    Row(
+                      children: [
+                        Radio<bool>(
+                          value: true,
+                          groupValue: signedByGSC,
+                          onChanged: (bool? value) {
+                            setState(() {
+                              signedByGSC = value!;
+                            });
+                          },
+                        ),
+                        Text('Yes'),
+                        Radio<bool>(
+                          value: false,
+                          groupValue: signedByGSC,
+                          onChanged: (bool? value) {
+                            setState(() {
+                              signedByGSC = value!;
+                            });
+                          },
+                        ),
+                        Text('No'),
+                      ],
+                    ),
+                    SizedBox(
+                      height: 10,
+                    ),
+                    Text(
+                      'Signed by adviser?',
+                      style: TextStyle(fontSize: 15),
+                    ),
+                    SizedBox(
+                      height: 10,
+                    ),
+                    Row(
+                      children: [
+                        Radio<bool>(
+                          value: true,
+                          groupValue: signedByAdviser,
+                          onChanged: (bool? value) {
+                            setState(() {
+                              signedByAdviser = value!;
+                            });
+                          },
+                        ),
+                        Text('Yes'),
+                        Radio<bool>(
+                          value: false,
+                          groupValue: signedByAdviser,
+                          onChanged: (bool? value) {
+                            setState(() {
+                              signedByAdviser = value!;
+                            });
+                          },
+                        ),
+                        Text('No'),
+                      ],
+                    ),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      confirmSign = false;
+                      Navigator.pop(context, false); // No, do not delete
+                    },
+                    child: Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      setState(() async {
+                        confirmSign = true;
+                        if (confirmSign) {
+                          FilePickerResult? result =
+                              await FilePicker.platform.pickFiles();
+                          if (result != null) {
+                            PlatformFile file = result.files.first;
+                            String fileName =
+                                '${currentStudent!.idnumber}/Defense Forms/EN-19Form_${currentStudent!.idnumber}.pdf';
+                            Uint8List fileBytes = file.bytes!;
+
+                            // Create EN19Form object
+                            EN19Form form = EN19Form(
+                              proposedTitle: formDetails.proposedTitle,
+                              lastName: _capitalize(
+                                  currentStudent!.displayname['lastname']!),
+                              firstName: _capitalize(
+                                  currentStudent!.displayname['firstname']!),
+                              middleName: formDetails.middleName,
+                              idNumber: currentStudent!.idnumber.toString(),
+                              college: 'Computer Studies',
+                              program: currentStudent!.degree,
+                              passedComprehensiveExams: false,
+                              submittedCertificate: false,
+                              adviserName: formDetails.adviserName,
+                              enrollmentStage: formDetails.enrollmentStage,
+                              date: DateTime.now(),
+                              leadPanel: formDetails.leadPanel,
+                              panelMembers: formDetails.panelMembers,
+                              defenseDate: formDetails.defenseDate,
+                              signedByGSC: signedByGSC,
+                              signedByAdviser: signedByAdviser,
+                              defenseTime: formDetails.defenseTime,
+                              mainTitle: formDetails.mainTitle,
+                              defenseType: formDetails.defenseType,
+                              verdict: formDetails.verdict,
+                            );
+
+                            form.saveFormToFirestore(form, currentStudent!.uid);
+                            final ref =
+                                FirebaseStorage.instance.ref().child(fileName);
+
+                            await ref.putData(fileBytes);
+                            setState(() {
+                              retrieveEN19Form();
+                            });
+
+                            print('File uploaded successfully');
+                            Navigator.pop(context, true);
+                          } else {
+                            print('No file selected');
+                          }
+                        }
+                      });
+
+                      Navigator.pop(context, true); // Yes, delete
+                    },
+                    child: Text('Proceed'),
+                  ),
+                ],
+              ),
+            );
+          });
+        },
+      );
+    }
+
+    Future<void> showEN19FormDialog(BuildContext context) async {
+      String selectedType = 'Thesis';
+      int selectedNumber = 1;
+      String adviserPrefix = 'Mr';
+      TextEditingController adviserNameController = TextEditingController();
+      TextEditingController mainTitleController = TextEditingController();
+      bool isAdviserNameEmpty = false;
+      bool isMainTitleEmpty = false;
+      bool signedByAdviser = false;
+      bool signedByGSC = false;
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return StatefulBuilder(
+            builder: (context, setState) {
+              return AlertDialog(
+                title: Text('Fill EN19 Form'),
+                content: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      SizedBox(
+                        height: 10,
+                      ),
+                      Text(
+                        'Proposed Title',
+                        style: TextStyle(fontSize: 15),
+                      ),
+                      DropdownButton<String>(
+                        value: selectedType,
+                        onChanged: (String? newValue) {
+                          setState(() {
+                            selectedType = newValue!;
+                            selectedNumber =
+                                1; // Reset the number on type change
+                          });
+                        },
+                        items: ['Thesis', 'Dissertation']
+                            .map<DropdownMenuItem<String>>((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+                        }).toList(),
+                      ),
+                      SizedBox(
+                        height: 10,
+                      ),
+                      Text(
+                        'Enrollment Stage',
+                        style: TextStyle(fontSize: 15),
+                      ),
+                      DropdownButton<int>(
+                        value: selectedNumber,
+                        onChanged: (int? newValue) {
+                          setState(() {
+                            selectedNumber = newValue!;
+                          });
+                        },
+                        items: List.generate(selectedType == 'Thesis' ? 9 : 15,
+                                (index) => index + 1)
+                            .map<DropdownMenuItem<int>>((int value) {
+                          return DropdownMenuItem<int>(
+                            value: value,
+                            child: Text('$selectedType $value'),
+                          );
+                        }).toList(),
+                      ),
+                      SizedBox(
+                        height: 10,
+                      ),
+                      SizedBox(
+                        height: 10,
+                      ),
+                      Text(
+                        'Title',
+                        style: TextStyle(fontSize: 15),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: mainTitleController,
+                              decoration: InputDecoration(
+                                  hintText: 'Enter title of $selectedType',
+                                  errorText: isMainTitleEmpty
+                                      ? 'This is a required field'
+                                      : null),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(
+                        height: 10,
+                      ),
+                      Text(
+                        'Adviser',
+                        style: TextStyle(fontSize: 15),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          DropdownButton<String>(
+                            value: adviserPrefix,
+                            onChanged: (String? newValue) {
+                              setState(() {
+                                adviserPrefix = newValue!;
+                              });
+                            },
+                            items: ['Mr', 'Ms']
+                                .map<DropdownMenuItem<String>>((String value) {
+                              return DropdownMenuItem<String>(
+                                value: value,
+                                child: Text(value),
+                              );
+                            }).toList(),
+                          ),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: TextField(
+                              controller: adviserNameController,
+                              decoration: InputDecoration(
+                                  hintText: 'Enter adviser name',
+                                  errorText: isAdviserNameEmpty
+                                      ? 'This is a required field'
+                                      : null),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      setState(() {
+                        isAdviserNameEmpty = adviserNameController.text.isEmpty;
+                        isMainTitleEmpty = mainTitleController.text.isEmpty;
+                      });
+                      if (isAdviserNameEmpty) {
+                        // Do not close the dialog if the adviser name is empty
+                        return;
+                      }
+
+                      if (isMainTitleEmpty) {
+                        // Do not close the dialog if the adviser name is empty
+                        return;
+                      }
+
+                      // Collect form data
+                      String adviserName =
+                          '$adviserPrefix ${adviserNameController.text}';
+                      String enrollmentStage = '$selectedType $selectedNumber';
+
+                      // Create EN19Form object
+                      EN19Form form = EN19Form(
+                        proposedTitle: selectedType,
+                        lastName: _capitalize(
+                            currentStudent!.displayname['lastname']!),
+                        firstName: _capitalize(
+                            currentStudent!.displayname['firstname']!),
+                        middleName: '',
+                        idNumber: currentStudent!.idnumber.toString(),
+                        college: 'Computer Studies',
+                        program: currentStudent!.degree,
+                        passedComprehensiveExams: false,
+                        submittedCertificate: false,
+                        adviserName: adviserName,
+                        enrollmentStage: enrollmentStage,
+                        date: DateTime.now(),
+                        leadPanel: 'No lead panel assigned',
+                        panelMembers: ['', '', '', ''],
+                        defenseDate: 'No date set',
+                        signedByGSC: signedByGSC,
+                        signedByAdviser: signedByAdviser,
+                        defenseTime: 'No time set',
+                        mainTitle: _capitalize(mainTitleController.text),
+                        defenseType: ' ',
+                        verdict: ' ',
+                      );
+
+                      Navigator.of(context).pop();
+
+                      // If the first dialog was successfully closed, proceed to open the second dialo
+                      await uploadEN19File(form);
+                    },
+                    child: Text('Submit'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+    }
+
     DataCell buildDocDataCell(
       Course course,
       BuildContext context,
       String reference,
     ) {
       // Get the download URL of the file from Firebase Storage
-      Reference emptyReference =
-          FirebaseStorage.instance.ref(); // Or any other path
 
       return DataCell(
         SizedBox(
           width: MediaQuery.of(context).size.width / 8,
           child: FutureBuilder<ListResult>(
-            future: futurefiles,
+            future: documentations,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return Center(
@@ -2202,7 +2675,6 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                 return Text('Error: ${snapshot.error}');
               } else if (snapshot.hasData) {
                 var files = snapshot.data!.items;
-                filescount = files.length;
                 // Find the file with the specified course code
                 var file = files.firstWhere(
                     (file) => file.name.contains(course.coursecode),
@@ -2241,7 +2713,7 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                           onPressed: () async {
                             // Prompt the user to select a file
 
-                            await uploadFile(course.coursecode);
+                            await uploadDocFile(course.coursecode);
                           },
                         ),
                       ],
@@ -2259,7 +2731,7 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                       onPressed: () async {
                         // Prompt the user to select a file
 
-                        await uploadFile(course.coursecode);
+                        await uploadDocFile(course.coursecode);
                       },
                     ),
                   );
@@ -2324,8 +2796,271 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
           ],
         )),
         buildDocDataCell(course, context,
-            "${currentStudent!.idnumber}/${course.coursecode}_${currentStudent!.idnumber}.pdf")
+            "${currentStudent!.idnumber}/Documentations/${course.coursecode}_${currentStudent!.idnumber}.pdf")
       ]);
+    }
+
+    void showDefenseVerdictDialog(BuildContext context, EN19Form en19) {
+      String selectedVerdict = ' ';
+
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return StatefulBuilder(
+            builder: (context, setState) {
+              return AlertDialog(
+                title: Text('Defense Verdict'),
+                content: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Verdict',
+                      style: TextStyle(fontSize: 15),
+                    ),
+                    DropdownButton<String>(
+                      value: selectedVerdict,
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          selectedVerdict = newValue!;
+                        });
+                      },
+                      items: [' ', 'Passed', 'Failed', 'Redefense']
+                          .map<DropdownMenuItem<String>>((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child:
+                              Text(value == ' ' ? 'Select a verdict' : value),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      if (selectedVerdict == ' ') {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Please select a verdict'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
+
+                      // Create EN19Form object with updated verdict
+
+                      if (selectedVerdict == 'Redefense') {
+                        en19.panelMembers.clear();
+                        EN19Form form = EN19Form(
+                          proposedTitle: en19.proposedTitle,
+                          lastName: en19.lastName,
+                          firstName: en19.firstName,
+                          middleName: en19.middleName,
+                          idNumber: en19.idNumber,
+                          college: en19.college,
+                          program: en19.program,
+                          passedComprehensiveExams:
+                              en19.passedComprehensiveExams,
+                          submittedCertificate: en19.submittedCertificate,
+                          adviserName: en19.adviserName,
+                          enrollmentStage: en19.enrollmentStage,
+                          date: DateTime.now(),
+                          leadPanel: 'No lead panel assigned',
+                          panelMembers: ['', '', '', ''],
+                          defenseDate: 'No date set',
+                          signedByGSC: en19.signedByGSC,
+                          signedByAdviser: en19.signedByAdviser,
+                          defenseTime: 'No time set',
+                          mainTitle: en19.mainTitle,
+                          defenseType: en19.defenseType,
+                          verdict: selectedVerdict,
+                        );
+                        form.saveFormToFirestore(form, currentStudent!.uid);
+                      } else {
+                        EN19Form form = EN19Form(
+                          proposedTitle: en19.proposedTitle,
+                          lastName: en19.lastName,
+                          firstName: en19.firstName,
+                          middleName: en19.middleName,
+                          idNumber: en19.idNumber,
+                          college: en19.college,
+                          program: en19.program,
+                          passedComprehensiveExams:
+                              en19.passedComprehensiveExams,
+                          submittedCertificate: en19.submittedCertificate,
+                          adviserName: en19.adviserName,
+                          enrollmentStage: en19.enrollmentStage,
+                          date: DateTime.now(),
+                          leadPanel: en19.leadPanel,
+                          panelMembers: en19.panelMembers,
+                          defenseDate: en19.defenseDate,
+                          signedByGSC: en19.signedByGSC,
+                          signedByAdviser: en19.signedByAdviser,
+                          defenseTime: en19.defenseTime,
+                          mainTitle: en19.mainTitle,
+                          defenseType: en19.defenseType,
+                          verdict: selectedVerdict,
+                        );
+                        form.saveFormToFirestore(form, currentStudent!.uid);
+                      }
+
+                      Navigator.of(context).pop();
+                    },
+                    child: Text('Submit'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+    }
+
+    void showDefenseFormDialog(BuildContext context, EN19Form en19) {
+      String selectedDefenseType = 'Proposal Defense';
+      final TextEditingController mainTitleController = TextEditingController();
+      bool isMainTitleEmpty = false;
+
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return StatefulBuilder(
+            builder: (context, setState) {
+              return AlertDialog(
+                title: Text('Fill Defense Form'),
+                content: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      SizedBox(
+                        height: 10,
+                      ),
+                      Text(
+                        'Type of Defense',
+                        style: TextStyle(fontSize: 15),
+                      ),
+                      DropdownButton<String>(
+                        value: selectedDefenseType,
+                        onChanged: (String? newValue) {
+                          setState(() {
+                            selectedDefenseType = newValue!;
+                          });
+                        },
+                        items: [
+                          'Proposal Defense',
+                          'Final Defense',
+                          'Defense without Proposal'
+                        ].map<DropdownMenuItem<String>>((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+                        }).toList(),
+                      ),
+                      SizedBox(
+                        height: 10,
+                      ),
+                      Text(
+                        'Title',
+                        style: TextStyle(fontSize: 15),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: mainTitleController,
+                              decoration: InputDecoration(
+                                  hintText: en19.mainTitle,
+                                  errorText: isMainTitleEmpty
+                                      ? 'This is a required field'
+                                      : null),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      setState(() {
+                        isMainTitleEmpty = mainTitleController.text.isEmpty;
+                      });
+
+                      if (isMainTitleEmpty) {
+                        return;
+                      }
+
+                      FilePickerResult? result =
+                          await FilePicker.platform.pickFiles();
+
+                      PlatformFile file = result!.files.first;
+                      String fileName =
+                          '${currentStudent!.idnumber}/Defense Forms/EN-18DefenseForm_${currentStudent!.idnumber}.pdf';
+
+                      Uint8List fileBytes = file.bytes!;
+                      final ref =
+                          FirebaseStorage.instance.ref().child(fileName);
+                      await ref.putData(fileBytes);
+
+                      // Create EN19Form object
+                      EN19Form form = EN19Form(
+                        proposedTitle: en19.proposedTitle,
+                        lastName: _capitalize(
+                            currentStudent!.displayname['lastname']!),
+                        firstName: _capitalize(
+                            currentStudent!.displayname['firstname']!),
+                        middleName: '',
+                        idNumber: currentStudent!.idnumber.toString(),
+                        college: 'Computer Studies',
+                        program: currentStudent!.degree,
+                        passedComprehensiveExams: en19.passedComprehensiveExams,
+                        submittedCertificate: en19.submittedCertificate,
+                        adviserName: en19.adviserName, // Adjust if necessary
+                        enrollmentStage: en19.enrollmentStage,
+                        date: DateTime.now(),
+                        leadPanel: en19.leadPanel,
+                        panelMembers: en19.panelMembers,
+                        defenseDate: 'No date set',
+                        signedByGSC: en19.signedByGSC,
+                        signedByAdviser: en19.signedByAdviser,
+                        defenseTime: 'No time set',
+                        mainTitle: _capitalize(mainTitleController.text),
+                        defenseType: selectedDefenseType,
+                        verdict: ' ',
+                      );
+
+                      form.saveFormToFirestore(form, currentStudent!.uid);
+
+                      Navigator.of(context).pop();
+                    },
+                    child: Text('Submit'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
     }
 
     if (currentStudent!.degree.contains('MIT')) {
@@ -2336,6 +3071,24 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
       rows = thesiscourses.map((thesisCourse) {
         return isCoursePassed(thesisCourse, context);
       }).toList();
+    }
+
+    bool checkProposalCourse() {
+      // Assuming student.enrolledCourses is a list of courses with courseName property
+      // Modify according to your actual data structure
+      bool isProposalCourseEnrolled = currentStudent!.enrolledCourses.any(
+          (course) => course.coursename.toLowerCase().contains('proposal'));
+
+      return isProposalCourseEnrolled;
+    }
+
+    bool checkWritingCourse() {
+      // Assuming student.enrolledCourses is a list of courses with courseName property
+      // Modify according to your actual data structure
+      bool isProposalCourseEnrolled = currentStudent!.enrolledCourses
+          .any((course) => course.coursename.toLowerCase().contains('writing'));
+
+      return isProposalCourseEnrolled;
     }
 
     return Row(
@@ -2363,7 +3116,195 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                   rows: rows,
                 ),
               ),
-              buildCompletedButton(filescount, rows.length),
+              SizedBox(
+                  height: 10), // Optional: Adjust the space from top if needed
+              Text(
+                'Defense Requirements',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              DataTable(
+                columns: [
+                  DataColumn(label: Text('Document Type')),
+                  DataColumn(label: Text('Signed by Coordinator')),
+                  DataColumn(label: Text('Signed by Adviser')),
+                  DataColumn(label: Text('Actions')),
+                ],
+                rows: [
+                  DataRow(cells: [
+                    DataCell(Text('EN-19 Form')),
+                    DataCell(
+                      Icon(
+                        _retrievedForm!.signedByGSC
+                            ? Icons.check_circle_outline
+                            : Icons.cancel,
+                        color: _retrievedForm!.signedByGSC
+                            ? Colors.green
+                            : Colors.red,
+                      ),
+                    ),
+                    DataCell(
+                      Icon(
+                        _retrievedForm!.signedByAdviser
+                            ? Icons.check_circle_outline
+                            : Icons.cancel,
+                        color: _retrievedForm!.signedByAdviser
+                            ? Colors.green
+                            : Colors.red,
+                      ),
+                    ),
+                    DataCell(Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.file_download),
+                          onPressed:
+                              // Show the first dialog and wait until it is closed
+                              hasEn19Form
+                                  ? () async {
+                                      String fileName =
+                                          '${currentStudent!.idnumber}/Defense Forms/EN-19Form_${currentStudent!.idnumber}.pdf';
+                                      final imageUrl = await FirebaseStorage
+                                          .instance
+                                          .ref()
+                                          .child(fileName)
+                                          .getDownloadURL();
+                                      if (await canLaunch(
+                                          imageUrl.toString())) {
+                                        await launch(imageUrl.toString());
+                                      } else {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content:
+                                                Text('Failed to download file'),
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  : null,
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.file_upload),
+                          onPressed: () async {
+                            // Show the first dialog and wait until it is closed
+                            await showEN19FormDialog(context);
+                          },
+                        ),
+                        TextButton(
+                          onPressed: () async {
+                            String fileName =
+                                'templates/EN-19 Thesis Writing Form.pdf';
+                            final imageUrl = await FirebaseStorage.instance
+                                .ref()
+                                .child(fileName)
+                                .getDownloadURL();
+                            if (await canLaunch(imageUrl.toString())) {
+                              await launch(imageUrl.toString());
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Failed to download file'),
+                                ),
+                              );
+                            }
+                          },
+                          child: Text(
+                            'Download EN-19 Template',
+                            style: TextStyle(fontSize: 10),
+                          ),
+                        ),
+                      ],
+                    )),
+                  ]),
+                  DataRow(cells: [
+                    DataCell(Text('Defense Form')),
+                    DataCell(Text('')),
+                    DataCell(Text('')),
+                    DataCell(Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.file_download),
+                          onPressed: () async {
+                            String fileName =
+                                '${currentStudent!.idnumber}/Defense Forms/EN-18DefenseForm_${currentStudent!.idnumber}.pdf';
+                            final imageUrl = await FirebaseStorage.instance
+                                .ref()
+                                .child(fileName)
+                                .getDownloadURL();
+                            if (await canLaunch(imageUrl.toString())) {
+                              await launch(imageUrl.toString());
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Failed to download file'),
+                                ),
+                              );
+                            }
+                          },
+                          tooltip: 'Download EN-18 Defense Form',
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.file_upload),
+                          onPressed: () {
+                            showDefenseFormDialog(context, _retrievedForm!);
+                          },
+                          tooltip: 'Upload EN-18 Defenes Form',
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            showDefenseVerdictDialog(context, _retrievedForm!);
+                          },
+                          child: Text(
+                            'Add verdict',
+                            style: TextStyle(fontSize: 10),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () async {
+                            String fileName =
+                                'templates/EN-18-201904 Defense Form.pdf';
+                            final imageUrl = await FirebaseStorage.instance
+                                .ref()
+                                .child(fileName)
+                                .getDownloadURL();
+                            if (await canLaunch(imageUrl.toString())) {
+                              await launch(imageUrl.toString());
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Failed to download file'),
+                                ),
+                              );
+                            }
+                          },
+                          child: Text(
+                            'Download EN-18 Template',
+                            style: TextStyle(fontSize: 10),
+                          ),
+                        ),
+                      ],
+                    )),
+                  ]),
+                  // Add more rows here for other documents if needed
+                ],
+              ),
+              SizedBox(height: 20),
+              Row(
+                children: [
+                  buildCompletedButton(unitsCompleted, rows.length),
+                  Tooltip(
+                    message:
+                        'Total units completed is ${getTotalUnits()} units (Required: 36 units)', // Display the list of students
+                    child: Icon(
+                      Icons.info_outline,
+                      color: Colors.blue,
+                      size: 16,
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -2371,15 +3312,15 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
     );
   }
 
-  Widget buildCompletedButton(int filescounts, int rowsLength) {
+  Widget buildCompletedButton(int unitsCompleted, int rowsLength) {
     return Column(
       children: [
         Text('Ready to graduate?'),
+        SizedBox(height: 5),
         ElevatedButton(
-          onPressed: filescounts == rowsLength
+          onPressed: unitsCompleted != 36
               ? null
               : () {
-                  print(filescounts);
                   print(rowsLength);
                   _confettiController.play();
 
@@ -2462,8 +3403,12 @@ class _MainViewState extends State<GradStudentscreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    futurefiles =
-        FirebaseStorage.instance.ref('/${currentStudent!.idnumber}').listAll();
+    documentations = FirebaseStorage.instance
+        .ref('/${currentStudent!.idnumber}/Documentations')
+        .listAll();
+    defenseForms = FirebaseStorage.instance
+        .ref('/${currentStudent!.idnumber}/Defense Forms')
+        .listAll();
   }
 
   Color getColorForCourseType(Course course) {
@@ -2637,17 +3582,6 @@ class _MainViewState extends State<GradStudentscreen>
           ],
         ),
       ),
-
-      // CALENDAR PAGE || Following guide: https://www.youtube.com/watch?v=6Gxa-v7Zh7I&ab_channel=AIwithFlutter
-      CalendarSF(),
-
-      Center(
-        child: Text(
-          'Inbox',
-          textDirection: TextDirection.ltr,
-          style: TextStyle(fontFamily: 'Inter', fontSize: 100),
-        ),
-      ),
       Scaffold(
         appBar: AppBar(
           title: Text('Student Hub', style: TextStyle(color: Colors.white)),
@@ -2685,6 +3619,17 @@ class _MainViewState extends State<GradStudentscreen>
             CapstoneProjectScreen(),
             StudentProfileScreen(),
           ],
+        ),
+      ),
+
+      // CALENDAR PAGE || Following guide: https://www.youtube.com/watch?v=6Gxa-v7Zh7I&ab_channel=AIwithFlutter
+      CalendarSF(),
+
+      Center(
+        child: Text(
+          'Inbox',
+          textDirection: TextDirection.ltr,
+          style: TextStyle(fontFamily: 'Inter', fontSize: 100),
         ),
       ),
     ];
@@ -2803,16 +3748,16 @@ class _MainViewState extends State<GradStudentscreen>
                   label: 'Program of Study',
                 ),
                 SideNavigationBarItem(
+                  icon: Icons.school,
+                  label: 'Student Hub',
+                ),
+                SideNavigationBarItem(
                   icon: Icons.event,
                   label: 'Calendar',
                 ),
                 SideNavigationBarItem(
                   icon: Icons.message,
                   label: 'Inbox',
-                ),
-                SideNavigationBarItem(
-                  icon: Icons.school,
-                  label: 'Student Hub',
                 ),
               ],
               onTap: (index) {
