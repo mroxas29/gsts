@@ -26,7 +26,6 @@ class DesktopScaffold extends StatefulWidget {
   State<DesktopScaffold> createState() => _DesktopScaffoldState();
 }
 
-List<String> sytermParts = getCurrentSYandTerm().split(" ");
 Future<List<Student>> graduateStudents = convertToStudentList(users);
 
 List<Course> foundCourse = courses;
@@ -48,38 +47,52 @@ Widget _buildEditableField(
 }
 
 List<StudentPOS> getDeviatedStudents() {
-  // Iterate through each studentPOS
-  deviatedStudentList.clear();
+  String reformattedSYTerm = reformatSYandTerm(getCurrentSYandTerm());
+  List<String> sytermParts = reformattedSYTerm.split(" ");
 
+  for (String s in sytermParts) print(s);
+  // Clear the deviatedStudentList to ensure it's empty before processing
+  deviatedStudentList.clear();
   List<StudentPOS> posss = [];
 
+  // Iterate through each StudentPOS in the studentPOSList
   for (StudentPOS pos in studentPOSList) {
+    // List to hold deviated courses for the current studentPOS
     List<Course> deviatedCoursesList = [];
 
-    for (int i = 0; i < pos.schoolYears.length; i++) {
-      SchoolYear sy = pos.schoolYears[i];
-      for (int j = 0; j < sy.terms.length; j++) {
-        Term term = sy.terms[j];
-        if (sy.name == sytermParts[0] &&
-            term.name == '${sytermParts[1]} ${sytermParts[2]}') {
-          for (Course enrolledCourse in pos.enrolledCourses) {
-            if (!sy.terms[j].termcourses.any(
-                (course) => course.coursecode == enrolledCourse.coursecode)) {
-              print(
-                  "${pos.displayname.toString()} ${sy.name} ${term.name} ${enrolledCourse.coursecode}");
-              deviatedCoursesList.add(enrolledCourse);
+    // Iterate through each school year in the student's POS
+    for (SchoolYear sy in pos.schoolYears) {
+      // Check if the current school year matches sytermParts[0]
+      if (sy.name == sytermParts[0]) {
+        // Iterate through each term in the current school year
+        for (Term term in sy.terms) {
+          // Check if the current term matches sytermParts[1] and sytermParts[2]
+          if (term.name == '${sytermParts[1]} ${sytermParts[2]}') {
+            // Iterate through each enrolled course for the current studentPOS
+            for (Course enrolledCourse in pos.enrolledCourses) {
+              // Check if the enrolled course is not part of the term's courses
+              if (!term.termcourses.any(
+                  (course) => course.coursecode == enrolledCourse.coursecode)) {
+                // Print the deviated course details for debugging
+                print(
+                    "${pos.displayname.toString()} ${sy.name} ${term.name} ${enrolledCourse.coursecode}");
+                // Add the deviated course to the deviatedCoursesList
+                deviatedCoursesList.add(enrolledCourse);
+              }
             }
-          }
-
-          if (deviatedCoursesList.isNotEmpty) {
-            deviatedStudentList.add(DeviatedStudent(
-                studentPOS: pos, deviatedCourses: deviatedCoursesList));
           }
         }
       }
     }
-  }
 
+    // If there are any deviated courses for the current studentPOS, add it to the deviatedStudentList
+    if (deviatedCoursesList.isNotEmpty) {
+      deviatedStudentList.add(DeviatedStudent(
+          studentPOS: pos, deviatedCourses: deviatedCoursesList));
+    }
+  }
+  print(deviatedStudentList.length);
+  // Return the list of StudentPOS (if needed)
   return posss;
 }
 
@@ -871,7 +884,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                         builder: (context) => StudentInfoPage(
                                           student: studentList[index],
                                           studentpos: studentPOS,
-                                          en19: _retrievedForm!!,
+                                          en19: _retrievedForm!,
                                         ),
                                       ),
                                     );
@@ -895,16 +908,16 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                     onTap: () async {
                                       await retrieveStudentPOS(
                                           newStudentList[index].uid);
-                                      EN19Form? en19details;
-                                      await EN19Form.getFormFromFirestore(
-                                          newStudentList[index].uid);
+                                      EN19Form? en19details =
+                                          await EN19Form.getFormFromFirestore(
+                                              newStudentList[index].uid);
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
                                           builder: (context) => StudentInfoPage(
                                             student: newStudentList[index],
                                             studentpos: studentPOS,
-                                            en19: _retrievedForm!,
+                                            en19: en19details!,
                                           ),
                                         ),
                                       );
@@ -1012,9 +1025,9 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                     onTap: () async {
                                       await retrieveStudentPOS(
                                           ineligibleStudentList[index].uid);
-                                      EN19Form? en19details;
-                                      await EN19Form.getFormFromFirestore(
-                                          ineligibleStudentList[index].uid);
+                                      EN19Form? en19details =
+                                          await EN19Form.getFormFromFirestore(
+                                              ineligibleStudentList[index].uid);
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
@@ -1022,7 +1035,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                             student:
                                                 ineligibleStudentList[index],
                                             studentpos: studentPOS,
-                                            en19: _retrievedForm!,
+                                            en19: en19details!,
                                           ),
                                         ),
                                       );
@@ -1065,9 +1078,10 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                     onTap: () async {
                                       await retrieveStudentPOS(
                                           graduatingStudentsList[index].uid);
-                                      EN19Form? en19details;
-                                      await EN19Form.getFormFromFirestore(
-                                          graduatingStudentsList[index].uid);
+                                      EN19Form? en19details =
+                                          await EN19Form.getFormFromFirestore(
+                                              graduatingStudentsList[index]
+                                                  .uid);
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
@@ -1075,7 +1089,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                             student:
                                                 graduatingStudentsList[index],
                                             studentpos: studentPOS,
-                                            en19: _retrievedForm!,
+                                            en19: en19details!,
                                           ),
                                         ),
                                       );

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+
 class EN19Form {
   String lastName;
   String firstName;
@@ -17,6 +18,12 @@ class EN19Form {
   List<String> panelMembers;
   String defenseDate; // Changed to String
   bool signedByGSC;
+  bool signedByAdviser;
+  String defenseTime;
+  String mainTitle;
+  String defenseType;
+  String verdict;
+  
   EN19Form({
     required this.lastName,
     required this.firstName,
@@ -34,6 +41,11 @@ class EN19Form {
     required this.panelMembers,
     required this.defenseDate, // Added to constructor
     required this.signedByGSC,
+    required this.signedByAdviser,
+    required this.defenseTime,
+    required this.mainTitle,
+    required this.defenseType,
+    required this.verdict,
   });
 
   Map<String, dynamic> toMap() {
@@ -53,7 +65,12 @@ class EN19Form {
       'leadPanel': leadPanel,
       'panelMembers': panelMembers,
       'defenseDate': defenseDate, // Added to map
-      'signedByGSC': signedByGSC
+      'signedByGSC': signedByGSC,
+      'signedByAdviser': signedByAdviser,
+      'defenseTime':defenseTime,
+      'mainTitle': mainTitle,
+      'defenseType' : defenseType,
+      'verdict': verdict
     };
   }
 
@@ -74,7 +91,13 @@ class EN19Form {
         leadPanel: map['leadPanel'],
         panelMembers: List<String>.from(map['panelMembers']),
         defenseDate: map['defenseDate'], // Added to factory constructor
-        signedByGSC: map['signedByGSC']);
+        signedByGSC: map['signedByGSC'],
+        signedByAdviser: map['signedByAdviser'],
+        defenseTime: map['defenseTime'],
+        mainTitle: map['mainTitle'],
+        defenseType: map['defenseType'],
+        verdict: map['verdict']
+        );
   }
 
   Future<void> saveFormToFirestore(EN19Form form, String uid) async {
@@ -119,6 +142,11 @@ class EN19Form {
           panelMembers: [],
           defenseDate: ' ',
           signedByGSC: false,
+          signedByAdviser: false,
+          defenseTime: ' ',
+          mainTitle: ' ',
+          defenseType: ' ',
+          verdict: ' ',
         );
 
         return form;
@@ -141,7 +169,13 @@ class EN19Form {
           leadPanel: '',
           panelMembers: [],
           defenseDate: ' ',
-          signedByGSC: false);
+          signedByGSC: false,
+          signedByAdviser: false,
+          defenseTime: '',
+           mainTitle: ' ',
+           defenseType: ' ',
+           verdict:  ' ',
+      );
 
       return form;
     }
@@ -159,4 +193,36 @@ class EN19Form {
       return false;
     }
   }
+
 }
+ Future<List<EN19Form>> getAllFormsFromFirestore() async {
+    try {
+      // Get a reference to the collection
+      CollectionReference formsCollection =
+          FirebaseFirestore.instance.collection('defenseInformation');
+
+      // Get all documents in the collection as a query snapshot
+      QuerySnapshot querySnapshot = await formsCollection.get();
+
+      // Initialize an empty list to store the forms
+      List<EN19Form> allDefenseForms = [];
+
+      // Loop through each document in the snapshot
+      for (var doc in querySnapshot.docs) {
+        // Check if the document exists
+        if (doc.exists) {
+          // Convert the document data to an EN19Form object
+          EN19Form form = EN19Form.fromMap(doc.data() as Map<String, dynamic>);
+          // Add the form to the list
+          allDefenseForms.add(form);
+        } else {
+          print('Document ${doc.id} does not exist');
+        }
+      }
+
+      return allDefenseForms;
+    } catch (e) {
+      print('Error retrieving forms: $e');
+      return []; // Return an empty list on error
+    }
+  }
