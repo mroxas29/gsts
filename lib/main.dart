@@ -19,6 +19,7 @@ import 'package:sysadmindb/screens/sysad.dart';
 import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sysadmindb/ui/reusable_widgets.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // ignore: implementation_imports
 import 'package:flutter/src/widgets/container.dart' as contain;
