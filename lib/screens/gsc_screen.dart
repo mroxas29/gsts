@@ -92,12 +92,9 @@ class _MainViewState extends State<Gscscreen> {
 
   /// The currently selected index of the bar
   int selectedIndex = 0;
-<<<<<<< HEAD
   String selectedProgramFilter = 'All';
   List<EN19Form> filteredDefenses = [];
-=======
   
->>>>>>> cfc0f050d76e9ed7b75be9e0e1269b7532315cf2
   @override
   initState() {
     setState(() {
