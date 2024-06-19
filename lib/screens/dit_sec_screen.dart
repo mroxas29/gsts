@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:side_navigation/side_navigation.dart';
@@ -17,6 +18,8 @@ import 'package:sysadmindb/ui/forms/form.dart';
 import 'package:sysadmindb/ui/reusable_widgets.dart';
 import 'package:sysadmindb/ui/forms/user_form_dialog.dart';
 import 'dart:math';
+
+import 'package:url_launcher/url_launcher.dart';
 
 void main() {
   runApp(
@@ -676,13 +679,39 @@ class _MainViewState extends State<DITSec> {
                     ),
                     Padding(
                       padding: const EdgeInsets.all(8.0),
-                      child: Text(
-                        'Finished Defenses (Submit a panel report)',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
+                      child: Row(
+                        children: [
+                          Text(
+                            'Finished Defenses (Submit a panel report)',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                          SizedBox(width: 20,),
+                              TextButton(
+                            onPressed: ()async{
+  String fileName =
+                                'templates/R23 - Panel Chair Report.pdf';
+                            final imageUrl = await FirebaseStorage.instance
+                                .ref()
+                                .child(fileName)
+                                .getDownloadURL();
+                            if (await canLaunch(imageUrl.toString())) {
+                              await launch(imageUrl.toString());
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Failed to download file'),
+                                ),
+                              );
+                            }
+
+                            },
+                            child: Text('Download panel report tempalte', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 15),),
+                          ),
+                        ],
                       ),
                     ),
                     SingleChildScrollView(

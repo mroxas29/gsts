@@ -647,14 +647,23 @@ class StudentInfoPageState extends State<StudentInfoPage>
   Future<void> downloadEN19File() async {
     String fileName =
         '${widget.student.idnumber}/Defense Forms/EN-19Form_${widget.student.idnumber}.pdf';
-    final imageUrl =
-        await FirebaseStorage.instance.ref().child(fileName).getDownloadURL();
-    if (await canLaunch(imageUrl.toString())) {
-      await launch(imageUrl.toString());
-    } else {
+
+          try {
+      final imageUrl =
+          await FirebaseStorage.instance.ref().child(fileName).getDownloadURL();
+      if (await canLaunch(imageUrl.toString())) {
+        await launch(imageUrl.toString());
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to download file'),
+          ),
+        );
+      }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to download file'),
+          content: Text('File does not exist'),
         ),
       );
     }
