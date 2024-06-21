@@ -517,7 +517,7 @@ bool hasSpecialChar(String password) {
   return specialCharRegex.hasMatch(password);
 }
 
-void addEnrollEdCourse() {}
+
 
 bool hasNumber(String password) {
   // Replace this with your logic to check if password has at least one number
@@ -2023,28 +2023,6 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
               ),
               SizedBox(
                 height: 8,
-              ),
-              Center(
-                child: InkWell(
-                  onTap: () async {
-                    await getCoursesFromFirestore();
-                    showAddEnrolledCoursePopup(context, _formKey, activecourses,
-                        (enrolledCourse) {
-                      setState(() {
-                        currentStudent!.enrolledCourses.add(enrolledCourse);
-                      });
-
-                      // Handle the added enrolled course
-                    });
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Text('Add enrolled course',
-                        style: TextStyle(
-                            decoration: TextDecoration.underline,
-                            color: Colors.grey)),
-                  ),
-                ),
               ),
               SizedBox(
                 height: 15,

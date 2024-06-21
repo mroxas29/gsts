@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -375,25 +378,192 @@ class _MainViewState extends State<DITSec> {
                     SizedBox(height: 10),
                     Row(
                       children: [
-                        Icon(Icons.people), // Icon for leadPanel
-                        SizedBox(width: 5),
-                        Text('Lead Panel: ${defense.leadPanel}'),
+                        Text(
+                          'Lead Panel: ${defense.leadPanel}',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ],
                     ),
                     SizedBox(height: 10),
-                    Row(
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Panel Members:'),
-                        SizedBox(width: 5),
-                        // Icon for panelMembers (if more than 1)
-                        defense.panelMembers.length > 1
-                            ? Icon(Icons.people)
-                            : SizedBox(width: 24),
+                        Text(
+                          'Panel Members:',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                         SizedBox(width: 5),
                         // Text for panelMembers (if any)
                         Text(defense.panelMembers.join("\n")),
                       ],
                     ),
+                    SizedBox(height: 10),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Defense Files:'),
+                        SizedBox(width: 5),
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            TextButton(
+                              onPressed: () async {
+                                try {
+                                  String fileName =
+                                      '${defense.idNumber}/Defense Forms/EN-18DefenseForm_${defense.idNumber}.pdf';
+                                  final imageUrl = await FirebaseStorage
+                                      .instance
+                                      .ref()
+                                      .child(fileName)
+                                      .getDownloadURL();
+                                  if (await canLaunch(imageUrl.toString())) {
+                                    await launch(imageUrl.toString());
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content:
+                                            Text('Failed to download file'),
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('File does not exist'),
+                                    ),
+                                  );
+                                }
+                              },
+                              child: Row(
+                                children: [
+                                  Icon(Icons.file_download),
+                                  SizedBox(
+                                      width:
+                                          8), // Add some space between the icon and the text
+                                  Text('Download EN-18 Defense Form'),
+                                ],
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                FilePickerResult? result =
+                                    await FilePicker.platform.pickFiles();
+
+                                PlatformFile file = result!.files.first;
+                                String fileName =
+                                    '${defense.idNumber}/Defense Forms/EN-18DefenseForm_${defense.idNumber}.pdf';
+                                Uint8List fileBytes = file.bytes!;
+                                final ref = FirebaseStorage.instance
+                                    .ref()
+                                    .child(fileName);
+                                await ref.putData(fileBytes);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Uploaded successfully'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              },
+                              child: Row(
+                                children: [
+                                  Icon(Icons.file_upload),
+                                  SizedBox(
+                                      width:
+                                          8), // Add some space between the icon and the text
+                                  Text('Upload updated Panel Chair Form'),
+                                ],
+                              ),
+                            ),
+                          ],
+                        )
+                      ],
+                    ),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Panel Report:'),
+                        SizedBox(width: 5),
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            TextButton(
+                              onPressed: () async {
+                                try {
+                                  String fileName =
+                                      '${defense.idNumber}/Defense Forms/Form-R_23_${defense.idNumber}.pdf';
+                                  final imageUrl = await FirebaseStorage
+                                      .instance
+                                      .ref()
+                                      .child(fileName)
+                                      .getDownloadURL();
+                                  if (await canLaunch(imageUrl.toString())) {
+                                    await launch(imageUrl.toString());
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content:
+                                            Text('Failed to download file'),
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('File does not exist'),
+                                    ),
+                                  );
+                                }
+                              },
+                              child: Row(
+                                children: [
+                                  Icon(Icons.file_download),
+                                  SizedBox(
+                                      width:
+                                          8), // Add some space between the icon and the text
+                                  Text('Download Panel Chair Report Form'),
+                                ],
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                FilePickerResult? result =
+                                    await FilePicker.platform.pickFiles();
+
+                                PlatformFile file = result!.files.first;
+                                String fileName =
+                                    '${defense.idNumber}/Defense Forms/Form-R_23_${defense.idNumber}.pdf';
+                                Uint8List fileBytes = file.bytes!;
+                                final ref = FirebaseStorage.instance
+                                    .ref()
+                                    .child(fileName);
+                                await ref.putData(fileBytes);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Uploaded successfully'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              },
+                              child: Row(
+                                children: [
+                                  Icon(Icons.file_upload),
+                                  SizedBox(
+                                      width:
+                                          8), // Add some space between the icon and the text
+                                  Text(
+                                      'Upload updated Panel Chair Report Form'),
+                                ],
+                              ),
+                            ),
+                          ],
+                        )
+                      ],
+                    )
                   ],
                 ),
               ),
@@ -682,34 +852,36 @@ class _MainViewState extends State<DITSec> {
                       child: Row(
                         children: [
                           Text(
-                            'Finished Defenses (Submit a panel report)',
+                            'Finished Defenses',
                             style: TextStyle(
                               color: Colors.black,
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
                             ),
                           ),
-                          SizedBox(width: 20,),
-                              TextButton(
-                            onPressed: ()async{
-  String fileName =
-                                'templates/R23 - Panel Chair Report.pdf';
-                            final imageUrl = await FirebaseStorage.instance
-                                .ref()
-                                .child(fileName)
-                                .getDownloadURL();
-                            if (await canLaunch(imageUrl.toString())) {
-                              await launch(imageUrl.toString());
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Failed to download file'),
-                                ),
-                              );
-                            }
-
+                          TextButton(
+                            onPressed: () async {
+                              String fileName =
+                                  'templates/R23 - Panel Chair Report.pdf';
+                              final imageUrl = await FirebaseStorage.instance
+                                  .ref()
+                                  .child(fileName)
+                                  .getDownloadURL();
+                              if (await canLaunch(imageUrl.toString())) {
+                                await launch(imageUrl.toString());
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Failed to download file'),
+                                  ),
+                                );
+                              }
                             },
-                            child: Text('Download panel report tempalte', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 15),),
+                            child: Text(
+                              '(Download panel report template)',
+                              style:
+                                  TextStyle(color: Colors.blue, fontSize: 10),
+                            ),
                           ),
                         ],
                       ),

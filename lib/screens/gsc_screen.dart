@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
@@ -42,7 +44,6 @@ void main() {
 
 class Gscscreen extends StatefulWidget {
   const Gscscreen({Key? key}) : super(key: key);
-  
 
   /*launchInbox(String gmail) async{
     const gmail = 'https://mail.google.com/a/dlsu.edu.ph';
@@ -94,7 +95,7 @@ class _MainViewState extends State<Gscscreen> {
   int selectedIndex = 0;
   String selectedProgramFilter = 'All';
   List<EN19Form> filteredDefenses = [];
-  
+
   @override
   initState() {
     setState(() {
@@ -1500,6 +1501,18 @@ class _MainViewState extends State<Gscscreen> {
             ? tryParseTime(defense.defenseTime) ?? TimeOfDay.now()
             : TimeOfDay.now();
 
+        // Controllers for the lead panel and panel members
+        final TextEditingController leadPanelController =
+            TextEditingController(text: defense.leadPanel);
+        final List<TextEditingController> panelMemberControllers =
+            List.generate(4, (index) {
+          return TextEditingController(
+            text: index < defense.panelMembers.length
+                ? defense.panelMembers[index]
+                : "",
+          );
+        });
+
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
@@ -1523,6 +1536,48 @@ class _MainViewState extends State<Gscscreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    TextButton(
+                      child: Text('See student profile'),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        Student? student = studentList.firstWhere((student) =>
+                            student.idnumber.toString() == defense.idNumber);
+                        late DeviatedStudent devStudent;
+                        bool isStudentDeviated = false;
+                        for (DeviatedStudent devstudent
+                            in deviatedStudentList) {
+                          if (devstudent.studentPOS.idnumber ==
+                              student.idnumber) {
+                            devStudent = devstudent;
+                            isStudentDeviated = true;
+                          }
+                        }
+
+                        if (isStudentDeviated) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => DeviatedInfoPage(
+                                student: devStudent,
+                                studentpos: studentPOS,
+                                en19: defense,
+                              ),
+                            ),
+                          );
+                        } else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => StudentInfoPage(
+                                student: student,
+                                studentpos: studentPOS,
+                                en19: defense,
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                    ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -1607,23 +1662,173 @@ class _MainViewState extends State<Gscscreen> {
                     SizedBox(height: 10),
                     Row(
                       children: [
-                        Icon(Icons.people), // Icon for leadPanel
-                        SizedBox(width: 5),
-                        Text('Lead Panel: ${defense.leadPanel}'),
+                        Expanded(
+                          child: TextField(
+                            controller: leadPanelController,
+                            decoration: InputDecoration(
+                              labelText: 'Lead Panel',
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                     SizedBox(height: 10),
-                    Row(
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Panel Members:'),
+                        Text(
+                          'Panel Members:',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(height: 5),
+                        for (int i = 0; i < 4; i++)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4.0),
+                            child: TextField(
+                              controller: panelMemberControllers[i],
+                              decoration: InputDecoration(
+                                  labelText: 'Panel Member ${i + 1}'),
+                            ),
+                          ),
+                      ],
+                    ),
+                    SizedBox(height: 10),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Defense Files:'),
                         SizedBox(width: 5),
-                        // Icon for panelMembers (if more than 1)
-                        defense.panelMembers.length > 1
-                            ? Icon(Icons.people)
-                            : SizedBox(width: 24),
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            TextButton(
+                              onPressed: () async {
+                                try {
+                                  String fileName =
+                                      '${defense.idNumber}/Defense Forms/EN-18DefenseForm_${defense.idNumber}.pdf';
+                                  final imageUrl = await FirebaseStorage
+                                      .instance
+                                      .ref()
+                                      .child(fileName)
+                                      .getDownloadURL();
+                                  if (await canLaunch(imageUrl.toString())) {
+                                    await launch(imageUrl.toString());
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content:
+                                            Text('Failed to download file'),
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('File does not exist'),
+                                    ),
+                                  );
+                                }
+                              },
+                              child: Row(
+                                children: [
+                                  Icon(Icons.file_download),
+                                  SizedBox(
+                                      width:
+                                          8), // Add some space between the icon and the text
+                                  Text('Download EN-18 Defense Form'),
+                                ],
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                try {
+                                  FilePickerResult? result =
+                                      await FilePicker.platform.pickFiles();
+
+                                  PlatformFile file = result!.files.first;
+                                  String fileName =
+                                      '${defense.idNumber}/Defense Forms/EN-18DefenseForm_${defense.idNumber}.pdf';
+                                  Uint8List fileBytes = file.bytes!;
+
+                                  final ref = FirebaseStorage.instance
+                                      .ref()
+                                      .child(fileName);
+
+                                  await ref.putData(fileBytes);
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('File does not exist'),
+                                    ),
+                                  );
+                                }
+                              },
+                              child: Row(
+                                children: [
+                                  Icon(Icons.file_download),
+                                  SizedBox(
+                                      width:
+                                          8), // Add some space between the icon and the text
+                                  Text('Upload EN-18 Defense Form'),
+                                ],
+                              ),
+                            ),
+                          ],
+                        )
+                      ],
+                    ),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Panel Report:'),
                         SizedBox(width: 5),
-                        // Text for panelMembers (if any)
-                        Text(defense.panelMembers.join("\n")),
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            TextButton(
+                              onPressed: () async {
+                                try {
+                                  String fileName =
+                                      '${defense.idNumber}/Defense Forms/Form-R_23_${defense.idNumber}.pdf';
+                                  final imageUrl = await FirebaseStorage
+                                      .instance
+                                      .ref()
+                                      .child(fileName)
+                                      .getDownloadURL();
+                                  if (await canLaunch(imageUrl.toString())) {
+                                    await launch(imageUrl.toString());
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content:
+                                            Text('Failed to download file'),
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('File does not exist'),
+                                    ),
+                                  );
+                                }
+                              },
+                              child: Row(
+                                children: [
+                                  Icon(Icons.file_download),
+                                  SizedBox(
+                                      width:
+                                          8), // Add some space between the icon and the text
+                                  Text('Download Panel Report'),
+                                ],
+                              ),
+                            ),
+                          ],
+                        )
                       ],
                     ),
                   ],
@@ -1635,43 +1840,30 @@ class _MainViewState extends State<Gscscreen> {
                   onPressed: () => Navigator.of(context).pop(),
                 ),
                 TextButton(
-                  child: Text('See student profile'),
-                  onPressed: () {
+                  child: Text('Save'),
+                  onPressed: () async {
+                    setState(() {
+                      defense.leadPanel = leadPanelController.text;
+                      defense.panelMembers = panelMemberControllers
+                          .map((controller) =>
+                              controller.text.isEmpty ? " " : controller.text)
+                          .toList();
+                    });
+                    String uid = studentList
+                        .firstWhere((student) =>
+                            student.idnumber.toString() == defense.idNumber)
+                        .uid;
+                    try {
+                      await FirebaseFirestore.instance
+                          .collection('defenseInformation')
+                          .doc(uid)
+                          .set(defense
+                              .toMap()); // Assuming `defense.toMap()` correctly converts the object to a map for Firestore
+                      print('Form saved successfully');
+                    } catch (e) {
+                      print('Error saving form: $e');
+                    }
                     Navigator.of(context).pop();
-                    Student? student = studentList.firstWhere((student) =>
-                        student.idnumber.toString() == defense.idNumber);
-                    late DeviatedStudent devStudent;
-                    bool isStudentDeviated = false;
-                    for (DeviatedStudent devstudent in deviatedStudentList) {
-                      if (devstudent.studentPOS.idnumber == student.idnumber) {
-                        devStudent = devstudent;
-                        isStudentDeviated = true;
-                      }
-                    }
-
-                    if (isStudentDeviated) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => DeviatedInfoPage(
-                            student: devStudent,
-                            studentpos: studentPOS,
-                            en19: defense,
-                          ),
-                        ),
-                      );
-                    } else {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => StudentInfoPage(
-                            student: student,
-                            studentpos: studentPOS,
-                            en19: defense,
-                          ),
-                        ),
-                      );
-                    }
                   },
                 ),
               ],
@@ -1802,7 +1994,9 @@ class _MainViewState extends State<Gscscreen> {
                                         fontWeight: FontWeight.bold,
                                       )),
                                 ),
-                                SizedBox(width: 20,),
+                                SizedBox(
+                                  width: 20,
+                                ),
                                 Row(
                                   children: [
                                     Text(
@@ -2977,7 +3171,7 @@ class _MainViewState extends State<Gscscreen> {
                     Padding(
                       padding: const EdgeInsets.all(8.0),
                       child: Text(
-                        'Finished Defenses (Submit a panel report)',
+                        'Finished Defenses',
                         style: TextStyle(
                           color: Colors.black,
                           fontWeight: FontWeight.bold,
@@ -3197,7 +3391,6 @@ class _MainViewState extends State<Gscscreen> {
           children: [Text("Inbox")]),*/
       LaunchGMail(),
 
-          
       SingleChildScrollView(
           physics:
               BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
@@ -3484,75 +3677,67 @@ class _MainViewState extends State<Gscscreen> {
                   label: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  
                   // DLSU GMail Hyperlink
                   Row(
-                    mainAxisSize: MainAxisSize.max,
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: <Widget>[
-                          Link(
-                            target: LinkTarget.blank,
-                            uri: Uri.parse('https://mail.google.com/a/dlsu.edu.ph'),
-                            builder: (context, followLink) => ElevatedButton.icon
-                              (
-                                onPressed: followLink, 
-
-                                icon: Icon(
-                                  Icons.open_in_new,
+                      mainAxisSize: MainAxisSize.max,
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: <Widget>[
+                        Link(
+                          target: LinkTarget.blank,
+                          uri: Uri.parse(
+                              'https://mail.google.com/a/dlsu.edu.ph'),
+                          builder: (context, followLink) => ElevatedButton.icon(
+                            onPressed: followLink,
+                            icon: Icon(Icons.open_in_new,
+                                color: Color.fromARGB(255, 255, 255, 255)),
+                            label: Text(
+                              'DLSU GMail',
+                              style: TextStyle(
                                   color: Color.fromARGB(255, 255, 255, 255)),
-
-                                label: Text(
-                                  'DLSU GMail',
-                                  style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)),),
-                                  
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Color.fromARGB(255, 16, 97, 0),
-
-                              ),
-
-                                
                             ),
-                          )
-                        ]
-                    ),
-
-
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color.fromARGB(255, 16, 97, 0),
+                            ),
+                          ),
+                        )
+                      ]),
 
                   // Log Out Button
                   Row(
-                    mainAxisSize: MainAxisSize.max,
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: <Widget>[
-                          ElevatedButton.icon(
-                            icon: Icon(
-                              Icons.logout,
-                              color: Color.fromARGB(255, 255, 255, 255),
-                            ),
-                            label: Text(
-                              'Log Out',
-                              style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Color.fromARGB(255, 172, 31, 31),
-                            ),
-                            onPressed: () {
-                              users.clear();
-                              courses.clear();
-                              activecourses.clear();
-                              studentList.clear();
-
-                              correctCreds = false;
-                              foundCourse.clear();
-                              wrongCreds = false;
-                              enrolledStudent.clear();
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => LoginPage()),
-                              );
-                            },
+                      mainAxisSize: MainAxisSize.max,
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: <Widget>[
+                        ElevatedButton.icon(
+                          icon: Icon(
+                            Icons.logout,
+                            color: Color.fromARGB(255, 255, 255, 255),
                           ),
-                        ]
-                    )
+                          label: Text(
+                            'Log Out',
+                            style: TextStyle(
+                                color: Color.fromARGB(255, 255, 255, 255)),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color.fromARGB(255, 172, 31, 31),
+                          ),
+                          onPressed: () {
+                            users.clear();
+                            courses.clear();
+                            activecourses.clear();
+                            studentList.clear();
+
+                            correctCreds = false;
+                            foundCourse.clear();
+                            wrongCreds = false;
+                            enrolledStudent.clear();
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => LoginPage()),
+                            );
+                          },
+                        ),
+                      ])
                 ],
               )),
               selectedIndex: selectedIndex,
