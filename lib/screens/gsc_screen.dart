@@ -3677,30 +3677,73 @@ class _MainViewState extends State<Gscscreen> {
                   label: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+
+                  // DLSU GCal Hyperlink
+                  Row(
+                    mainAxisSize: MainAxisSize.max,
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    
+                    children: <Widget>[
+                          Link(
+                            target: LinkTarget.blank,
+                            uri: Uri.parse('https://calendar.google.com/a/dlsu.edu.ph'),
+                            builder: (context, followLink) => ElevatedButton.icon
+                              (
+                                onPressed: followLink, 
+
+                                icon: Icon(
+                                  Icons.open_in_new,
+                                  color: Color.fromARGB(255, 255, 255, 255)),
+
+                                label: Text(
+                                  'Calendar',
+                                  style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)),),
+                                  
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Color.fromARGB(255, 16, 97, 0),
+
+                              ),
+
+                                
+                            ),
+                          )
+                      ]
+                    ),
+
+                  SizedBox(height:10),
+                  
                   // DLSU GMail Hyperlink
                   Row(
-                      mainAxisSize: MainAxisSize.max,
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: <Widget>[
-                        Link(
-                          target: LinkTarget.blank,
-                          uri: Uri.parse(
-                              'https://mail.google.com/a/dlsu.edu.ph'),
-                          builder: (context, followLink) => ElevatedButton.icon(
-                            onPressed: followLink,
-                            icon: Icon(Icons.open_in_new,
-                                color: Color.fromARGB(255, 255, 255, 255)),
-                            label: Text(
-                              'DLSU GMail',
-                              style: TextStyle(
+                    mainAxisSize: MainAxisSize.max,
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: <Widget>[
+                          Link(
+                            target: LinkTarget.blank,
+                            uri: Uri.parse('https://mail.google.com/a/dlsu.edu.ph'),
+                            builder: (context, followLink) => ElevatedButton.icon
+                              (
+                                onPressed: followLink, 
+
+                                icon: Icon(
+                                  Icons.open_in_new,
                                   color: Color.fromARGB(255, 255, 255, 255)),
+
+                                label: Text(
+                                  'DLSU GMail',
+                                  style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)),),
+                                  
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Color.fromARGB(255, 16, 97, 0),
+
+                              ),
+
+                                
                             ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Color.fromARGB(255, 16, 97, 0),
-                            ),
-                          ),
-                        )
-                      ]),
+                          )
+                        ]
+                    ),
+
+
 
                   // Log Out Button
                   Row(
