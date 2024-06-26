@@ -1489,7 +1489,7 @@ class _MainViewState extends State<Gscscreen> {
 
   DateTime currentDate = DateTime.now();
   void showDefenseDetailsDialog(BuildContext context, EN19Form defense) {
-     String selectedVerdict = ' ';
+     String selectedVerdict = defense.verdict;
 
     showDialog(
       context: context,
@@ -1656,12 +1656,12 @@ class _MainViewState extends State<Gscscreen> {
                               defense.verdict = selectedVerdict;
                             });
                           },
-                          items: [' ', 'Passed', 'Failed', 'Redefense']
+                          items: ['No verdict', 'Passed', 'Failed', 'Redefense']
                               .map<DropdownMenuItem<String>>((String value) {
                             return DropdownMenuItem<String>(
                               value: value,
                               child: Text(
-                                  value == ' ' ? 'Select a verdict' : value),
+                                  value == 'No verdict' ? 'Select a verdict' : value),
                             );
                           }).toList(),
                         ),

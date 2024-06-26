@@ -2612,7 +2612,7 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                         defenseTime: 'No time set',
                         mainTitle: _capitalize(mainTitleController.text),
                         defenseType: ' ',
-                        verdict: ' ',
+                        verdict : 'No verdict',
                       );
 
                       Navigator.of(context).pop();
@@ -3007,7 +3007,7 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                         defenseTime: 'No time set',
                         mainTitle: _capitalize(mainTitleController.text),
                         defenseType: selectedDefenseType,
-                        verdict: ' ',
+                        verdict : 'No verdict',
                       );
 
                       form.saveFormToFirestore(form, currentStudent!.uid);
