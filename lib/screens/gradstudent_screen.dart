@@ -517,8 +517,6 @@ bool hasSpecialChar(String password) {
   return specialCharRegex.hasMatch(password);
 }
 
-
-
 bool hasNumber(String password) {
   // Replace this with your logic to check if password has at least one number
   RegExp numberRegex = RegExp(r'\d');
@@ -2794,24 +2792,9 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'Verdict',
-                      style: TextStyle(fontSize: 15),
-                    ),
-                    DropdownButton<String>(
-                      value: selectedVerdict,
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          selectedVerdict = newValue!;
-                        });
-                      },
-                      items: [' ', 'Passed', 'Failed', 'Redefense']
-                          .map<DropdownMenuItem<String>>((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child:
-                              Text(value == ' ' ? 'Select a verdict' : value),
-                        );
-                      }).toList(),
+                      'Verdict: ${en19.verdict}',
+                      style:
+                          TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -3164,7 +3147,7 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                                   : null,
                         ),
                         IconButton(
-                          icon: Icon(Icons.file_upload),
+                          icon: Icon(Icons.attach_file),
                           onPressed: () async {
                             // Show the first dialog and wait until it is closed
                             await showEN19FormDialog(context);
@@ -3198,7 +3181,12 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                   ]),
                   DataRow(cells: [
                     DataCell(Text('Defense Form')),
-                    DataCell(Text('')),
+                    DataCell(
+                      Text(
+                        'Verdict: ${_retrievedForm!.verdict}',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
                     DataCell(Text('')),
                     DataCell(Row(
                       children: [
@@ -3224,20 +3212,11 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                           tooltip: 'Download EN-18 Defense Form',
                         ),
                         IconButton(
-                          icon: Icon(Icons.file_upload),
+                          icon: Icon(Icons.attach_file),
                           onPressed: () {
                             showDefenseFormDialog(context, _retrievedForm!);
                           },
-                          tooltip: 'Upload EN-18 Defenes Form',
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            showDefenseVerdictDialog(context, _retrievedForm!);
-                          },
-                          child: Text(
-                            'Add verdict',
-                            style: TextStyle(fontSize: 10),
-                          ),
+                          tooltip: 'Upload EN-18 Defense Form',
                         ),
                         TextButton(
                           onPressed: () async {
@@ -3262,6 +3241,7 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                             style: TextStyle(fontSize: 10),
                           ),
                         ),
+                      
                       ],
                     )),
                   ]),

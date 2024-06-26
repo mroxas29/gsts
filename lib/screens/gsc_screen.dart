@@ -1489,6 +1489,8 @@ class _MainViewState extends State<Gscscreen> {
 
   DateTime currentDate = DateTime.now();
   void showDefenseDetailsDialog(BuildContext context, EN19Form defense) {
+     String selectedVerdict = ' ';
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -1581,23 +1583,59 @@ class _MainViewState extends State<Gscscreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          defense.defenseDate != "No date set"
-                              ? dateController.text
-                              : 'No date set',
-                          style: TextStyle(
-                              color: defense.defenseDate != "No date set"
-                                  ? Colors.black
-                                  : Colors.grey),
+                                               TextButton(
+                          onPressed: () async {
+                            final DateTime? pickedDate = await showDatePicker(
+                              context: context,
+                              initialDate: defense.defenseDate != "No date set"
+                                  ? tryParseDate(defense.defenseDate) ??
+                                      DateTime.now()
+                                  : DateTime.now(),
+                              firstDate: DateTime(2000),
+                              lastDate: DateTime(2101),
+                            );
+                            if (pickedDate != null) {
+                              setState(() {
+                                dateController.text = DateFormat('MMMM d, yyyy')
+                                    .format(pickedDate);
+                                defense.defenseDate = DateFormat('MMMM d, yyyy')
+                                    .format(pickedDate);
+                              });
+                            }
+                          },
+                          child: Text(
+                            defense.defenseDate != "No date set"
+                                ? dateController.text
+                                : 'No date set',
+                            style: TextStyle(
+                                color: defense.defenseDate != "No date set"
+                                    ? Colors.black
+                                    : Colors.grey),
+                          ),
                         ),
-                        Text(
-                          defense.defenseTime == 'No time set'
-                              ? 'No time set'
-                              : selectedTime.format(context),
-                          style: TextStyle(
-                              color: defense.defenseTime != "No time set"
-                                  ? Colors.black
-                                  : Colors.grey),
+                        TextButton(
+                          onPressed: () async {
+                            final TimeOfDay? pickedTime = await showTimePicker(
+                              context: context,
+                              initialTime: selectedTime,
+                            );
+                            if (pickedTime != null) {
+                              setState(() {
+                                selectedTime = pickedTime;
+                                defense.defenseTime =
+                                    pickedTime.format(context);
+                              });
+                            }
+                          },
+                          child: Text(
+                            defense.defenseTime == 'No time set'
+                                ? 'No time set'
+                                : selectedTime.format(context),
+                            style: TextStyle(
+                                color: defense.defenseTime != "No time set"
+                                    ? Colors.black
+                                    : Colors.grey),
+                          ),
                         ),
                       ],
                     ),
@@ -1610,9 +1648,23 @@ class _MainViewState extends State<Gscscreen> {
                               fontWeight: FontWeight.bold, fontSize: 20),
                         ),
                         SizedBox(width: 5),
-                        Text(defense.verdict,
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 17)),
+                    DropdownButton<String>(
+                          value: selectedVerdict,
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              selectedVerdict = newValue!;
+                              defense.verdict = selectedVerdict;
+                            });
+                          },
+                          items: [' ', 'Passed', 'Failed', 'Redefense']
+                              .map<DropdownMenuItem<String>>((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(
+                                  value == ' ' ? 'Select a verdict' : value),
+                            );
+                          }).toList(),
+                        ),
                       ],
                     ),
                     SizedBox(height: 10),
@@ -1767,7 +1819,7 @@ class _MainViewState extends State<Gscscreen> {
                               },
                               child: Row(
                                 children: [
-                                  Icon(Icons.file_download),
+                                  Icon(Icons.upload),
                                   SizedBox(
                                       width:
                                           8), // Add some space between the icon and the text
@@ -3677,73 +3729,57 @@ class _MainViewState extends State<Gscscreen> {
                   label: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-
                   // DLSU GCal Hyperlink
                   Row(
-                    mainAxisSize: MainAxisSize.max,
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    
-                    children: <Widget>[
-                          Link(
-                            target: LinkTarget.blank,
-                            uri: Uri.parse('https://calendar.google.com/a/dlsu.edu.ph'),
-                            builder: (context, followLink) => ElevatedButton.icon
-                              (
-                                onPressed: followLink, 
-
-                                icon: Icon(
-                                  Icons.open_in_new,
+                      mainAxisSize: MainAxisSize.max,
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: <Widget>[
+                        Link(
+                          target: LinkTarget.blank,
+                          uri: Uri.parse(
+                              'https://calendar.google.com/a/dlsu.edu.ph'),
+                          builder: (context, followLink) => ElevatedButton.icon(
+                            onPressed: followLink,
+                            icon: Icon(Icons.open_in_new,
+                                color: Color.fromARGB(255, 255, 255, 255)),
+                            label: Text(
+                              'Calendar',
+                              style: TextStyle(
                                   color: Color.fromARGB(255, 255, 255, 255)),
-
-                                label: Text(
-                                  'Calendar',
-                                  style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)),),
-                                  
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Color.fromARGB(255, 16, 97, 0),
-
-                              ),
-
-                                
                             ),
-                          )
-                      ]
-                    ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color.fromARGB(255, 16, 97, 0),
+                            ),
+                          ),
+                        )
+                      ]),
 
-                  SizedBox(height:10),
-                  
+                  SizedBox(height: 10),
+
                   // DLSU GMail Hyperlink
                   Row(
-                    mainAxisSize: MainAxisSize.max,
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: <Widget>[
-                          Link(
-                            target: LinkTarget.blank,
-                            uri: Uri.parse('https://mail.google.com/a/dlsu.edu.ph'),
-                            builder: (context, followLink) => ElevatedButton.icon
-                              (
-                                onPressed: followLink, 
-
-                                icon: Icon(
-                                  Icons.open_in_new,
+                      mainAxisSize: MainAxisSize.max,
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: <Widget>[
+                        Link(
+                          target: LinkTarget.blank,
+                          uri: Uri.parse(
+                              'https://mail.google.com/a/dlsu.edu.ph'),
+                          builder: (context, followLink) => ElevatedButton.icon(
+                            onPressed: followLink,
+                            icon: Icon(Icons.open_in_new,
+                                color: Color.fromARGB(255, 255, 255, 255)),
+                            label: Text(
+                              'DLSU GMail',
+                              style: TextStyle(
                                   color: Color.fromARGB(255, 255, 255, 255)),
-
-                                label: Text(
-                                  'DLSU GMail',
-                                  style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)),),
-                                  
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Color.fromARGB(255, 16, 97, 0),
-
-                              ),
-
-                                
                             ),
-                          )
-                        ]
-                    ),
-
-
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color.fromARGB(255, 16, 97, 0),
+                            ),
+                          ),
+                        )
+                      ]),
 
                   // Log Out Button
                   Row(

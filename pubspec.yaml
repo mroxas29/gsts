@@ -40,6 +40,7 @@ dependencies:
   path_provider: ^2.1.2
   pdf: ^3.10.7
   provider: ^6.0.0
+  pspdfkit_flutter: ^3.11.0
   shared_preferences: ^2.1.1
   side_navigation: ^1.0.4
   syncfusion_flutter_calendar: 24.2.8
