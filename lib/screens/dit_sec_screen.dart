@@ -281,14 +281,26 @@ class _MainViewState extends State<DITSec> {
                               });
                             }
                           },
+                          style: TextButton.styleFrom(
+                            backgroundColor:
+                                defense.defenseDate != "No date set"
+                                    ? Colors.blue
+                                    : Colors.grey.shade300,
+                            padding: EdgeInsets.symmetric(
+                                vertical: 8.0, horizontal: 12.0),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(5.0),
+                            ),
+                          ),
                           child: Text(
                             defense.defenseDate != "No date set"
                                 ? dateController.text
                                 : 'No date set',
                             style: TextStyle(
-                                color: defense.defenseDate != "No date set"
-                                    ? Colors.black
-                                    : Colors.grey),
+                              color: defense.defenseDate != "No date set"
+                                  ? Colors.white
+                                  : Colors.black,
+                            ),
                           ),
                         ),
                         TextButton(
@@ -305,14 +317,26 @@ class _MainViewState extends State<DITSec> {
                               });
                             }
                           },
+                          style: TextButton.styleFrom(
+                            backgroundColor:
+                                defense.defenseTime != "No time set"
+                                    ? Colors.blue
+                                    : Colors.grey.shade300,
+                            padding: EdgeInsets.symmetric(
+                                vertical: 8.0, horizontal: 12.0),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(5.0),
+                            ),
+                          ),
                           child: Text(
                             defense.defenseTime == 'No time set'
                                 ? 'No time set'
                                 : selectedTime.format(context),
                             style: TextStyle(
-                                color: defense.defenseTime != "No time set"
-                                    ? Colors.black
-                                    : Colors.grey),
+                              color: defense.defenseTime != "No time set"
+                                  ? Colors.white
+                                  : Colors.black,
+                            ),
                           ),
                         ),
                       ],
@@ -447,36 +471,6 @@ class _MainViewState extends State<DITSec> {
                                 ],
                               ),
                             ),
-                            TextButton(
-                              onPressed: () async {
-                                FilePickerResult? result =
-                                    await FilePicker.platform.pickFiles();
-
-                                PlatformFile file = result!.files.first;
-                                String fileName =
-                                    '${defense.idNumber}/Defense Forms/EN-18DefenseForm_${defense.idNumber}.pdf';
-                                Uint8List fileBytes = file.bytes!;
-                                final ref = FirebaseStorage.instance
-                                    .ref()
-                                    .child(fileName);
-                                await ref.putData(fileBytes);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Uploaded successfully'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                              },
-                              child: Row(
-                                children: [
-                                  Icon(Icons.file_upload),
-                                  SizedBox(
-                                      width:
-                                          8), // Add some space between the icon and the text
-                                  Text('Upload updated Panel Chair Form'),
-                                ],
-                              ),
-                            ),
                           ],
                         )
                       ],
@@ -487,11 +481,13 @@ class _MainViewState extends State<DITSec> {
                       children: [
                         Text('Panel Report:'),
                         SizedBox(width: 5),
-                        Column(
+                        Row(
                           mainAxisAlignment: MainAxisAlignment.start,
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            TextButton(
+                            IconButton(
+                              icon:
+                                  Icon(Icons.file_download,),
                               onPressed: () async {
                                 try {
                                   String fileName =
@@ -519,17 +515,9 @@ class _MainViewState extends State<DITSec> {
                                   );
                                 }
                               },
-                              child: Row(
-                                children: [
-                                  Icon(Icons.file_download),
-                                  SizedBox(
-                                      width:
-                                          8), // Add some space between the icon and the text
-                                  Text('Download Panel Chair Report Form'),
-                                ],
-                              ),
                             ),
-                            TextButton(
+                            IconButton(
+                              icon: Icon(Icons.attach_file),
                               onPressed: () async {
                                 FilePickerResult? result =
                                     await FilePicker.platform.pickFiles();
@@ -545,23 +533,20 @@ class _MainViewState extends State<DITSec> {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text('Uploaded successfully'),
-                                    backgroundColor: Colors.red,
+                                    backgroundColor: Colors.green,
                                   ),
                                 );
                               },
-                              child: Row(
-                                children: [
-                                  Icon(Icons.file_upload),
-                                  SizedBox(
-                                      width:
-                                          8), // Add some space between the icon and the text
-                                  Text(
-                                      'Upload updated Panel Chair Report Form'),
-                                ],
-                              ),
+                            ),
+                            SizedBox(
+                                width:
+                                    8), // Add some space between the icons and the text
+                            Text(
+                              'Download/Upload Panel Chair Report Form',
+                              style: TextStyle(color: Colors.black),
                             ),
                           ],
-                        )
+                        ),
                       ],
                     )
                   ],

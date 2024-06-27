@@ -1208,7 +1208,25 @@ class _MainViewState extends State<Gscscreen> {
     });
   }
 
-  void changeScreen(int index) {
+  void changeScreen(int index) async {
+    if (index == 3) {
+      String url = 'https://calendar.google.com/a/dlsu.edu.ph';
+      if (await canLaunch(url)) {
+        launch(url, forceSafariVC: false, forceWebView: false);
+      } else {
+        throw 'Could not launch $url';
+      }
+    }
+
+    if (index == 4) {
+      String url = 'https://mail.google.com/a/dlsu.edu.ph';
+      if (await canLaunch(url)) {
+        launch(url, forceSafariVC: false, forceWebView: false);
+      } else {
+        throw 'Could not launch $url';
+      }
+    }
+
     setState(() {
       selectedIndex = index;
     });
@@ -1489,8 +1507,6 @@ class _MainViewState extends State<Gscscreen> {
 
   DateTime currentDate = DateTime.now();
   void showDefenseDetailsDialog(BuildContext context, EN19Form defense) {
-     String selectedVerdict = defense.verdict;
-
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -1583,7 +1599,7 @@ class _MainViewState extends State<Gscscreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                                               TextButton(
+                        TextButton(
                           onPressed: () async {
                             final DateTime? pickedDate = await showDatePicker(
                               context: context,
@@ -1603,14 +1619,26 @@ class _MainViewState extends State<Gscscreen> {
                               });
                             }
                           },
+                          style: TextButton.styleFrom(
+                            backgroundColor:
+                                defense.defenseDate != "No date set"
+                                    ? Colors.blue
+                                    : Colors.grey.shade300,
+                            padding: EdgeInsets.symmetric(
+                                vertical: 8.0, horizontal: 12.0),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(5.0),
+                            ),
+                          ),
                           child: Text(
                             defense.defenseDate != "No date set"
                                 ? dateController.text
                                 : 'No date set',
                             style: TextStyle(
-                                color: defense.defenseDate != "No date set"
-                                    ? Colors.black
-                                    : Colors.grey),
+                              color: defense.defenseDate != "No date set"
+                                  ? Colors.white
+                                  : Colors.black,
+                            ),
                           ),
                         ),
                         TextButton(
@@ -1627,14 +1655,26 @@ class _MainViewState extends State<Gscscreen> {
                               });
                             }
                           },
+                          style: TextButton.styleFrom(
+                            backgroundColor:
+                                defense.defenseTime != "No time set"
+                                    ? Colors.blue
+                                    : Colors.grey.shade300,
+                            padding: EdgeInsets.symmetric(
+                                vertical: 8.0, horizontal: 12.0),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(5.0),
+                            ),
+                          ),
                           child: Text(
                             defense.defenseTime == 'No time set'
                                 ? 'No time set'
                                 : selectedTime.format(context),
                             style: TextStyle(
-                                color: defense.defenseTime != "No time set"
-                                    ? Colors.black
-                                    : Colors.grey),
+                              color: defense.defenseTime != "No time set"
+                                  ? Colors.white
+                                  : Colors.black,
+                            ),
                           ),
                         ),
                       ],
@@ -1648,20 +1688,18 @@ class _MainViewState extends State<Gscscreen> {
                               fontWeight: FontWeight.bold, fontSize: 20),
                         ),
                         SizedBox(width: 5),
-                    DropdownButton<String>(
-                          value: selectedVerdict,
+                        DropdownButton<String>(
+                          value: defense.verdict,
                           onChanged: (String? newValue) {
                             setState(() {
-                              selectedVerdict = newValue!;
-                              defense.verdict = selectedVerdict;
+                              defense.verdict = newValue!;
                             });
                           },
                           items: ['No verdict', 'Passed', 'Failed', 'Redefense']
                               .map<DropdownMenuItem<String>>((String value) {
                             return DropdownMenuItem<String>(
                               value: value,
-                              child: Text(
-                                  value == 'No verdict' ? 'Select a verdict' : value),
+                              child: Text(value),
                             );
                           }).toList(),
                         ),
@@ -1712,6 +1750,105 @@ class _MainViewState extends State<Gscscreen> {
                       ],
                     ),
                     SizedBox(height: 10),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Defense Files:',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(width: 5),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                TextButton(
+                                  onPressed: () async {
+                                    try {
+                                      String fileName =
+                                          '${defense.idNumber}/Defense Forms/EN-18DefenseForm_${defense.idNumber}.pdf';
+                                      final imageUrl = await FirebaseStorage
+                                          .instance
+                                          .ref()
+                                          .child(fileName)
+                                          .getDownloadURL();
+                                      if (await canLaunch(
+                                          imageUrl.toString())) {
+                                        await launch(imageUrl.toString());
+                                      } else {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content:
+                                                Text('Failed to download file'),
+                                          ),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text('File does not exist'),
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.file_download),
+                                      SizedBox(
+                                          width:
+                                              8), // Add some space between the icon and the text
+                                      Text('Download EN-18 Defense Form'),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                String fileName =
+                                    '${defense.idNumber}/Defense Forms/Official_Receipt_${defense.lastName}_${defense.firstName}.pdf';
+                                try {
+                                  final imageUrl = await FirebaseStorage
+                                      .instance
+                                      .ref()
+                                      .child(fileName)
+                                      .getDownloadURL();
+                                  if (await canLaunch(imageUrl.toString())) {
+                                    await launch(imageUrl.toString());
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content:
+                                            Text('Failed to download file'),
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('File does not exist'),
+                                    ),
+                                  );
+                                }
+                              },
+                              child: Text(
+                                'Download official receipt',
+                                style: TextStyle(fontSize: 10),
+                              ),
+                            ),
+                          ],
+                        )
+                      ],
+                    ),
+                    SizedBox(
+                      height: 10,
+                    ),
                     Row(
                       children: [
                         Expanded(
@@ -1745,92 +1882,6 @@ class _MainViewState extends State<Gscscreen> {
                       ],
                     ),
                     SizedBox(height: 10),
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Defense Files:'),
-                        SizedBox(width: 5),
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            TextButton(
-                              onPressed: () async {
-                                try {
-                                  String fileName =
-                                      '${defense.idNumber}/Defense Forms/EN-18DefenseForm_${defense.idNumber}.pdf';
-                                  final imageUrl = await FirebaseStorage
-                                      .instance
-                                      .ref()
-                                      .child(fileName)
-                                      .getDownloadURL();
-                                  if (await canLaunch(imageUrl.toString())) {
-                                    await launch(imageUrl.toString());
-                                  } else {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content:
-                                            Text('Failed to download file'),
-                                      ),
-                                    );
-                                  }
-                                } catch (e) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('File does not exist'),
-                                    ),
-                                  );
-                                }
-                              },
-                              child: Row(
-                                children: [
-                                  Icon(Icons.file_download),
-                                  SizedBox(
-                                      width:
-                                          8), // Add some space between the icon and the text
-                                  Text('Download EN-18 Defense Form'),
-                                ],
-                              ),
-                            ),
-                            TextButton(
-                              onPressed: () async {
-                                try {
-                                  FilePickerResult? result =
-                                      await FilePicker.platform.pickFiles();
-
-                                  PlatformFile file = result!.files.first;
-                                  String fileName =
-                                      '${defense.idNumber}/Defense Forms/EN-18DefenseForm_${defense.idNumber}.pdf';
-                                  Uint8List fileBytes = file.bytes!;
-
-                                  final ref = FirebaseStorage.instance
-                                      .ref()
-                                      .child(fileName);
-
-                                  await ref.putData(fileBytes);
-                                } catch (e) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('File does not exist'),
-                                    ),
-                                  );
-                                }
-                              },
-                              child: Row(
-                                children: [
-                                  Icon(Icons.upload),
-                                  SizedBox(
-                                      width:
-                                          8), // Add some space between the icon and the text
-                                  Text('Upload EN-18 Defense Form'),
-                                ],
-                              ),
-                            ),
-                          ],
-                        )
-                      ],
-                    ),
                     Column(
                       mainAxisAlignment: MainAxisAlignment.start,
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -3441,8 +3492,7 @@ class _MainViewState extends State<Gscscreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [Text("Inbox")]),*/
-      LaunchGMail(),
-
+      Text("Opening Gmail in new tab"),
       SingleChildScrollView(
           physics:
               BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
@@ -3726,97 +3776,41 @@ class _MainViewState extends State<Gscscreen> {
                     ),
                   )),
               footer: SideNavigationBarFooter(
-                  label: Column(
+                  label: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // DLSU GCal Hyperlink
-                  Row(
-                      mainAxisSize: MainAxisSize.max,
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: <Widget>[
-                        Link(
-                          target: LinkTarget.blank,
-                          uri: Uri.parse(
-                              'https://calendar.google.com/a/dlsu.edu.ph'),
-                          builder: (context, followLink) => ElevatedButton.icon(
-                            onPressed: followLink,
-                            icon: Icon(Icons.open_in_new,
-                                color: Color.fromARGB(255, 255, 255, 255)),
-                            label: Text(
-                              'Calendar',
-                              style: TextStyle(
-                                  color: Color.fromARGB(255, 255, 255, 255)),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Color.fromARGB(255, 16, 97, 0),
-                            ),
-                          ),
-                        )
-                      ]),
-
-                  SizedBox(height: 10),
-
-                  // DLSU GMail Hyperlink
-                  Row(
-                      mainAxisSize: MainAxisSize.max,
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: <Widget>[
-                        Link(
-                          target: LinkTarget.blank,
-                          uri: Uri.parse(
-                              'https://mail.google.com/a/dlsu.edu.ph'),
-                          builder: (context, followLink) => ElevatedButton.icon(
-                            onPressed: followLink,
-                            icon: Icon(Icons.open_in_new,
-                                color: Color.fromARGB(255, 255, 255, 255)),
-                            label: Text(
-                              'DLSU GMail',
-                              style: TextStyle(
-                                  color: Color.fromARGB(255, 255, 255, 255)),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Color.fromARGB(255, 16, 97, 0),
-                            ),
-                          ),
-                        )
-                      ]),
-
-                  // Log Out Button
-                  Row(
-                      mainAxisSize: MainAxisSize.max,
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: <Widget>[
-                        ElevatedButton.icon(
-                          icon: Icon(
-                            Icons.logout,
-                            color: Color.fromARGB(255, 255, 255, 255),
-                          ),
-                          label: Text(
-                            'Log Out',
-                            style: TextStyle(
-                                color: Color.fromARGB(255, 255, 255, 255)),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Color.fromARGB(255, 172, 31, 31),
-                          ),
-                          onPressed: () {
-                            users.clear();
-                            courses.clear();
-                            activecourses.clear();
-                            studentList.clear();
-
-                            correctCreds = false;
-                            foundCourse.clear();
-                            wrongCreds = false;
-                            enrolledStudent.clear();
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => LoginPage()),
-                            );
-                          },
-                        ),
-                      ])
+                  ElevatedButton.icon(
+                    icon: Icon(
+                      Icons.logout,
+                      color: Color(0xFF747475),
+                    ),
+                    label: Text(
+                      'Log Out',
+                      style: TextStyle(color: Color(0xFF747475)),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                    ),
+                    onPressed: () {
+                      courses.clear();
+                      studentList.clear();
+                      activecourses.clear();
+                      currentStudent!.uid = '';
+                      currentStudent!.enrolledCourses.clear();
+                      currentStudent!.pastCourses.clear();
+                      setState(() {
+                        studentPOSDefault();
+                      });
+                      wrongCreds = false;
+                      // studentPOS = null;
+                      correctCreds = false;
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => LoginPage()), //Leave Page
+                      );
+                    },
+                  ),
                 ],
               )),
               selectedIndex: selectedIndex,

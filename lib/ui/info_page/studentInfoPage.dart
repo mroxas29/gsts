@@ -648,7 +648,7 @@ class StudentInfoPageState extends State<StudentInfoPage>
     String fileName =
         '${widget.student.idnumber}/Defense Forms/EN-19Form_${widget.student.idnumber}.pdf';
 
-          try {
+    try {
       final imageUrl =
           await FirebaseStorage.instance.ref().child(fileName).getDownloadURL();
       if (await canLaunch(imageUrl.toString())) {
@@ -684,175 +684,6 @@ class StudentInfoPageState extends State<StudentInfoPage>
     final ref = FirebaseStorage.instance.ref().child(fileName);
     await ref.putData(data);
     print('Generated PDF uploaded successfully');
-  }
-
-  Future<void> modifyDefenseForm(BuildContext context) async {
-    // First dialog to confirm review
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Review Document'),
-          content: Text('Have you reviewed the document?'),
-          actions: [
-            TextButton(
-              child: Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: Text('Proceed'),
-              onPressed: () {
-                Navigator.of(context).pop();
-                // Show second dialog for checkboxes
-                showDialog(
-                  context: context,
-                  builder: (BuildContext context) {
-                    final TextEditingController leadPanelController =
-                        TextEditingController();
-                    final TextEditingController panelMember1Controller =
-                        TextEditingController();
-                    final TextEditingController panelMember2Controller =
-                        TextEditingController();
-                    final TextEditingController panelMember3Controller =
-                        TextEditingController();
-                    final TextEditingController panelMember4Controller =
-                        TextEditingController();
-
-                    return StatefulBuilder(
-                      builder: (BuildContext context, StateSetter setState) {
-                        return AlertDialog(
-                          title: Text('Assign panelists'),
-                          content: SingleChildScrollView(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SizedBox(height: 10),
-                                Text(
-                                  'Lead Panel: ',
-                                  style: TextStyle(fontSize: 15),
-                                ),
-                                TextField(
-                                  controller: leadPanelController,
-                                  decoration: InputDecoration(
-                                      hintText: 'Enter lead panel name'),
-                                ),
-                                SizedBox(height: 10),
-                                Text(
-                                  'Panel Members',
-                                  style: TextStyle(fontSize: 15),
-                                ),
-                                TextField(
-                                  controller: panelMember1Controller,
-                                  decoration: InputDecoration(
-                                      hintText: 'Enter panel member 1 name'),
-                                ),
-                                TextField(
-                                  controller: panelMember2Controller,
-                                  decoration: InputDecoration(
-                                      hintText: 'Enter panel member 2 name'),
-                                ),
-                                TextField(
-                                  controller: panelMember3Controller,
-                                  decoration: InputDecoration(
-                                      hintText: 'Enter panel member 3 name'),
-                                ),
-                                TextField(
-                                  controller: panelMember4Controller,
-                                  decoration: InputDecoration(
-                                      hintText: 'Enter panel member 4 name'),
-                                ),
-                              ],
-                            ),
-                          ),
-                          actions: [
-                            TextButton(
-                              child: Text('Cancel'),
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                              },
-                            ),
-                            TextButton(
-                              child: Text('Submit'),
-                              onPressed: () async {
-                                // Handle the submission of the evaluation here
-                                EN19Form form = EN19Form(
-                                  proposedTitle: widget.en19!.proposedTitle,
-                                  lastName: _capitalize(
-                                      widget.student.displayname['lastname']!),
-                                  firstName: _capitalize(
-                                      widget.student.displayname['firstname']!),
-                                  middleName: '',
-                                  idNumber: widget.student.idnumber.toString(),
-                                  college: 'Computer Studies',
-                                  program: widget.student.degree,
-                                  passedComprehensiveExams:
-                                      widget.en19!.passedComprehensiveExams,
-                                  submittedCertificate:
-                                      widget.en19!.submittedCertificate,
-                                  adviserName: widget.en19!.adviserName,
-                                  enrollmentStage: widget.en19!.enrollmentStage,
-                                  date: DateTime.now(),
-                                  leadPanel: leadPanelController.text.isEmpty
-                                      ? 'No lead panel assigned'
-                                      : leadPanelController.text,
-                                  panelMembers: [
-                                    panelMember1Controller.text.isEmpty
-                                        ? ' '
-                                        : panelMember1Controller.text,
-                                    panelMember2Controller.text.isEmpty
-                                        ? ' '
-                                        : panelMember2Controller.text,
-                                    panelMember3Controller.text.isEmpty
-                                        ? ' '
-                                        : panelMember3Controller.text,
-                                    panelMember4Controller.text.isEmpty
-                                        ? ' '
-                                        : panelMember4Controller.text,
-                                  ],
-                                  defenseDate: 'No date set',
-                                  signedByGSC: widget.en19!.signedByGSC,
-                                  signedByAdviser: widget.en19!.signedByAdviser,
-                                  defenseTime: 'No time set',
-                                  mainTitle: widget.en19!.mainTitle,
-                                  defenseType: widget.en19!.defenseType,
-                                  verdict: widget.en19!.verdict,
-                                );
-
-                                form.saveFormToFirestore(
-                                    form, widget.student.uid);
-                                FilePickerResult? result =
-                                    await FilePicker.platform.pickFiles();
-
-                                PlatformFile file = result!.files.first;
-                                String fileName =
-                                    '${widget.student!.idnumber}/Defense Forms/EN-18DefenseForm_${widget.student!.idnumber}.pdf';
-                                Uint8List fileBytes = file.bytes!;
-
-                                final ref = FirebaseStorage.instance
-                                    .ref()
-                                    .child(fileName);
-
-                                await ref.putData(fileBytes);
-                                Navigator.of(context).pop();
-                                // You can add further actions after submission here
-                              },
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  },
-                );
-              },
-            ),
-          ],
-        );
-      },
-    );
   }
 
   Future<void> retrieveEN19Form() async {
@@ -1676,7 +1507,7 @@ class StudentInfoPageState extends State<StudentInfoPage>
                               Column(
                                 children: [
                                   IconButton(
-                                    icon: Icon(Icons.file_upload),
+                                    icon: Icon(Icons.attach_file),
                                     onPressed: uploadEN19File,
                                     tooltip:
                                         'Upload EN-19 Form, make sure that the uploaded EN-19 form is signed',
@@ -1695,54 +1526,47 @@ class StudentInfoPageState extends State<StudentInfoPage>
                             ],
                           )),
                         ]),
-                        DataRow(cells: [
-                          DataCell(
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text('Defense Form'),
-                                Text(
-                                  'Verdict: ${widget.en19!.verdict}',
-                                  style: TextStyle(
-                                    color: () {
-                                      switch (
-                                          widget.en19!.verdict.toLowerCase()) {
-                                        case 'passed':
-                                          return Colors.green;
-                                        case 'failed':
-                                          return Colors.red;
-                                        case 'redefense':
-                                          return Colors.orange;
-                                        default:
-                                          return Colors.black;
-                                      }
-                                    }(),
+                        DataRow(
+                          cells: [
+                            //Title Cell
+                            DataCell(
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Defense Form',
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.bold),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          DataCell(Text('')),
-                          DataCell(Text(widget.en19!.adviserName)),
-                          DataCell(Text(widget.en19!.leadPanel)),
-                          DataCell(Text('')),
-                          DataCell(Text('')),
-                          DataCell(Row(
-                            children: [
-                              IconButton(
-                                icon: Icon(Icons.file_upload),
-                                onPressed: () {
-                                  modifyDefenseForm(context);
-                                },
-                                tooltip: 'Upload EN-18 Defense Form',
+                                  Text(
+                                    'Verdict: ${widget.en19!.verdict}',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: () {
+                                        switch (widget.en19!.verdict
+                                            .toLowerCase()) {
+                                          case 'passed':
+                                            return Colors.green;
+                                          case 'failed':
+                                            return Colors.red;
+                                          case 'redefense':
+                                            return Colors.orange;
+                                          default:
+                                            return const Color.fromARGB(
+                                                77, 0, 0, 0);
+                                        }
+                                      }(),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              IconButton(
-                                icon: Icon(Icons.download),
-                                tooltip: 'Download EN-18 Defense Form',
+                            ),
+                            DataCell(
+                              TextButton(
                                 onPressed: () async {
                                   String fileName =
-                                      '${widget.student!.idnumber}/Defense Forms/EN-18DefenseForm_${widget.student!.idnumber}.pdf';
+                                      '${widget.student.idnumber}/Defense Forms/Official_Receipt_${widget.student.displayname['lastname']}_${widget.student.displayname['firstname']}.pdf';
                                   try {
                                     final imageUrl = await FirebaseStorage
                                         .instance
@@ -1768,10 +1592,95 @@ class StudentInfoPageState extends State<StudentInfoPage>
                                     );
                                   }
                                 },
-                              )
-                            ],
-                          )),
-                        ]),
+                                child: Text(
+                                  'Download official receipt',
+                                  style: TextStyle(fontSize: 10),
+                                ),
+                              ),
+                            ),
+                            //Receipt Cell
+                            DataCell(
+                              Text(''),
+                            ),
+                            DataCell(Text('')),
+                            DataCell(Text('')),
+                            DataCell(Text('')),
+                            DataCell(Row(
+                              children: [
+                                IconButton(
+                                  icon: Icon(Icons.file_download),
+                                  onPressed: () async {
+                                    String fileName =
+                                        '${widget.student!.idnumber}/Defense Forms/EN-18DefenseForm_${widget.student!.idnumber}.pdf';
+                                    try {
+                                      final imageUrl = await FirebaseStorage
+                                          .instance
+                                          .ref()
+                                          .child(fileName)
+                                          .getDownloadURL();
+                                      if (await canLaunch(
+                                          imageUrl.toString())) {
+                                        await launch(imageUrl.toString());
+                                      } else {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content:
+                                                Text('Failed to download file'),
+                                          ),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text('File does not exist'),
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  tooltip: 'Download EN-18 Defense Form',
+                                ),
+                                TextButton(
+                                  onPressed: () async {
+                                    String fileName =
+                                        'templates/EN-18-201904 Defense Form.pdf';
+                                    try {
+                                      final imageUrl = await FirebaseStorage
+                                          .instance
+                                          .ref()
+                                          .child(fileName)
+                                          .getDownloadURL();
+                                      if (await canLaunch(
+                                          imageUrl.toString())) {
+                                        await launch(imageUrl.toString());
+                                      } else {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content:
+                                                Text('Failed to download file'),
+                                          ),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text('File does not exist'),
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  child: Text(
+                                    'Download EN-18 Template',
+                                    style: TextStyle(fontSize: 10),
+                                  ),
+                                ),
+                              ],
+                            )),
+                          ],
+                        ),
                       ],
                     ),
                   ],

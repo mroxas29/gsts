@@ -2218,6 +2218,24 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
     ];
 
     List<DataRow> rows = [];
+    Future<void> uploadOfficialReceipt() async {
+      FilePickerResult? result = await FilePicker.platform.pickFiles();
+      if (result != null) {
+        PlatformFile file = result.files.first;
+        String fileName =
+            '${currentStudent!.idnumber}/Defense Forms/Official_Receipt_${currentStudent!.displayname['lastname']}_${currentStudent!.displayname['firstname']}.pdf';
+
+        Uint8List fileBytes = file.bytes!;
+        final ref = FirebaseStorage.instance.ref().child(fileName);
+        await ref.putData(fileBytes);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Official Receipt successfully uploaded'),
+          ),
+        );
+      }
+    }
 
     Future<void> uploadDocFile(String coursecode) async {
       if (currentStudent!.enrolledCourses
@@ -2612,7 +2630,7 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                         defenseTime: 'No time set',
                         mainTitle: _capitalize(mainTitleController.text),
                         defenseType: ' ',
-                        verdict : 'No verdict',
+                        verdict: 'No verdict',
                       );
 
                       Navigator.of(context).pop();
@@ -2886,9 +2904,18 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
       );
     }
 
-    void showDefenseFormDialog(BuildContext context, EN19Form en19) {
+    Future<void> modifyDefenseForm(BuildContext context, EN19Form en19) async {
       String selectedDefenseType = 'Proposal Defense';
       final TextEditingController mainTitleController = TextEditingController();
+      final TextEditingController leadPanelController = TextEditingController();
+      final TextEditingController panelMember1Controller =
+          TextEditingController();
+      final TextEditingController panelMember2Controller =
+          TextEditingController();
+      final TextEditingController panelMember3Controller =
+          TextEditingController();
+      final TextEditingController panelMember4Controller =
+          TextEditingController();
       bool isMainTitleEmpty = false;
 
       showDialog(
@@ -2897,56 +2924,109 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
           return StatefulBuilder(
             builder: (context, setState) {
               return AlertDialog(
-                title: Text('Fill Defense Form'),
+                title: Text('Fill Defense Form and input panelists'),
                 content: SingleChildScrollView(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      SizedBox(
-                        height: 10,
-                      ),
-                      Text(
-                        'Type of Defense',
-                        style: TextStyle(fontSize: 15),
-                      ),
-                      DropdownButton<String>(
-                        value: selectedDefenseType,
-                        onChanged: (String? newValue) {
-                          setState(() {
-                            selectedDefenseType = newValue!;
-                          });
-                        },
-                        items: [
-                          'Proposal Defense',
-                          'Final Defense',
-                          'Defense without Proposal'
-                        ].map<DropdownMenuItem<String>>((String value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
-                          );
-                        }).toList(),
-                      ),
-                      SizedBox(
-                        height: 10,
-                      ),
-                      Text(
-                        'Title',
-                        style: TextStyle(fontSize: 15),
-                      ),
+                      // First row for filling defense form
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(
-                            child: TextField(
-                              controller: mainTitleController,
-                              decoration: InputDecoration(
-                                  hintText: en19.mainTitle,
-                                  errorText: isMainTitleEmpty
-                                      ? 'This is a required field'
-                                      : null),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SizedBox(height: 10),
+                                Text(
+                                  'Type of Defense',
+                                  style: TextStyle(fontSize: 15),
+                                ),
+                                DropdownButton<String>(
+                                  value: selectedDefenseType,
+                                  onChanged: (String? newValue) {
+                                    setState(() {
+                                      selectedDefenseType = newValue!;
+                                    });
+                                  },
+                                  items: [
+                                    'Proposal Defense',
+                                    'Final Defense',
+                                    'Defense without Proposal'
+                                  ].map<DropdownMenuItem<String>>(
+                                      (String value) {
+                                    return DropdownMenuItem<String>(
+                                      value: value,
+                                      child: Text(value),
+                                    );
+                                  }).toList(),
+                                ),
+                                SizedBox(height: 10),
+                                Text(
+                                  'Title',
+                                  style: TextStyle(fontSize: 15),
+                                ),
+                                TextField(
+                                  controller: mainTitleController,
+                                  decoration: InputDecoration(
+                                    hintText: en19.mainTitle,
+                                    errorText: isMainTitleEmpty
+                                        ? 'This is a required field'
+                                        : null,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 20),
+                      // Second row for assigning panelists
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SizedBox(height: 10),
+                                Text(
+                                  'Lead Panel: ',
+                                  style: TextStyle(fontSize: 15),
+                                ),
+                                TextField(
+                                  controller: leadPanelController,
+                                  decoration: InputDecoration(
+                                    hintText: 'Enter lead panel name',
+                                  ),
+                                ),
+                                SizedBox(height: 10),
+                                Text(
+                                  'Panel Members',
+                                  style: TextStyle(fontSize: 15),
+                                ),
+                                TextField(
+                                  controller: panelMember1Controller,
+                                  decoration: InputDecoration(
+                                    hintText: 'Enter panel member 1 name',
+                                  ),
+                                ),
+                                TextField(
+                                  controller: panelMember2Controller,
+                                  decoration: InputDecoration(
+                                    hintText: 'Enter panel member 2 name',
+                                  ),
+                                ),
+                                TextField(
+                                  controller: panelMember3Controller,
+                                  decoration: InputDecoration(
+                                    hintText: 'Enter panel member 3 name',
+                                  ),
+                                ),
+                                TextField(
+                                  controller: panelMember4Controller,
+                                  decoration: InputDecoration(
+                                    hintText: 'Enter panel member 4 name',
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -2974,45 +3054,62 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                       FilePickerResult? result =
                           await FilePicker.platform.pickFiles();
 
-                      PlatformFile file = result!.files.first;
-                      String fileName =
-                          '${currentStudent!.idnumber}/Defense Forms/EN-18DefenseForm_${currentStudent!.idnumber}.pdf';
+                      if (result != null) {
+                        PlatformFile file = result.files.first;
+                        String fileName =
+                            '${en19.idNumber}/Defense Forms/EN-18DefenseForm_${en19.idNumber}.pdf';
 
-                      Uint8List fileBytes = file.bytes!;
-                      final ref =
-                          FirebaseStorage.instance.ref().child(fileName);
-                      await ref.putData(fileBytes);
+                        Uint8List fileBytes = file.bytes!;
+                        final ref =
+                            FirebaseStorage.instance.ref().child(fileName);
+                        await ref.putData(fileBytes);
 
-                      // Create EN19Form object
-                      EN19Form form = EN19Form(
-                        proposedTitle: en19.proposedTitle,
-                        lastName: _capitalize(
-                            currentStudent!.displayname['lastname']!),
-                        firstName: _capitalize(
-                            currentStudent!.displayname['firstname']!),
-                        middleName: '',
-                        idNumber: currentStudent!.idnumber.toString(),
-                        college: 'Computer Studies',
-                        program: currentStudent!.degree,
-                        passedComprehensiveExams: en19.passedComprehensiveExams,
-                        submittedCertificate: en19.submittedCertificate,
-                        adviserName: en19.adviserName, // Adjust if necessary
-                        enrollmentStage: en19.enrollmentStage,
-                        date: DateTime.now(),
-                        leadPanel: en19.leadPanel,
-                        panelMembers: en19.panelMembers,
-                        defenseDate: 'No date set',
-                        signedByGSC: en19.signedByGSC,
-                        signedByAdviser: en19.signedByAdviser,
-                        defenseTime: 'No time set',
-                        mainTitle: _capitalize(mainTitleController.text),
-                        defenseType: selectedDefenseType,
-                        verdict : 'No verdict',
-                      );
+                        EN19Form form = EN19Form(
+                          proposedTitle: en19.proposedTitle,
+                          lastName: _capitalize(
+                              currentStudent!.displayname['lastname']!),
+                          firstName: _capitalize(
+                              currentStudent!.displayname['firstname']!),
+                          middleName: '',
+                          idNumber: currentStudent!.idnumber.toString(),
+                          college: 'Computer Studies',
+                          program: currentStudent!.degree,
+                          passedComprehensiveExams:
+                              en19.passedComprehensiveExams,
+                          submittedCertificate: en19.submittedCertificate,
+                          adviserName: en19.adviserName,
+                          enrollmentStage: en19.enrollmentStage,
+                          date: DateTime.now(),
+                          leadPanel: leadPanelController.text.isEmpty
+                              ? 'No lead panel assigned'
+                              : leadPanelController.text,
+                          panelMembers: [
+                            panelMember1Controller.text.isEmpty
+                                ? ' '
+                                : panelMember1Controller.text,
+                            panelMember2Controller.text.isEmpty
+                                ? ' '
+                                : panelMember2Controller.text,
+                            panelMember3Controller.text.isEmpty
+                                ? ' '
+                                : panelMember3Controller.text,
+                            panelMember4Controller.text.isEmpty
+                                ? ' '
+                                : panelMember4Controller.text,
+                          ],
+                          defenseDate: 'No date set',
+                          signedByGSC: en19.signedByGSC,
+                          signedByAdviser: en19.signedByAdviser,
+                          defenseTime: 'No time set',
+                          mainTitle: _capitalize(mainTitleController.text),
+                          defenseType: selectedDefenseType,
+                          verdict: 'No verdict',
+                        );
 
-                      form.saveFormToFirestore(form, currentStudent!.uid);
+                        form.saveFormToFirestore(form, currentStudent!.uid);
 
-                      Navigator.of(context).pop();
+                        Navigator.of(context).pop();
+                      }
                     },
                     child: Text('Submit'),
                   ),
@@ -3180,14 +3277,40 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                     )),
                   ]),
                   DataRow(cells: [
-                    DataCell(Text('Defense Form')),
+                    DataCell(Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Defense Form',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          'Verdict: ${_retrievedForm!.verdict}',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: _retrievedForm!.verdict == 'No verdict'
+                                  ? const Color.fromARGB(77, 0, 0, 0)
+                                  : _retrievedForm!.verdict == 'Failed'
+                                      ? Colors.red
+                                      : _retrievedForm!.verdict == 'Failed'
+                                          ? Colors.green
+                                          : const Color.fromARGB(77, 0, 0, 0)),
+                        ),
+                      ],
+                    )),
+                    DataCell(Text('')),
                     DataCell(
-                      Text(
-                        'Verdict: ${_retrievedForm!.verdict}',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                      TextButton(
+                        onPressed: () async {
+                          await uploadOfficialReceipt();
+                        },
+                        child: Text(
+                          'Upload official receipt',
+                          style: TextStyle(fontSize: 10),
+                        ),
                       ),
                     ),
-                    DataCell(Text('')),
                     DataCell(Row(
                       children: [
                         IconButton(
@@ -3213,8 +3336,8 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                         ),
                         IconButton(
                           icon: Icon(Icons.attach_file),
-                          onPressed: () {
-                            showDefenseFormDialog(context, _retrievedForm!);
+                          onPressed: () async {
+                            modifyDefenseForm(context, _retrievedForm!);
                           },
                           tooltip: 'Upload EN-18 Defense Form',
                         ),
@@ -3241,7 +3364,6 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                             style: TextStyle(fontSize: 10),
                           ),
                         ),
-                      
                       ],
                     )),
                   ]),
@@ -3307,7 +3429,24 @@ class _MainViewState extends State<GradStudentscreen>
   /// Views to display
   late TabController _tabController;
 
-  void changeScreen(int index) {
+  void changeScreen(int index) async{
+      if (index == 2) {
+      String url = 'https://calendar.google.com/a/dlsu.edu.ph';
+      if (await canLaunch(url)) {
+        launch(url, forceSafariVC: false, forceWebView: false);
+      } else {
+        throw 'Could not launch $url';
+      }
+    }
+
+    if (index ==3) {
+      String url = 'https://mail.google.com/a/dlsu.edu.ph';
+      if (await canLaunch(url)) {
+        launch(url, forceSafariVC: false, forceWebView: false);
+      } else {
+        throw 'Could not launch $url';
+      }
+    }
     setState(() {
       selectedIndex = index;
     });
@@ -3631,52 +3770,7 @@ class _MainViewState extends State<GradStudentscreen>
                       backgroundColor: Colors.transparent,
                     ),
                     onPressed: () {
-                      if (changeinPOS == true) {
-                        showDialog(
-                            context: context,
-                            builder: (BuildContext context) {
-                              return AlertDialog(
-                                title: Text('Unsaved Changes'),
-                                content: Text(
-                                    'You have made changes in your POS, are you sure you want to leave without saving?'),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () {
-                                      courses.clear();
-                                      studentList.clear();
-                                      activecourses.clear();
-                                      currentStudent!.uid = '';
-                                      currentStudent!.enrolledCourses.clear();
-                                      currentStudent!.pastCourses.clear();
-                                      setState(() {
-                                        studentPOSDefault();
-                                      });
-                                      wrongCreds = false;
-                                      // studentPOS = null;
-                                      correctCreds = false;
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (context) =>
-                                                LoginPage()), //Leave Page
-                                      );
-                                    },
-                                    child: Text(
-                                      'Leave without saving',
-                                      style: TextStyle(color: Colors.red),
-                                    ),
-                                  ),
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.of(context)
-                                          .pop(false); //Stay on Page
-                                    },
-                                    child: Text('Stay'),
-                                  )
-                                ],
-                              );
-                            });
-                      } else {
+                    
                         courses.clear();
                         studentList.clear();
                         activecourses.clear();
@@ -3694,7 +3788,7 @@ class _MainViewState extends State<GradStudentscreen>
                           MaterialPageRoute(
                               builder: (context) => LoginPage()), //Leave Page
                         );
-                      }
+                      
                     },
                   ),
                 ],
