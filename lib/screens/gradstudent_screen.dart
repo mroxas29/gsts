@@ -96,6 +96,134 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
       lastNameController.text = currentUser.displayname['lastname']!;
       idNumberController.text = currentUser.idnumber.toString();
     }
+  } // Function to get current academic year and term
+
+  void _updatePOSForReturningStudent(StudentPOS posToChange) {
+    String currentSYandTerm = reformatSYandTerm(getCurrentSYandTerm());
+    print(currentSYandTerm);
+
+    List<Course> coursesToMove = [];
+    for (SchoolYear sy in posToChange.schoolYears) {
+      for (Term term in sy.terms) {
+        for (int i = 0; i < term.termcourses.length; i++) {
+          Course course = term.termcourses[i];
+          if (!currentStudent!.pastCourses.any(
+              (pastcourse) => pastcourse.coursecode == course.coursecode)) {
+            coursesToMove.add(course);
+            term.termcourses.removeAt(i);
+            i--; // Adjust index due to removal
+          }
+        }
+      }
+    }
+
+    // Find the current school year and term
+    int currentSYIndex = posToChange.schoolYears
+        .indexWhere((sy) => currentSYandTerm.startsWith(sy.name));
+    int currentTermIndex = posToChange.schoolYears[currentSYIndex].terms
+        .indexWhere((term) => currentSYandTerm.endsWith(term.name));
+
+    // Function to add courses to the next available term
+    int courseIndex = 0;
+
+    while (coursesToMove.isNotEmpty) {
+      // Start from the current school year and term
+      for (int syIndex = currentSYIndex;
+          syIndex < posToChange.schoolYears.length;
+          syIndex++) {
+        for (int termIndex = (syIndex == currentSYIndex ? currentTermIndex : 0);
+            termIndex < posToChange.schoolYears[syIndex].terms.length;
+            termIndex++) {
+          Term term = posToChange.schoolYears[syIndex].terms[termIndex];
+
+          while (courseIndex < coursesToMove.length) {
+            Course course = coursesToMove[courseIndex];
+
+            // If the course is "OEX", it should be alone in a term
+            if (course.coursecode == 'OEX') {
+              if (term.termcourses.isEmpty) {
+                term.termcourses.add(course);
+                coursesToMove.removeAt(courseIndex);
+              }
+
+              break;
+            }
+
+            // Otherwise, add the course if there are fewer than 2 courses in the term
+            if (term.termcourses.length < 2) {
+              term.termcourses.add(course);
+              coursesToMove.removeAt(courseIndex);
+            } else {
+              break;
+            }
+          }
+
+          // If all courses have been added, exit the loops
+          if (coursesToMove.isEmpty) {
+            break;
+          }
+        }
+
+        // If all courses have been added, exit the loop
+        if (coursesToMove.isEmpty) {
+          break;
+        }
+      }
+
+      // If there are still courses to move, create a new school year and add them
+      if (coursesToMove.isNotEmpty) {
+        SchoolYear lastSY = posToChange.schoolYears.last;
+        int nextStartYear = int.parse(lastSY.name.split('-')[1]);
+        SchoolYear newSY = SchoolYear(
+          '$nextStartYear-${nextStartYear + 1}',
+          [
+            Term('Term 1', []),
+            Term('Term 2', []),
+            Term('Term 3', []),
+          ],
+        );
+        posToChange.schoolYears.add(newSY);
+        currentSYIndex = posToChange.schoolYears.length - 1;
+        currentTermIndex = 0;
+
+        // Add remaining courses to the new school year
+        for (int termIndex = 0; termIndex < newSY.terms.length; termIndex++) {
+          Term term = newSY.terms[termIndex];
+
+          while (courseIndex < coursesToMove.length) {
+            Course course = coursesToMove[courseIndex];
+
+            if (course.coursecode == 'OEX') {
+              if (term.termcourses.isEmpty) {
+                term.termcourses.add(course);
+                coursesToMove.removeAt(courseIndex);
+              }
+
+              break;
+            }
+
+            // Otherwise, add the course if there are fewer than 2 courses in the term
+            if (term.termcourses.length < 2) {
+              term.termcourses.add(course);
+              coursesToMove.removeAt(courseIndex);
+            } else {
+              break;
+            }
+          }
+
+          // If all courses have been added, exit the loop
+          if (coursesToMove.isEmpty) {
+            break;
+          }
+        }
+      }
+    }
+
+    // Update Firestore to reflect the changes
+    FirebaseFirestore.instance
+        .collection('studentpos')
+        .doc(posToChange.uid)
+        .update(posToChange.toJson());
   }
 
   @override
@@ -207,17 +335,24 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                                                 TextButton(
                                                   onPressed: () {
                                                     setState(() {
+                                                      String oldStatus =
+                                                          currentUser.status;
                                                       currentUser.status =
                                                           newValue;
-                                                      // Update the user's enrollment status in the database or other storage here
-                                                    });
-                                                    // Update Firestore to reflect the changes
-                                                    FirebaseFirestore.instance
-                                                        .collection('users')
-                                                        .doc(currentUser.uid)
-                                                        .update({
-                                                      'status':
-                                                          currentUser.status,
+
+                                                      if (oldStatus == 'LOA' &&
+                                                          newValue != 'LOA') {
+                                                        _updatePOSForReturningStudent(
+                                                            studentPOS!);
+                                                      }
+
+                                                      FirebaseFirestore.instance
+                                                          .collection('users')
+                                                          .doc(currentUser.uid)
+                                                          .update({
+                                                        'status':
+                                                            currentUser.status,
+                                                      });
                                                     });
                                                     Navigator.of(context)
                                                         .pop(); // Close the dialog
@@ -3109,6 +3244,25 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                         form.saveFormToFirestore(form, currentStudent!.uid);
 
                         Navigator.of(context).pop();
+                                                         showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: Text('Upload Official Receipt from registrar'),
+                              content: Text(
+                                  'Remember to upload your official receipt as well.'),
+                              actions: <Widget>[
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context)
+                                        .pop(); // Close the dialog
+                                  },
+                                  child: Text('Ok'),
+                                ),
+                              ],
+                            );
+                          },
+                        );
                       }
                     },
                     child: Text('Submit'),
@@ -3429,8 +3583,8 @@ class _MainViewState extends State<GradStudentscreen>
   /// Views to display
   late TabController _tabController;
 
-  void changeScreen(int index) async{
-      if (index == 2) {
+  void changeScreen(int index) async {
+    if (index == 2) {
       String url = 'https://calendar.google.com/a/dlsu.edu.ph';
       if (await canLaunch(url)) {
         launch(url, forceSafariVC: false, forceWebView: false);
@@ -3439,7 +3593,7 @@ class _MainViewState extends State<GradStudentscreen>
       }
     }
 
-    if (index ==3) {
+    if (index == 3) {
       String url = 'https://mail.google.com/a/dlsu.edu.ph';
       if (await canLaunch(url)) {
         launch(url, forceSafariVC: false, forceWebView: false);
@@ -3552,7 +3706,7 @@ class _MainViewState extends State<GradStudentscreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Program of Study',
+                      'Program of Study (Current term: ${getCurrentSYandTerm()})',
                       textDirection: TextDirection.ltr,
                       style: TextStyle(
                         fontFamily: 'Inter',
@@ -3644,14 +3798,29 @@ class _MainViewState extends State<GradStudentscreen>
                                 DataRow(cells: [
                                   // Always create two cells for the first column
                                   DataCell(Text(
-                                      course.type != 'Elective Courses'
-                                          ? course.coursecode
-                                          : '')), // Course Code or empty string
-                                  DataCell(Text(course.type ==
-                                          'Elective Courses'
-                                      ? 'Elective ${electiveCount++}'
-                                      : course
-                                          .coursename)), // Course Name (Elective or regular)
+                                    course.type != 'Elective Courses'
+                                        ? course.coursecode
+                                        : '',
+                                    style: TextStyle(
+                                        color: currentStudent!.pastCourses.any(
+                                                (pastCourse) =>
+                                                    pastCourse.coursecode ==
+                                                    course.coursecode)
+                                            ? Colors.green
+                                            : Colors.black),
+                                  )), // Course Code or empty string
+                                  DataCell(Text(
+                                    course.type == 'Elective Courses'
+                                        ? 'Elective ${electiveCount++}'
+                                        : course.coursename,
+                                    style: TextStyle(
+                                        color: currentStudent!.pastCourses.any(
+                                                (pastCourse) =>
+                                                    pastCourse.coursename ==
+                                                    course.coursename)
+                                            ? Colors.green
+                                            : Colors.black),
+                                  )), // Course Name (Elective or regular)
                                   DataCell(Text('${course.units}')),
                                   DataCell(Text(course.type)),
                                 ]),
@@ -3770,25 +3939,23 @@ class _MainViewState extends State<GradStudentscreen>
                       backgroundColor: Colors.transparent,
                     ),
                     onPressed: () {
-                    
-                        courses.clear();
-                        studentList.clear();
-                        activecourses.clear();
-                        currentStudent!.uid = '';
-                        currentStudent!.enrolledCourses.clear();
-                        currentStudent!.pastCourses.clear();
-                        setState(() {
-                          studentPOSDefault();
-                        });
-                        wrongCreds = false;
-                        // studentPOS = null;
-                        correctCreds = false;
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => LoginPage()), //Leave Page
-                        );
-                      
+                      courses.clear();
+                      studentList.clear();
+                      activecourses.clear();
+                      currentStudent!.uid = '';
+                      currentStudent!.enrolledCourses.clear();
+                      currentStudent!.pastCourses.clear();
+                      setState(() {
+                        studentPOSDefault();
+                      });
+                      wrongCreds = false;
+                      // studentPOS = null;
+                      correctCreds = false;
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => LoginPage()), //Leave Page
+                      );
                     },
                   ),
                 ],

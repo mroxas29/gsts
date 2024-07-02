@@ -23,9 +23,7 @@ class DeviatedInfoPage extends StatefulWidget {
   StudentPOS studentpos;
   EN19Form? en19;
   DeviatedInfoPage(
-      {required this.student,
-      required this.studentpos,
-      required EN19Form en19});
+      {required this.student, required this.studentpos, required this.en19});
 
   @override
   _DeviatedInfoPage createState() => _DeviatedInfoPage();
@@ -237,24 +235,81 @@ class _DeviatedInfoPage extends State<DeviatedInfoPage>
   }
 
   bool posEdited = false;
-  late Future<ListResult> futurefiles;
   PlatformFile? pickedFile;
-
   @override
   void initState() {
     super.initState();
-
-    futurefiles = FirebaseStorage.instance
-        .ref('/${widget.studentpos.idnumber}')
+    documentations = FirebaseStorage.instance
+        .ref('/${widget.studentpos.idnumber}/Documentations')
+        .listAll();
+    defenseForms = FirebaseStorage.instance
+        .ref('/${widget.studentpos.idnumber}/Defense Forms')
         .listAll();
     _tabController = TabController(length: 3, vsync: this);
+    if (_tabController.index == 2 &&
+        newStudentList.any((newStudent) =>
+            newStudent.idnumber == widget.studentpos.idnumber &&
+            shownRecoGuide == false)) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Add recommended courses for student'),
+            content: Text(
+                "Add specific remedial courses that the student needs.\n Click 'Download Recommendation Form' when finished adding."),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context, false); // No, do not delete
+                },
+                child: Text('Ok'),
+              ),
+            ],
+          );
+        },
+      );
+    }
   }
 
+  bool hasEn19Form = true;
   List<DataRow> rows = [];
   final PdfInvoiceService service = PdfInvoiceService();
 
   List<Course> recommendedRemedialCourses = [];
   List<Course> recommendedPriorityCourses = [];
+  Future<void> downloadEN19File() async {
+    String fileName =
+        '${widget.studentpos.idnumber}/Defense Forms/EN-19Form_${widget.studentpos.idnumber}.pdf';
+
+    try {
+      final imageUrl =
+          await FirebaseStorage.instance.ref().child(fileName).getDownloadURL();
+      if (await canLaunch(imageUrl.toString())) {
+        await launch(imageUrl.toString());
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to download file'),
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('File does not exist'),
+        ),
+      );
+    }
+
+    // Implement file download logic using the URL
+  }
+
+  Future<void> checkIfFormExists() async {
+    bool exists = await EN19Form.hasEn19Form(widget.studentpos.uid);
+    setState(() {
+      hasEn19Form = exists;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -809,7 +864,7 @@ class _DeviatedInfoPage extends State<DeviatedInfoPage>
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Padding(
-                padding: const EdgeInsets.all(8.0),
+                padding: const EdgeInsets.all(16.0),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -829,6 +884,251 @@ class _DeviatedInfoPage extends State<DeviatedInfoPage>
                         columns: columns,
                         rows: rows,
                       ),
+                    ),
+                    SizedBox(
+                      height: 10,
+                    ),
+                    DataTable(
+                      columns: [
+                        DataColumn(
+                            label: Text(
+                          'Form Type',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        )),
+                        DataColumn(
+                            label: Text(
+                          'Enrollment Stage',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        )),
+                        DataColumn(
+                            label: Text(
+                          'Adviser Name',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        )),
+                        DataColumn(
+                            label: Text(
+                          'Lead Panel',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        )),
+                        DataColumn(
+                            label: Text(
+                          'Passed Comprehensive Examinations',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        )),
+                        DataColumn(
+                            label: Text(
+                          'Certificate of Academic Completion',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        )),
+                        DataColumn(
+                            label: Text(
+                          'Actions',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        )),
+                      ],
+                      rows: [
+                        DataRow(cells: [
+                          DataCell(Text('EN-19 Form')),
+                          DataCell(Text(widget.en19!.enrollmentStage)),
+                          DataCell(Text(widget.en19!.adviserName)),
+                          DataCell(Text(widget.en19!.leadPanel)),
+                          DataCell(Icon(
+                            widget.en19!.passedComprehensiveExams
+                                ? Icons.check_circle_outline
+                                : Icons.cancel,
+                            color: widget.en19!.passedComprehensiveExams
+                                ? Colors.green
+                                : Colors.red,
+                          )),
+                          DataCell(Icon(
+                            widget.en19!.submittedCertificate
+                                ? Icons.check_circle_outline
+                                : Icons.cancel,
+                            color: widget.en19!.submittedCertificate
+                                ? Colors.green
+                                : Colors.red,
+                          )),
+                          DataCell(Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              Column(
+                                children: [
+                                  IconButton(
+                                    icon: Icon(Icons.attach_file),
+                                    onPressed: uploadEN19File,
+                                    tooltip:
+                                        'Upload EN-19 Form, make sure that the uploaded EN-19 form is signed',
+                                  ),
+                                ],
+                              ),
+                              Column(
+                                children: [
+                                  IconButton(
+                                    icon: Icon(Icons.file_download),
+                                    onPressed: downloadEN19File,
+                                    tooltip: 'Download EN-19 Form',
+                                  ),
+                                ],
+                              ),
+                            ],
+                          )),
+                        ]),
+                        DataRow(
+                          cells: [
+                            //Title Cell
+                            DataCell(
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Defense Form',
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                  Text(
+                                    'Verdict: ${widget.en19!.verdict}',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: () {
+                                        switch (widget.en19!.verdict
+                                            .toLowerCase()) {
+                                          case 'passed':
+                                            return Colors.green;
+                                          case 'failed':
+                                            return Colors.red;
+                                          case 'redefense':
+                                            return Colors.orange;
+                                          default:
+                                            return const Color.fromARGB(
+                                                77, 0, 0, 0);
+                                        }
+                                      }(),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            DataCell(
+                              TextButton(
+                                onPressed: () async {
+                                  String fileName =
+                                      '${widget.studentpos.idnumber}/Defense Forms/Official_Receipt_${widget.studentpos.displayname['lastname']}_${widget.studentpos.displayname['firstname']}.pdf';
+                                  try {
+                                    final imageUrl = await FirebaseStorage
+                                        .instance
+                                        .ref()
+                                        .child(fileName)
+                                        .getDownloadURL();
+                                    if (await canLaunch(imageUrl.toString())) {
+                                      await launch(imageUrl.toString());
+                                    } else {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content:
+                                              Text('Failed to download file'),
+                                        ),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('File does not exist'),
+                                      ),
+                                    );
+                                  }
+                                },
+                                child: Text(
+                                  'Download official receipt',
+                                  style: TextStyle(fontSize: 10),
+                                ),
+                              ),
+                            ),
+                            //Receipt Cell
+                            DataCell(
+                              Text(''),
+                            ),
+                            DataCell(Text('')),
+                            DataCell(Text('')),
+                            DataCell(Text('')),
+                            DataCell(Row(
+                              children: [
+                                IconButton(
+                                  icon: Icon(Icons.file_download),
+                                  onPressed: () async {
+                                    String fileName =
+                                        '${widget.studentpos!.idnumber}/Defense Forms/EN-18DefenseForm_${widget.studentpos!.idnumber}.pdf';
+                                    try {
+                                      final imageUrl = await FirebaseStorage
+                                          .instance
+                                          .ref()
+                                          .child(fileName)
+                                          .getDownloadURL();
+                                      if (await canLaunch(
+                                          imageUrl.toString())) {
+                                        await launch(imageUrl.toString());
+                                      } else {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content:
+                                                Text('Failed to download file'),
+                                          ),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text('File does not exist'),
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  tooltip: 'Download EN-18 Defense Form',
+                                ),
+                                TextButton(
+                                  onPressed: () async {
+                                    String fileName =
+                                        'templates/EN-18-201904 Defense Form.pdf';
+                                    try {
+                                      final imageUrl = await FirebaseStorage
+                                          .instance
+                                          .ref()
+                                          .child(fileName)
+                                          .getDownloadURL();
+                                      if (await canLaunch(
+                                          imageUrl.toString())) {
+                                        await launch(imageUrl.toString());
+                                      } else {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content:
+                                                Text('Failed to download file'),
+                                          ),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text('File does not exist'),
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  child: Text(
+                                    'Download EN-18 Template',
+                                    style: TextStyle(fontSize: 10),
+                                  ),
+                                ),
+                              ],
+                            )),
+                          ],
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -853,7 +1153,7 @@ class _DeviatedInfoPage extends State<DeviatedInfoPage>
       SizedBox(
         width: MediaQuery.of(context).size.width / 7,
         child: FutureBuilder<ListResult>(
-          future: futurefiles,
+          future: documentations,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Center(
@@ -918,25 +1218,6 @@ class _DeviatedInfoPage extends State<DeviatedInfoPage>
         ),
       ),
     );
-  }
-
-  Future<void> uploadFile(String coursecode) async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles();
-    if (result != null) {
-      PlatformFile file = result.files.first;
-      String fileName =
-          '${widget.studentpos.idnumber}/${coursecode}_${widget.studentpos.idnumber}.pdf';
-
-      Uint8List fileBytes = file.bytes!;
-      final ref = FirebaseStorage.instance.ref().child(fileName);
-      await ref.putData(fileBytes);
-    }
-
-    setState(() {
-      futurefiles = FirebaseStorage.instance
-          .ref('/${widget.studentpos.idnumber}')
-          .listAll();
-    });
   }
 
   DataRow isCoursePassed(Course course, BuildContext context) {
@@ -1033,6 +1314,208 @@ class _DeviatedInfoPage extends State<DeviatedInfoPage>
     );
   }
 
+  Future<void> retrieveEN19Form() async {
+    EN19Form? form = await EN19Form.getFormFromFirestore(widget.studentpos.uid);
+
+    setState(() {
+      widget.en19 = form;
+    });
+  }
+
+  Future<void> uploadEN19File() async {
+    bool confirmSign = false;
+    bool signedByGSC = false;
+    bool signedByAdviser = false;
+    bool passedExaminations = false;
+    bool submittedCertificate = false;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(builder: (context, setState) {
+          return SingleChildScrollView(
+            child: AlertDialog(
+              title: Text('Confirm Signatories'),
+              content: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                      'Please confirm that the document that will be\nuploaded is signed by the Coordinator and the Adviser.'),
+                  SizedBox(
+                    height: 10,
+                  ),
+                  Text(
+                    'Signed by Coordinator?',
+                    style: TextStyle(fontSize: 15),
+                  ),
+                  SizedBox(
+                    height: 10,
+                  ),
+                  Row(
+                    children: [
+                      Radio<bool>(
+                        value: true,
+                        groupValue: signedByGSC,
+                        onChanged: (bool? value) {
+                          setState(() {
+                            signedByGSC = value!;
+                          });
+                        },
+                      ),
+                      Text('Yes'),
+                      Radio<bool>(
+                        value: false,
+                        groupValue: signedByGSC,
+                        onChanged: (bool? value) {
+                          setState(() {
+                            signedByGSC = value!;
+                          });
+                        },
+                      ),
+                      Text('No'),
+                    ],
+                  ),
+                  SizedBox(
+                    height: 10,
+                  ),
+                  Text(
+                    'Signed by adviser?',
+                    style: TextStyle(fontSize: 15),
+                  ),
+                  SizedBox(
+                    height: 10,
+                  ),
+                  Row(
+                    children: [
+                      Radio<bool>(
+                        value: true,
+                        groupValue: signedByAdviser,
+                        onChanged: (bool? value) {
+                          setState(() {
+                            signedByAdviser = value!;
+                          });
+                        },
+                      ),
+                      Text('Yes'),
+                      Radio<bool>(
+                        value: false,
+                        groupValue: signedByAdviser,
+                        onChanged: (bool? value) {
+                          setState(() {
+                            signedByAdviser = value!;
+                          });
+                        },
+                      ),
+                      Text('No'),
+                    ],
+                  ),
+                  Text(
+                    'Evaluations:',
+                    style: TextStyle(fontSize: 15),
+                  ),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CheckboxListTile(
+                        title: Text('Passed Comprehensive Examinations'),
+                        value: passedExaminations,
+                        onChanged: (bool? value) {
+                          setState(() {
+                            passedExaminations = value ?? false;
+                          });
+                        },
+                      ),
+                      CheckboxListTile(
+                        title: Text('Submitted Certificate of Completion'),
+                        value: submittedCertificate,
+                        onChanged: (bool? value) {
+                          setState(() {
+                            submittedCertificate = value ?? false;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    confirmSign = false;
+                    Navigator.pop(context, false); // No, do not delete
+                  },
+                  child: Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    setState(() async {
+                      confirmSign = true;
+                      if (confirmSign) {
+                        FilePickerResult? result =
+                            await FilePicker.platform.pickFiles();
+                        if (result != null) {
+                          PlatformFile file = result.files.first;
+                          String fileName =
+                              '${widget.studentpos.idnumber}/Defense Forms/EN-19Form_${widget.studentpos.idnumber}.pdf';
+                          Uint8List fileBytes = file.bytes!;
+
+                          // Create EN19Form object
+                          EN19Form form = EN19Form(
+                            proposedTitle: widget.en19!.proposedTitle,
+                            lastName: _capitalize(
+                                widget.studentpos.displayname['lastname']!),
+                            firstName: _capitalize(
+                                widget.studentpos.displayname['firstname']!),
+                            middleName: '',
+                            idNumber: widget.studentpos.idnumber.toString(),
+                            college: 'Computer Studies',
+                            program: widget.studentpos.degree,
+                            passedComprehensiveExams: passedExaminations,
+                            submittedCertificate: submittedCertificate,
+                            adviserName: widget.en19!.adviserName,
+                            enrollmentStage: widget.en19!.enrollmentStage,
+                            date: DateTime.now(),
+                            leadPanel: widget.en19!.leadPanel,
+                            panelMembers: [],
+                            defenseDate: widget.en19!.defenseDate,
+                            signedByGSC: signedByGSC,
+                            signedByAdviser: signedByAdviser,
+                            defenseTime: widget.en19!.defenseTime,
+                            mainTitle: widget.en19!.mainTitle,
+                            defenseType: widget.en19!.defenseType,
+                            verdict: widget.en19!.verdict,
+                          );
+
+                          form.saveFormToFirestore(form, widget.studentpos.uid);
+                          final ref =
+                              FirebaseStorage.instance.ref().child(fileName);
+
+                          await ref.putData(fileBytes);
+                          setState(() {
+                            retrieveEN19Form();
+                          });
+
+                          print('File uploaded successfully');
+                          Navigator.pop(context, true);
+                        } else {
+                          print('No file selected');
+                        }
+                      }
+                    });
+
+                    Navigator.pop(context, true); // Yes, delete
+                  },
+                  child: Text('Proceed'),
+                ),
+              ],
+            ),
+          );
+        });
+      },
+    );
+  }
+
   Widget _buildSuggestedCourseRow(Course course, SchoolYear year, Term term) {
     return Expanded(
       child: MouseRegion(
@@ -1108,29 +1591,103 @@ class _DeviatedInfoPage extends State<DeviatedInfoPage>
   }
 
   Widget _buildCourseRow(Course course, String year, String term) {
-    if (widget.student.deviatedCourses.isNotEmpty) {
-      for (Course c in widget.student.deviatedCourses) {
-        if (c.coursecode == course.coursecode) {
-          return ListTile(
-            title: Text(
+    bool isCourseDone = (widget.studentpos.pastCourses
+        .any((element) => element.coursecode == course.coursecode));
+    bool isCourseIP = (widget.studentpos.enrolledCourses
+        .any((element) => element.coursecode == course.coursecode));
+    return ListTile(
+      title: Row(
+        children: [
+          Expanded(
+            child: Text(
               course.coursecode,
               style: TextStyle(
-                  fontSize: 12, fontWeight: FontWeight.bold, color: Colors.red),
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: isCourseDone
+                    ? Colors.green
+                    : isCourseIP
+                        ? Colors.orange
+                        : Colors.black,
+              ),
             ),
-            subtitle: Text(course.coursename,
-                style: TextStyle(fontSize: 12, color: Colors.red)),
-          );
+          ),
+          Tooltip(
+            message: generateStudentList(
+                "$year $term", course), // Display the list of students
+            child: Icon(
+              Icons.info_outline,
+              color: Colors.blue,
+              size: 16,
+            ),
+          ),
+        ],
+      ),
+      subtitle: Text(
+        course.coursename,
+        style: TextStyle(
+          fontSize: 12,
+          color: isCourseDone
+              ? Colors.green
+              : isCourseIP
+                  ? Colors.orange
+                  : Colors.black,
+        ),
+      ),
+    );
+  }
+
+  String generateStudentList(String syAndTerm, Course targetCourse) {
+    String fulfillingStudentPOS = '';
+    // Get the next SY and term
+    List<String> sytermParts = syAndTerm.split(" ");
+
+    for (int i = 0; i < studentPOSList.length; i++) {
+      StudentPOS pos = studentPOSList[i];
+      for (int j = 0; j < pos.schoolYears.length; j++) {
+        SchoolYear sy = pos.schoolYears[j];
+        if (sytermParts[0] == sy.name) {
+          for (int k = 0; k < sy.terms.length; k++) {
+            Term term = sy.terms[k];
+            if (term.name == '${sytermParts[1]} ${sytermParts[2]}') {
+              for (Course course in term.termcourses) {
+                if (course.coursecode == targetCourse.coursecode) {
+                  fulfillingStudentPOS +=
+                      "${pos.idnumber}: ${pos.displayname['firstname']} ${pos.displayname['lastname']}\n";
+                }
+              }
+            }
+          }
         }
       }
     }
+    if (fulfillingStudentPOS == '') {
+      return "Students who will take the ${targetCourse.coursecode} on $syAndTerm:\nNo students found";
+    } else {
+      return "Students who will take the ${targetCourse.coursecode} on $syAndTerm:\n$fulfillingStudentPOS";
+    }
+  }
 
-    return ListTile(
-      title: Text(
-        course.coursecode,
-        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-      ),
-      subtitle: Text(course.coursename, style: TextStyle(fontSize: 12)),
-    );
+  Future<void> uploadDocFile(String coursecode) async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles();
+    if (result != null) {
+      PlatformFile file = result.files.first;
+      String fileName =
+          '${widget.studentpos.idnumber}/Documentations/${coursecode}_${widget.studentpos.idnumber}.pdf';
+
+      Uint8List fileBytes = file.bytes!;
+      final ref = FirebaseStorage.instance.ref().child(fileName);
+      await ref.putData(fileBytes);
+    }
+
+    setState(() {
+      documentations = FirebaseStorage.instance
+          .ref('/${widget.studentpos.idnumber}/Documentations')
+          .listAll();
+      defenseForms = FirebaseStorage.instance
+          .ref('/${widget.studentpos.idnumber}/Defense Forms')
+          .listAll();
+    });
   }
 }
 

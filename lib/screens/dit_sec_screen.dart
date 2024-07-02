@@ -486,8 +486,9 @@ class _MainViewState extends State<DITSec> {
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             IconButton(
-                              icon:
-                                  Icon(Icons.file_download,),
+                              icon: Icon(
+                                Icons.file_download,
+                              ),
                               onPressed: () async {
                                 try {
                                   String fileName =
@@ -543,6 +544,82 @@ class _MainViewState extends State<DITSec> {
                                     8), // Add some space between the icons and the text
                             Text(
                               'Download/Upload Panel Chair Report Form',
+                              style: TextStyle(color: Colors.black),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 10),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Evaluation Form:'),
+                        SizedBox(width: 5),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                Icons.file_download,
+                              ),
+                              onPressed: () async {
+                                try {
+                               String fileName =
+                                      '${defense.idNumber}/Defense Forms/Eval_Form_${defense.lastName}_${defense.firstName}.docx';
+                                  final imageUrl = await FirebaseStorage
+                                      .instance
+                                      .ref()
+                                      .child(fileName)
+                                      .getDownloadURL();
+                                  if (await canLaunch(imageUrl.toString())) {
+                                    await launch(imageUrl.toString());
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content:
+                                            Text('Failed to download file'),
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('File does not exist'),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.attach_file),
+                              onPressed: () async {
+                                FilePickerResult? result =
+                                    await FilePicker.platform.pickFiles();
+
+                                PlatformFile file = result!.files.first;
+                                String fileName =
+                                    '${defense.idNumber}/Defense Forms/Eval_Form_${defense.lastName}_${defense.firstName}.docx';
+                                Uint8List fileBytes = file.bytes!;
+                                final ref = FirebaseStorage.instance
+                                    .ref()
+                                    .child(fileName);
+                                await ref.putData(fileBytes);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Uploaded successfully'),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                              },
+                            ),
+                            SizedBox(
+                                width:
+                                    8), // Add some space between the icons and the text
+                            Text(
+                              'Download/Upload Evaluation Form',
                               style: TextStyle(color: Colors.black),
                             ),
                           ],
@@ -864,6 +941,65 @@ class _MainViewState extends State<DITSec> {
                             },
                             child: Text(
                               '(Download panel report template)',
+                              style:
+                                  TextStyle(color: Colors.blue, fontSize: 10),
+                            ),
+                          ),
+                          Spacer(),
+                          Text(
+                            'Download Defense Evaluation Sheet template: ',
+                            style: TextStyle(color: Colors.black, fontSize: 10),
+                          ),
+                          SizedBox(
+                            width: 5,
+                          ),
+                          TextButton(
+                            onPressed: () async {
+                              String fileName =
+                                  'templates/MIT Final Capstone Project Defense Evaluation Sheet.docx';
+                              final imageUrl = await FirebaseStorage.instance
+                                  .ref()
+                                  .child(fileName)
+                                  .getDownloadURL();
+                              if (await canLaunch(imageUrl.toString())) {
+                                await launch(imageUrl.toString());
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Failed to download file'),
+                                  ),
+                                );
+                              }
+                            },
+                            child: Text(
+                              'MIT',
+                              style:
+                                  TextStyle(color: Colors.blue, fontSize: 10),
+                            ),
+                          ),
+                          SizedBox(
+                            width: 3,
+                          ),
+                          TextButton(
+                            onPressed: () async {
+                              String fileName =
+                                  'templates/MSIT Proposal Redefense Evaluation Sheet.docx';
+                              final imageUrl = await FirebaseStorage.instance
+                                  .ref()
+                                  .child(fileName)
+                                  .getDownloadURL();
+                              if (await canLaunch(imageUrl.toString())) {
+                                await launch(imageUrl.toString());
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Failed to download file'),
+                                  ),
+                                );
+                              }
+                            },
+                            child: Text(
+                              'MSIT',
                               style:
                                   TextStyle(color: Colors.blue, fontSize: 10),
                             ),

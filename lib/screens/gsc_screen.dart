@@ -1934,6 +1934,63 @@ class _MainViewState extends State<Gscscreen> {
                         )
                       ],
                     ),
+                    SizedBox(height: 10),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Evaluation Form:'),
+                        SizedBox(width: 5),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            TextButton(
+                                onPressed: () async {
+                                  try {
+                                    String fileName =
+                                        '${defense.idNumber}/Defense Forms/Eval_Form_${defense.lastName}_${defense.firstName}.docx';
+                                    final imageUrl = await FirebaseStorage
+                                        .instance
+                                        .ref()
+                                        .child(fileName)
+                                        .getDownloadURL();
+                                    if (await canLaunch(imageUrl.toString())) {
+                                      await launch(imageUrl.toString());
+                                    } else {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content:
+                                              Text('Failed to download file'),
+                                        ),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('File does not exist'),
+                                      ),
+                                    );
+                                  }
+                                },
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(Icons.file_download),
+                                    Text(
+                                      'Download Evaluation Form',
+                                    ),
+                                  ],
+                                )),
+                            SizedBox(
+                                width:
+                                    8), // Add some space between the icons and the text
+                          ],
+                        ),
+                      ],
+                    )
                   ],
                 ),
               ),

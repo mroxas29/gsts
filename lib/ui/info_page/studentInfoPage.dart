@@ -678,13 +678,7 @@ class StudentInfoPageState extends State<StudentInfoPage>
     });
   }
 
-  Future<void> uploadGeneratedPdf(Uint8List data) async {
-    String fileName =
-        '${widget.student!.idnumber}/Defense Forms/EN-19Form_${widget.student!.idnumber}.pdf';
-    final ref = FirebaseStorage.instance.ref().child(fileName);
-    await ref.putData(data);
-    print('Generated PDF uploaded successfully');
-  }
+ 
 
   Future<void> retrieveEN19Form() async {
     EN19Form? form = await EN19Form.getFormFromFirestore(widget.student.uid);

@@ -962,11 +962,11 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                           deviatedStudentList[index]
                                               .studentPOS
                                               .uid);
-                                      EN19Form? en19details;
-                                      await EN19Form.getFormFromFirestore(
-                                          deviatedStudentList[index]
-                                              .studentPOS
-                                              .uid);
+                                      EN19Form? en19details =
+                                          await EN19Form.getFormFromFirestore(
+                                              deviatedStudentList[index]
+                                                  .studentPOS
+                                                  .uid);
                                       for (Course c
                                           in deviatedStudentList[index]
                                               .deviatedCourses) {
@@ -979,7 +979,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                               DeviatedInfoPage(
                                             student: deviatedStudentList[index],
                                             studentpos: studentPOS,
-                                            en19: _retrievedForm!,
+                                            en19: en19details!,
                                           ),
                                         ),
                                       );
