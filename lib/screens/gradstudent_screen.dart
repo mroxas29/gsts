@@ -107,8 +107,12 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
       for (Term term in sy.terms) {
         for (int i = 0; i < term.termcourses.length; i++) {
           Course course = term.termcourses[i];
-          if (!currentStudent!.pastCourses.any(
-              (pastcourse) => pastcourse.coursecode == course.coursecode)) {
+          bool isPastCourse = currentStudent!.pastCourses.any(
+            (pastcourse) =>
+                pastcourse.coursecode == course.coursecode &&
+                pastcourse.grade >= 2.0,
+          );
+          if (!isPastCourse) {
             coursesToMove.add(course);
             term.termcourses.removeAt(i);
             i--; // Adjust index due to removal
@@ -117,11 +121,29 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
       }
     }
 
-    // Find the current school year and term
+    // Find the current school year and term, or create a new one if not found
     int currentSYIndex = posToChange.schoolYears
         .indexWhere((sy) => currentSYandTerm.startsWith(sy.name));
+    if (currentSYIndex == -1) {
+      // Create a new school year with the currentSYandTerm
+      String newSYName = currentSYandTerm.split(' ')[0];
+      SchoolYear newSY = SchoolYear(
+        newSYName,
+        [
+          Term('Term 1', []),
+          Term('Term 2', []),
+          Term('Term 3', []),
+        ],
+      );
+      posToChange.schoolYears.add(newSY);
+      currentSYIndex = posToChange.schoolYears.length - 1;
+    }
+
     int currentTermIndex = posToChange.schoolYears[currentSYIndex].terms
         .indexWhere((term) => currentSYandTerm.endsWith(term.name));
+    if (currentTermIndex == -1) {
+      currentTermIndex = 0; // Default to the first term if not found
+    }
 
     // Function to add courses to the next available term
     int courseIndex = 0;
@@ -145,7 +167,6 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                 term.termcourses.add(course);
                 coursesToMove.removeAt(courseIndex);
               }
-
               break;
             }
 
@@ -198,7 +219,6 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                 term.termcourses.add(course);
                 coursesToMove.removeAt(courseIndex);
               }
-
               break;
             }
 
@@ -3244,11 +3264,12 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                         form.saveFormToFirestore(form, currentStudent!.uid);
 
                         Navigator.of(context).pop();
-                                                         showDialog(
+                        showDialog(
                           context: context,
                           builder: (BuildContext context) {
                             return AlertDialog(
-                              title: Text('Upload Official Receipt from registrar'),
+                              title: Text(
+                                  'Upload Official Receipt from registrar'),
                               content: Text(
                                   'Remember to upload your official receipt as well.'),
                               actions: <Widget>[
@@ -3283,24 +3304,6 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
       rows = thesiscourses.map((thesisCourse) {
         return isCoursePassed(thesisCourse, context);
       }).toList();
-    }
-
-    bool checkProposalCourse() {
-      // Assuming student.enrolledCourses is a list of courses with courseName property
-      // Modify according to your actual data structure
-      bool isProposalCourseEnrolled = currentStudent!.enrolledCourses.any(
-          (course) => course.coursename.toLowerCase().contains('proposal'));
-
-      return isProposalCourseEnrolled;
-    }
-
-    bool checkWritingCourse() {
-      // Assuming student.enrolledCourses is a list of courses with courseName property
-      // Modify according to your actual data structure
-      bool isProposalCourseEnrolled = currentStudent!.enrolledCourses
-          .any((course) => course.coursename.toLowerCase().contains('writing'));
-
-      return isProposalCourseEnrolled;
     }
 
     return Row(
@@ -3805,9 +3808,16 @@ class _MainViewState extends State<GradStudentscreen>
                                         color: currentStudent!.pastCourses.any(
                                                 (pastCourse) =>
                                                     pastCourse.coursecode ==
-                                                    course.coursecode)
+                                                        course.coursecode &&
+                                                    pastCourse.grade >= 2.0)
                                             ? Colors.green
-                                            : Colors.black),
+                                            : currentStudent!.pastCourses.any(
+                                                    (pastCourse) =>
+                                                        pastCourse.coursecode ==
+                                                            course.coursecode &&
+                                                        pastCourse.grade < 2.0)
+                                                ? Colors.red
+                                                : Colors.black),
                                   )), // Course Code or empty string
                                   DataCell(Text(
                                     course.type == 'Elective Courses'
@@ -3816,10 +3826,17 @@ class _MainViewState extends State<GradStudentscreen>
                                     style: TextStyle(
                                         color: currentStudent!.pastCourses.any(
                                                 (pastCourse) =>
-                                                    pastCourse.coursename ==
-                                                    course.coursename)
+                                                    pastCourse.coursecode ==
+                                                        course.coursecode &&
+                                                    pastCourse.grade >= 2.0)
                                             ? Colors.green
-                                            : Colors.black),
+                                            : currentStudent!.pastCourses.any(
+                                                    (pastCourse) =>
+                                                        pastCourse.coursecode ==
+                                                            course.coursecode &&
+                                                        pastCourse.grade < 2.0)
+                                                ? Colors.red
+                                                : Colors.black),
                                   )), // Course Name (Elective or regular)
                                   DataCell(Text('${course.units}')),
                                   DataCell(Text(course.type)),
