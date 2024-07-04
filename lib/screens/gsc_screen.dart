@@ -1190,6 +1190,8 @@ class _MainViewState extends State<Gscscreen> {
                   .toLowerCase()
                   .contains(query.toLowerCase()) ||
               student.email.toLowerCase().contains(query.toLowerCase()) ||
+              student.status.toLowerCase().contains(query.toLowerCase()) ||
+              student.degree.toLowerCase().contains(query.toLowerCase()) ||
               student.idnumber.toString().contains(query.toLowerCase()) ||
               student.enrolledCourses.any((course) {
                 return course.coursecode
