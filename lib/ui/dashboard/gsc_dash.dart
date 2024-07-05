@@ -634,6 +634,30 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
   bool newStudentsClicked = false;
   bool deviatedStudentsClicked = true;
   bool graduatingStudentsClicked = false;
+
+  bool isGraduatingWithinTimeFrame(String degree, String idNumber) {
+    // Extract the year from the ID number
+    int idYear =
+        int.parse(idNumber.substring(1, 2)) + 2000; // Convert to full year
+
+    // Get the current year
+    int currentYear = DateTime.now().year;
+
+    // Calculate the maximum graduation year based on degree
+    int maxGraduationYear;
+    if (degree.toLowerCase().contains('doctorate')) {
+      maxGraduationYear = idYear + 12;
+    } else if (degree.toLowerCase().contains('masters')) {
+      maxGraduationYear = idYear + 8;
+    } else {
+      // For other degrees, return true (no specific time frame)
+      return true;
+    }
+
+    // Check if the current year is within the time frame
+    return currentYear <= maxGraduationYear;
+  }
+
   @override
   void initState() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -648,6 +672,19 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                   children: [
                     Text(
                         'There are new students for the upcoming term ${getNextSYandTerm()}\n'),
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          for (Student newStud in newStudentList)
+                            Text(
+                              '${newStud.idnumber} - ${newStud.displayname['firstname']} ${newStud.displayname['lastname']}',
+                            )
+                        ],
+                      ),
+                    ),
                     Text(
                       'Click the "New Students" tile on the dashboard to show more info about each student.',
                       style: TextStyle(
@@ -661,6 +698,82 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                   onPressed: () {
                     setState(() {
                       notifications.add('Create the DeRF for new students');
+                    });
+                    Navigator.pop(context); // Close the dialog
+                  },
+                  child: Text('OK'),
+                ),
+              ],
+            );
+          },
+        );
+      }
+
+      if (fromLOAStudents.isNotEmpty) {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Returning Students'),
+              content: SingleChildScrollView(
+                child: ListBody(
+                  children: [
+                    Text(
+                        'There are returning students for ${getCurrentSYandTerm()}\n'),
+                    Row(
+                      children: [
+                        Text(
+                          'Legend: ',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                        Text(
+                          '• - Ineligible to enroll',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                        SizedBox(
+                          width: 10,
+                        ),
+                        Text(
+                          '• - Still Eligible',
+                          style: TextStyle(color: Colors.black),
+                        ),
+                      ],
+                    ),
+                    SizedBox(
+                      height: 10,
+                    ),
+                    Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          for (StudentPOS loa in fromLOAStudents)
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text(
+                                  '${loa.idnumber} - ${loa.displayname['firstname']} ${loa.displayname['lastname']}',
+                                  style: TextStyle(
+                                    color: !isGraduatingWithinTimeFrame(
+                                            loa.degree, loa.idnumber.toString())
+                                        ? Colors.red
+                                        : Colors.black,
+                                  )),
+                            ),
+                        ]),
+                    SizedBox(
+                      height: 20,
+                    ),
+                    Text(
+                      'Click "Ineligible Students" tile in the dashboard to see all',
+                      style: TextStyle(color: Colors.grey),
+                    )
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      notifications.add('There are students from being LOA');
                     });
                     Navigator.pop(context); // Close the dialog
                   },

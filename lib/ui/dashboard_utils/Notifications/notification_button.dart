@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:sysadmindb/app/models/AcademicCalendar.dart';
+import 'package:sysadmindb/app/models/studentPOS.dart';
+import 'package:sysadmindb/app/models/student_user.dart';
 
 class NotificationButton extends StatefulWidget {
   final int notificationCount;
@@ -64,6 +67,126 @@ class NotificationButtonState extends State<NotificationButton> {
                 if (widget.notifications.isNotEmpty)
                   ...widget.notifications.map(
                     (notification) => ListTile(
+                      onTap: () {
+                        if (notification.toLowerCase().contains('loa')) {
+                          showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: Text('Returning Students'),
+                                content: SingleChildScrollView(
+                                  child: ListBody(
+                                    children: [
+                                      Text(
+                                          'There are returning students for ${getCurrentSYandTerm()}\n'),
+                                      Text(
+                                        '● - Ineligible to enroll',
+                                        style: TextStyle(color: Colors.red),
+                                      ),
+                                      SizedBox(
+                                        width: 5,
+                                      ),
+                                      Text(
+                                        '● - Still Eligible',
+                                        style: TextStyle(color: Colors.black),
+                                      ),
+                                      SizedBox(
+                                        height: 10,
+                                      ),
+                                      Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            for (StudentPOS loa
+                                                in fromLOAStudents)
+                                              Text(
+                                                  '${loa.idnumber} - ${loa.displayname['firstname']} ${loa.displayname['lastname']}',
+                                                  style: TextStyle(
+                                                    color:
+                                                        !isGraduatingWithinTimeFrame(
+                                                                loa.degree,
+                                                                loa.idnumber
+                                                                    .toString())
+                                                            ? Colors.red
+                                                            : Colors.black,
+                                                  )),
+                                          ]),
+                                      SizedBox(
+                                        height: 20,
+                                      ),
+                                      Text(
+                                        'Click "Ineligible Students" tile in the dashboard to see all',
+                                        style: TextStyle(color: Colors.grey),
+                                      )
+                                    ],
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.pop(
+                                          context); // Close the dialog
+                                    },
+                                    child: Text('OK'),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                        } else if (notification
+                            .toLowerCase()
+                            .contains('derf')) {
+                          showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: Text('New Students'),
+                                content: SingleChildScrollView(
+                                  child: ListBody(
+                                    children: [
+                                      Text(
+                                          'There are new students for the upcoming term ${getNextSYandTerm()}\n'),
+                                      Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            for (Student newStud
+                                                in newStudentList)
+                                              Text(
+                                                '${newStud.idnumber} - ${newStud.displayname['firstname']} ${newStud.displayname['lastname']}',
+                                              )
+                                          ],
+                                        ),
+                                      ),
+                                      Text(
+                                        'Click the "New Students" tile on the dashboard to show more info about each student.',
+                                        style: TextStyle(
+                                            fontStyle: FontStyle.italic,
+                                            color: Colors.grey),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.pop(
+                                          context); // Close the dialog
+                                    },
+                                    child: Text('OK'),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                        }
+                      },
                       title: Text(notification),
                     ),
                   ),

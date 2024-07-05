@@ -102,6 +102,7 @@ List<SchoolYear> defaultschoolyears = List.generate(3, (index) {
 List<Term> defaultTerm = List<Term>.generate(3, (termIndex) {
   return Term('Term ${termIndex + 1}', []);
 });
+
 Future<StudentPOS> retrieveStudentPOS(String uid) async {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final DocumentReference documentReference =

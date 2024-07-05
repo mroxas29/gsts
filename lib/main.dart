@@ -521,6 +521,8 @@ class _LoginPageState extends State<LoginPage> {
       await convertToStudentList(users);
       await getGraduatingStudents();
       await getNewStudents();
+      await getLOAStudents();
+      
       allDefenseForms = await getAllFormsFromFirestore();
       route();
     } on FirebaseAuthException catch (e) {

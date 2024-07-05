@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:sysadmindb/app/models/enrolledcourses.dart';
 import 'package:sysadmindb/app/models/pastcourses.dart';
+import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/user.dart';
 
 class Student extends user {
@@ -130,7 +131,43 @@ List<Student> studentList = [];
 List<Student> graduatingStudentsList = [];
 List<Student> newStudentList = [];
 List<Student> ineligibleStudentList = [];
+List<StudentPOS> fromLOAStudents = [];
 
+Future<List<Student>> getLOAStudents() async {
+  fromLOAStudents.clear();
+  
+    studentPOSList.clear();
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  final CollectionReference collectionReference =
+      firestore.collection('fromLOAStudents');
+
+  try {
+    QuerySnapshot querySnapshot = await collectionReference.get();
+
+    for (DocumentSnapshot documentSnapshot in querySnapshot.docs) {
+      if (documentSnapshot.exists) {
+        // Retrieve data
+        Map<String, dynamic>? data =
+            documentSnapshot.data() as Map<String, dynamic>?;
+
+        if (data != null) {
+          // Create a StudentPOS object from the retrieved data
+          StudentPOS studentPOS = StudentPOS.fromJson(data);
+
+          fromLOAStudents.add(studentPOS);
+        } else {
+          print('Document data is null');
+        }
+      } else {
+        print(
+            'Document does not exist for document ID: ${documentSnapshot.id}');
+      }
+    }
+  } catch (e) {
+    print('Error retrieving documents from Student POS collection: $e');
+  }
+  return fromLOAStudents;
+}
 Future<List<Student>> getNewStudents() async {
   newStudentList.clear();
   try {

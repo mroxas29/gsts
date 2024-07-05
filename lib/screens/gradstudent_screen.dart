@@ -99,8 +99,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   } // Function to get current academic year and term
 
   void _updatePOSForReturningStudent(StudentPOS posToChange) {
-    String currentSYandTerm = reformatSYandTerm(getCurrentSYandTerm());
-    print(currentSYandTerm);
+    String currentSYandTerm = getNextSYandTerm();
 
     List<Course> coursesToMove = [];
     for (SchoolYear sy in posToChange.schoolYears) {
@@ -360,10 +359,22 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                                                       currentUser.status =
                                                           newValue;
 
+                                               
+
                                                       if (oldStatus == 'LOA' &&
                                                           newValue != 'LOA') {
                                                         _updatePOSForReturningStudent(
                                                             studentPOS!);
+
+                                                                       
+                                                        FirebaseFirestore
+                                                            .instance
+                                                            .collection(
+                                                                'fromLOAStudents')
+                                                            .doc(studentPOS.uid)
+                                                            .set(studentPOS
+                                                                .toJson());
+                                                          
                                                       }
 
                                                       FirebaseFirestore.instance
