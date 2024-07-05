@@ -142,93 +142,210 @@ class _DeviatedInfoPage extends State<DeviatedInfoPage>
     setState(() {});
   }
 
-  void restructurePOS() async {
-    // Set the flag to false before starting asynchronous operations
+  void restructurePOS(StudentPOS posToChange) {
     setState(() {
       posEdited = true;
     });
 
-    // Determine the maximum number of units based on the student's status
-    int maxUnits = (widget.studentpos.status == 'Part Time') ? 6 : 12;
+    String currentSYandTerm = reformatSYandTerm(getCurrentSYandTerm());
+    String nextSYandTerm = getNextSYandTerm();
+    List<Course> coursesToMove = [];
+    List<Course> enrolledCourses = posToChange.enrolledCourses.toList();
 
-    // Set to track attempted moves
-    Set<Course> attemptedToMove = {};
-
-    // Iterate through school years
-    for (int i = 0; i < widget.studentpos.schoolYears.length; i++) {
-      SchoolYear year = widget.studentpos.schoolYears[i];
-      bool movedToNextTerm = false;
-
-      // Iterate through terms within the current year
-      for (int j = 0; j < year.terms.length; j++) {
-        Term term = year.terms[j];
-        int termUnits =
-            term.termcourses.fold(0, (acc, course) => acc + course.units);
-
-        // Check if the current term is the same as the current SY and term
-        if (getCurrentSYandTerm().contains(term.name) &&
-            getCurrentSYandTerm().contains(year.name)) {
-          // Add deviated courses to the term if there's space
-          for (int devCourseIndex = 0;
-              devCourseIndex < widget.student.deviatedCourses.length;
-              devCourseIndex++) {
-            Course devCourse = widget.student.deviatedCourses[devCourseIndex];
-
-            // Check if the course has already been attempted to be moved
-            if (attemptedToMove.contains(devCourse)) {
-              continue;
-            }
-
-            if (!term.termcourses.contains(devCourse) &&
-                termUnits + devCourse.units <= maxUnits) {
-              // There's space in the current term, add the deviated course
-              term.termcourses.add(devCourse);
-              termUnits += devCourse.units;
-              attemptedToMove
-                  .add(devCourse); // Mark course as attempted to move
-              widget.student.deviatedCourses.removeAt(devCourseIndex);
-            }
-          }
-
-          // Try moving other courses to subsequent terms if the current term is full
-          for (int k = 0; k < term.termcourses.length; k++) {
-            Course courseToMove = term.termcourses[k];
-            int remainingSpace = maxUnits - termUnits;
-            if (remainingSpace < courseToMove.units) {
-              // Try moving to subsequent terms
-              for (int nextTermIndex = j + 1;
-                  nextTermIndex < year.terms.length;
-                  nextTermIndex++) {
-                Term nextTerm = year.terms[nextTermIndex];
-                int nextTermUnits = nextTerm.termcourses
-                    .fold(0, (acc, course) => acc + course.units);
-                int spaceInNextTerm = maxUnits - nextTermUnits;
-                if (spaceInNextTerm >= courseToMove.units) {
-                  // There's space in the next term, move the course
-                  term.termcourses.removeAt(k);
-                  nextTerm.termcourses.add(courseToMove);
-                  termUnits -= courseToMove.units;
-                  movedToNextTerm = true;
-                  break; // Exit loop after moving a course
-                }
-              }
-            }
+    // Separate courses that are not past courses
+    for (SchoolYear sy in posToChange.schoolYears) {
+      for (Term term in sy.terms) {
+        for (int i = 0; i < term.termcourses.length; i++) {
+          Course course = term.termcourses[i];
+          bool isPastCourse = posToChange.pastCourses.any(
+            (pastcourse) =>
+                pastcourse.coursecode == course.coursecode &&
+                pastcourse.grade >= 2.0,
+          );
+          if (!isPastCourse &&
+              !enrolledCourses
+                  .any((eCourse) => eCourse.coursecode == course.coursecode)) {
+            coursesToMove.add(course);
+            term.termcourses.removeAt(i);
+            i--; // Adjust index due to removal
           }
         }
-
-        // If courses were moved to the next term, break out of the loop to prevent infinite processing
-        if (movedToNextTerm) {
-          break;
-        }
-      }
-      // If courses were moved to the next term, break out of the outer loop as well
-      if (movedToNextTerm) {
-        break;
       }
     }
 
-    // Clear attempted moves after restructuring
-    attemptedToMove.clear();
+    // Find the current school year and term, or create a new one if not found
+    int currentSYIndex = posToChange.schoolYears
+        .indexWhere((sy) => currentSYandTerm.startsWith(sy.name));
+    if (currentSYIndex == -1) {
+      // Create a new school year with the currentSYandTerm
+      String newSYName = currentSYandTerm.split(' ')[0];
+      SchoolYear newSY = SchoolYear(
+        newSYName,
+        [
+          Term('Term 1', []),
+          Term('Term 2', []),
+          Term('Term 3', []),
+        ],
+      );
+      posToChange.schoolYears.add(newSY);
+      currentSYIndex = posToChange.schoolYears.length - 1;
+    }
+
+    int currentTermIndex = posToChange.schoolYears[currentSYIndex].terms
+        .indexWhere((term) => currentSYandTerm.endsWith(term.name));
+    if (currentTermIndex == -1) {
+      currentTermIndex = 0; // Default to the first term if not found
+    }
+
+    // Add enrolled courses to the current school year and term
+    for (Course course in enrolledCourses) {
+      Term currentTerm =
+          posToChange.schoolYears[currentSYIndex].terms[currentTermIndex];
+      if (course.coursecode == 'OEX') {
+        if (currentTerm.termcourses.isEmpty) {
+          currentTerm.termcourses
+              .add(course); // OEX course should be alone in a term
+        }
+      } else {
+        if (currentTerm.termcourses.length < 2) {
+          currentTerm.termcourses.add(course);
+        } else {
+          // Find the next available term in the current school year
+          for (int termIndex = 0;
+              termIndex < posToChange.schoolYears[currentSYIndex].terms.length;
+              termIndex++) {
+            Term term =
+                posToChange.schoolYears[currentSYIndex].terms[termIndex];
+            if (term.termcourses.length < 2) {
+              term.termcourses.add(course);
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    // Function to add courses to the next available term, handling OEX and term limits
+    void addCoursesToNextTerms(
+        List<Course> coursesToMove, int startSYIndex, int startTermIndex) {
+      int courseIndex = 0;
+      while (courseIndex < coursesToMove.length) {
+        for (int syIndex = startSYIndex;
+            syIndex < posToChange.schoolYears.length;
+            syIndex++) {
+          for (int termIndex = (syIndex == startSYIndex ? startTermIndex : 0);
+              termIndex < posToChange.schoolYears[syIndex].terms.length;
+              termIndex++) {
+            Term term = posToChange.schoolYears[syIndex].terms[termIndex];
+
+            while (courseIndex < coursesToMove.length) {
+              Course course = coursesToMove[courseIndex];
+
+              // If the course is "OEX", it should be alone in a term
+              if (course.coursecode == 'OEX') {
+                if (term.termcourses.isEmpty) {
+                  term.termcourses.add(course);
+                  coursesToMove.removeAt(courseIndex);
+                }
+                break;
+              }
+
+              // Otherwise, add the course if there are fewer than 2 courses in the term
+              if (term.termcourses.length < 2) {
+                term.termcourses.add(course);
+                coursesToMove.removeAt(courseIndex);
+              } else {
+                break;
+              }
+            }
+
+            // If all courses have been added, exit the loops
+            if (coursesToMove.isEmpty) {
+              break;
+            }
+          }
+
+          // If all courses have been added, exit the loop
+          if (coursesToMove.isEmpty) {
+            break;
+          }
+        }
+
+        // If there are still courses to move, create a new school year and add them
+        if (coursesToMove.isNotEmpty) {
+          SchoolYear lastSY = posToChange.schoolYears.last;
+          int nextStartYear = int.parse(lastSY.name.split('-')[1]);
+          SchoolYear newSY = SchoolYear(
+            '$nextStartYear-${nextStartYear + 1}',
+            [
+              Term('Term 1', []),
+              Term('Term 2', []),
+              Term('Term 3', []),
+            ],
+          );
+          posToChange.schoolYears.add(newSY);
+          startSYIndex = posToChange.schoolYears.length - 1;
+          startTermIndex = 0;
+
+          // Add remaining courses to the new school year
+          for (int termIndex = 0; termIndex < newSY.terms.length; termIndex++) {
+            Term term = newSY.terms[termIndex];
+
+            while (courseIndex < coursesToMove.length) {
+              Course course = coursesToMove[courseIndex];
+
+              if (course.coursecode == 'OEX') {
+                if (term.termcourses.isEmpty) {
+                  term.termcourses.add(course);
+                  coursesToMove.removeAt(courseIndex);
+                }
+                break;
+              }
+
+              // Otherwise, add the course if there are fewer than 2 courses in the term
+              if (term.termcourses.length < 2) {
+                term.termcourses.add(course);
+                coursesToMove.removeAt(courseIndex);
+              } else {
+                break;
+              }
+            }
+
+            // If all courses have been added, exit the loop
+            if (coursesToMove.isEmpty) {
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    // Find the next school year and term, or create a new one if not found
+    int nextSYIndex = posToChange.schoolYears
+        .indexWhere((sy) => nextSYandTerm.startsWith(sy.name));
+    if (nextSYIndex == -1) {
+      // Create a new school year with the nextSYandTerm
+      String newSYName = nextSYandTerm.split(' ')[0];
+      SchoolYear newSY = SchoolYear(
+        newSYName,
+        [
+          Term('Term 1', []),
+          Term('Term 2', []),
+          Term('Term 3', []),
+        ],
+      );
+      posToChange.schoolYears.add(newSY);
+      nextSYIndex = posToChange.schoolYears.length - 1;
+    }
+
+    int nextTermIndex = posToChange.schoolYears[nextSYIndex].terms
+        .indexWhere((term) => nextSYandTerm.endsWith(term.name));
+    if (nextTermIndex == -1) {
+      nextTermIndex = 0; // Default to the first term if not found
+    }
+
+    // Add remaining courses to the next school year and term
+    addCoursesToNextTerms(coursesToMove, nextSYIndex, nextTermIndex);
 
     // Further processing such as handling unmovable courses or updating UI
     getDeviatedStudents();
@@ -527,7 +644,7 @@ class _DeviatedInfoPage extends State<DeviatedInfoPage>
                         ElevatedButton(
                           onPressed: () {
                             // Implement logic to save studentPOS
-                            restructurePOS();
+                            restructurePOS(widget.studentpos);
                           }, // Disable the button when no course is added
                           child: Text("Restructure POS"),
                         ),

@@ -857,7 +857,7 @@ class _MainViewState extends State<Gscscreen> {
                           items: status.map((role) {
                             return DropdownMenuItem<String>(
                               value: role,
-                              child: Text(role),
+                              child: Text(role == 'true' ? 'offered' : 'not offered'),
                             );
                           }).toList(),
                           onChanged: !hasStudents
@@ -867,7 +867,7 @@ class _MainViewState extends State<Gscscreen> {
                                   });
                                 }
                               : null,
-                          decoration: InputDecoration(labelText: 'Is active?'),
+                          decoration: InputDecoration(labelText: 'Is offered?'),
                         ),
                       ],
                     ),
@@ -903,9 +903,9 @@ class _MainViewState extends State<Gscscreen> {
                                   degree: enrolledStudent[i].degree,
                                   status: enrolledStudent[i].status);
                               await retrieveStudentPOS(currentStudent!.uid);
-                              EN19Form? en19details;
-                              await EN19Form.getFormFromFirestore(
-                                  currentStudent!.uid);
+                              EN19Form? en19details =
+                                  await EN19Form.getFormFromFirestore(
+                                      currentStudent!.uid);
                               Navigator.push(
                                   context,
                                   MaterialPageRoute(

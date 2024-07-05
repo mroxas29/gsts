@@ -135,8 +135,8 @@ List<StudentPOS> fromLOAStudents = [];
 
 Future<List<Student>> getLOAStudents() async {
   fromLOAStudents.clear();
-  
-    studentPOSList.clear();
+
+  studentPOSList.clear();
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final CollectionReference collectionReference =
       firestore.collection('fromLOAStudents');
@@ -168,6 +168,7 @@ Future<List<Student>> getLOAStudents() async {
   }
   return fromLOAStudents;
 }
+
 Future<List<Student>> getNewStudents() async {
   newStudentList.clear();
   try {
@@ -280,7 +281,7 @@ Future<List<Student>> convertToStudentList(List<user> users) async {
 bool isGraduatingWithinTimeFrame(String degree, String idNumber) {
   // Extract the year from the ID number
   int idYear =
-      int.parse(idNumber.substring(1, 2)) + 2000; // Convert to full year
+      int.parse(idNumber.substring(0, 3)) + 1900; // Convert to full year
 
   // Get the current year
   int currentYear = DateTime.now().year;
@@ -293,7 +294,7 @@ bool isGraduatingWithinTimeFrame(String degree, String idNumber) {
     maxGraduationYear = idYear + 8;
   } else {
     // For other degrees, return true (no specific time frame)
-    return true;
+    maxGraduationYear = idYear + 4;
   }
 
   // Check if the current year is within the time frame

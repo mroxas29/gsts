@@ -216,7 +216,8 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                             items: status.map((role) {
                               return DropdownMenuItem<String>(
                                 value: role,
-                                child: Text(role),
+                                child: Text(
+                                    role == 'true' ? 'offered' : 'not offered'),
                               );
                             }).toList(),
                             onChanged: !hasStudents
@@ -227,7 +228,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                   }
                                 : null,
                             decoration:
-                                InputDecoration(labelText: 'Is active?'),
+                                InputDecoration(labelText: 'Is offered?'),
                           ),
                         ],
                       ),
@@ -250,16 +251,16 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                 // Handle the click event for the ListTile
                                 await retrieveStudentPOS(
                                     fulfillingStudentPOS[i].uid);
-                                EN19Form? en19details;
-                                await EN19Form.getFormFromFirestore(
-                                    fulfillingStudentPOS[i].uid);
+                                EN19Form? en19details =
+                                    await EN19Form.getFormFromFirestore(
+                                        fulfillingStudentPOS[i].uid);
                                 await Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => StudentInfoPage(
                                       student: fulfillingStudentPOS[i],
                                       studentpos: fulfillingStudentPOS[i],
-                                      en19: _retrievedForm!,
+                                      en19: en19details!,
                                     ),
                                   ),
                                 );
@@ -720,24 +721,16 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                   children: [
                     Text(
                         'There are returning students for ${getCurrentSYandTerm()}\n'),
-                    Row(
-                      children: [
-                        Text(
-                          'Legend: ',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                        Text(
-                          '• - Ineligible to enroll',
-                          style: TextStyle(color: Colors.red),
-                        ),
-                        SizedBox(
-                          width: 10,
-                        ),
-                        Text(
-                          '• - Still Eligible',
-                          style: TextStyle(color: Colors.black),
-                        ),
-                      ],
+                    Text(
+                      '● - Ineligible to enroll',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                    SizedBox(
+                      width: 5,
+                    ),
+                    Text(
+                      '● - Still Eligible',
+                      style: TextStyle(color: Colors.black),
                     ),
                     SizedBox(
                       height: 10,
@@ -747,17 +740,14 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           for (StudentPOS loa in fromLOAStudents)
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Text(
-                                  '${loa.idnumber} - ${loa.displayname['firstname']} ${loa.displayname['lastname']}',
-                                  style: TextStyle(
-                                    color: !isGraduatingWithinTimeFrame(
-                                            loa.degree, loa.idnumber.toString())
-                                        ? Colors.red
-                                        : Colors.black,
-                                  )),
-                            ),
+                            Text(
+                                '${loa.idnumber} - ${loa.displayname['firstname']} ${loa.displayname['lastname']}',
+                                style: TextStyle(
+                                  color: !isGraduatingWithinTimeFrame(
+                                          loa.degree, loa.idnumber.toString())
+                                      ? Colors.red
+                                      : Colors.black,
+                                )),
                         ]),
                     SizedBox(
                       height: 20,
@@ -772,9 +762,6 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
               actions: [
                 TextButton(
                   onPressed: () {
-                    setState(() {
-                      notifications.add('There are students from being LOA');
-                    });
                     Navigator.pop(context); // Close the dialog
                   },
                   child: Text('OK'),

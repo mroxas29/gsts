@@ -51,10 +51,6 @@ int getTotalUnits() {
   return totalUnitsCompleted;
 }
 
-int unitsCompleted =
-    currentStudent!.pastCourses.fold(0, (int sum, PastCourse pastCourse) {
-  return sum + pastCourse.units;
-});
 late Future<ListResult> documentations;
 late Future<ListResult> defenseForms;
 
@@ -99,14 +95,15 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   } // Function to get current academic year and term
 
   void _updatePOSForReturningStudent(StudentPOS posToChange) {
-    String currentSYandTerm = getNextSYandTerm();
+    String currentSYandTerm = reformatSYandTerm(getCurrentSYandTerm());
+    String nextSYandTerm = getNextSYandTerm();
 
     List<Course> coursesToMove = [];
     for (SchoolYear sy in posToChange.schoolYears) {
       for (Term term in sy.terms) {
         for (int i = 0; i < term.termcourses.length; i++) {
           Course course = term.termcourses[i];
-          bool isPastCourse = currentStudent!.pastCourses.any(
+          bool isPastCourse = posToChange.pastCourses.any(
             (pastcourse) =>
                 pastcourse.coursecode == course.coursecode &&
                 pastcourse.grade >= 2.0,
@@ -120,12 +117,12 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
       }
     }
 
-    // Find the current school year and term, or create a new one if not found
-    int currentSYIndex = posToChange.schoolYears
-        .indexWhere((sy) => currentSYandTerm.startsWith(sy.name));
-    if (currentSYIndex == -1) {
-      // Create a new school year with the currentSYandTerm
-      String newSYName = currentSYandTerm.split(' ')[0];
+    // Find the next school year and term, or create a new one if not found
+    int nextSYIndex = posToChange.schoolYears
+        .indexWhere((sy) => nextSYandTerm.startsWith(sy.name));
+    if (nextSYIndex == -1) {
+      // Create a new school year with the nextSYandTerm
+      String newSYName = nextSYandTerm.split(' ')[0];
       SchoolYear newSY = SchoolYear(
         newSYName,
         [
@@ -135,24 +132,24 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
         ],
       );
       posToChange.schoolYears.add(newSY);
-      currentSYIndex = posToChange.schoolYears.length - 1;
+      nextSYIndex = posToChange.schoolYears.length - 1;
     }
 
-    int currentTermIndex = posToChange.schoolYears[currentSYIndex].terms
-        .indexWhere((term) => currentSYandTerm.endsWith(term.name));
-    if (currentTermIndex == -1) {
-      currentTermIndex = 0; // Default to the first term if not found
+    int nextTermIndex = posToChange.schoolYears[nextSYIndex].terms
+        .indexWhere((term) => nextSYandTerm.endsWith(term.name));
+    if (nextTermIndex == -1) {
+      nextTermIndex = 0; // Default to the first term if not found
     }
 
     // Function to add courses to the next available term
     int courseIndex = 0;
 
     while (coursesToMove.isNotEmpty) {
-      // Start from the current school year and term
-      for (int syIndex = currentSYIndex;
+      // Start from the next school year and term
+      for (int syIndex = nextSYIndex;
           syIndex < posToChange.schoolYears.length;
           syIndex++) {
-        for (int termIndex = (syIndex == currentSYIndex ? currentTermIndex : 0);
+        for (int termIndex = (syIndex == nextSYIndex ? nextTermIndex : 0);
             termIndex < posToChange.schoolYears[syIndex].terms.length;
             termIndex++) {
           Term term = posToChange.schoolYears[syIndex].terms[termIndex];
@@ -203,8 +200,8 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
           ],
         );
         posToChange.schoolYears.add(newSY);
-        currentSYIndex = posToChange.schoolYears.length - 1;
-        currentTermIndex = 0;
+        nextSYIndex = posToChange.schoolYears.length - 1;
+        nextTermIndex = 0;
 
         // Add remaining courses to the new school year
         for (int termIndex = 0; termIndex < newSY.terms.length; termIndex++) {
@@ -359,14 +356,11 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                                                       currentUser.status =
                                                           newValue;
 
-                                               
-
                                                       if (oldStatus == 'LOA' &&
                                                           newValue != 'LOA') {
                                                         _updatePOSForReturningStudent(
                                                             studentPOS!);
 
-                                                                       
                                                         FirebaseFirestore
                                                             .instance
                                                             .collection(
@@ -374,7 +368,6 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                                                             .doc(studentPOS.uid)
                                                             .set(studentPOS
                                                                 .toJson());
-                                                          
                                                       }
 
                                                       FirebaseFirestore.instance
@@ -2185,6 +2178,28 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                     )
                     .toList(),
               ),
+              Center(
+                child: InkWell(
+                  onTap: () async {
+                    await getCoursesFromFirestore();
+                    showAddEnrolledCoursePopup(context, _formKey, activecourses,
+                        (enrolledCourse) {
+                      setState(() {
+                        currentStudent!.enrolledCourses.add(enrolledCourse);
+                      });
+
+                      // Handle the added enrolled course
+                    });
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text('Add enrolled course',
+                        style: TextStyle(
+                            decoration: TextDecoration.underline,
+                            color: Colors.grey)),
+                  ),
+                ),
+              ),
               SizedBox(
                 height: 8,
               ),
@@ -2382,7 +2397,10 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
         style: TextStyle(fontWeight: FontWeight.bold),
       )),
     ];
-
+    int unitsCompleted =
+        currentStudent!.pastCourses.fold(0, (int sum, PastCourse pastCourse) {
+      return sum + pastCourse.units;
+    });
     List<DataRow> rows = [];
     Future<void> uploadOfficialReceipt() async {
       FilePickerResult? result = await FilePicker.platform.pickFiles();
@@ -3541,7 +3559,31 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
               SizedBox(height: 20),
               Row(
                 children: [
-                  buildCompletedButton(unitsCompleted, rows.length),
+                  Column(
+                    children: [
+                      Text('Ready to graduate?'),
+                      SizedBox(height: 5),
+                      ElevatedButton(
+                        onPressed: unitsCompleted != 36
+                            ? null
+                            : () {
+                                FirebaseFirestore.instance
+                                    .collection('graduatingStudents')
+                                    .doc(currentStudent!.uid)
+                                    .set(currentStudent!.toJson());
+
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                        'Congratulations on completing the program!'),
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
+                              },
+                        child: Text('Completed'),
+                      ),
+                    ],
+                  ),
                   Tooltip(
                     message:
                         'Total units completed is ${getTotalUnits()} units (Required: 36 units)', // Display the list of students
@@ -3555,37 +3597,6 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
               ),
             ],
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget buildCompletedButton(int unitsCompleted, int rowsLength) {
-    return Column(
-      children: [
-        Text('Ready to graduate?'),
-        SizedBox(height: 5),
-        ElevatedButton(
-          onPressed: unitsCompleted != 36
-              ? null
-              : () {
-                  print(rowsLength);
-                  _confettiController.play();
-
-                  FirebaseFirestore.instance
-                      .collection('graduatingStudents')
-                      .doc(currentStudent!.uid)
-                      .set(currentStudent!.toJson());
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content:
-                          Text('Congratulations on completing the program!'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                },
-          child: Text('Completed'),
         ),
       ],
     );
