@@ -3092,15 +3092,7 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
     Future<void> modifyDefenseForm(BuildContext context, EN19Form en19) async {
       String selectedDefenseType = 'Proposal Defense';
       final TextEditingController mainTitleController = TextEditingController();
-      final TextEditingController leadPanelController = TextEditingController();
-      final TextEditingController panelMember1Controller =
-          TextEditingController();
-      final TextEditingController panelMember2Controller =
-          TextEditingController();
-      final TextEditingController panelMember3Controller =
-          TextEditingController();
-      final TextEditingController panelMember4Controller =
-          TextEditingController();
+    
       bool isMainTitleEmpty = false;
 
       showDialog(
@@ -3109,7 +3101,7 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
           return StatefulBuilder(
             builder: (context, setState) {
               return AlertDialog(
-                title: Text('Fill Defense Form and input panelists'),
+                title: Text('Fill Defense Form'),
                 content: SingleChildScrollView(
                   child: Column(
                     children: [
@@ -3156,59 +3148,6 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                                     errorText: isMainTitleEmpty
                                         ? 'This is a required field'
                                         : null,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 20),
-                      // Second row for assigning panelists
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SizedBox(height: 10),
-                                Text(
-                                  'Lead Panel: ',
-                                  style: TextStyle(fontSize: 15),
-                                ),
-                                TextField(
-                                  controller: leadPanelController,
-                                  decoration: InputDecoration(
-                                    hintText: 'Enter lead panel name',
-                                  ),
-                                ),
-                                SizedBox(height: 10),
-                                Text(
-                                  'Panel Members',
-                                  style: TextStyle(fontSize: 15),
-                                ),
-                                TextField(
-                                  controller: panelMember1Controller,
-                                  decoration: InputDecoration(
-                                    hintText: 'Enter panel member 1 name',
-                                  ),
-                                ),
-                                TextField(
-                                  controller: panelMember2Controller,
-                                  decoration: InputDecoration(
-                                    hintText: 'Enter panel member 2 name',
-                                  ),
-                                ),
-                                TextField(
-                                  controller: panelMember3Controller,
-                                  decoration: InputDecoration(
-                                    hintText: 'Enter panel member 3 name',
-                                  ),
-                                ),
-                                TextField(
-                                  controller: panelMember4Controller,
-                                  decoration: InputDecoration(
-                                    hintText: 'Enter panel member 4 name',
                                   ),
                                 ),
                               ],
@@ -3265,23 +3204,8 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                           adviserName: en19.adviserName,
                           enrollmentStage: en19.enrollmentStage,
                           date: DateTime.now(),
-                          leadPanel: leadPanelController.text.isEmpty
-                              ? 'No lead panel assigned'
-                              : leadPanelController.text,
-                          panelMembers: [
-                            panelMember1Controller.text.isEmpty
-                                ? ' '
-                                : panelMember1Controller.text,
-                            panelMember2Controller.text.isEmpty
-                                ? ' '
-                                : panelMember2Controller.text,
-                            panelMember3Controller.text.isEmpty
-                                ? ' '
-                                : panelMember3Controller.text,
-                            panelMember4Controller.text.isEmpty
-                                ? ' '
-                                : panelMember4Controller.text,
-                          ],
+                          leadPanel: en19.leadPanel,
+                          panelMembers: en19.panelMembers,
                           defenseDate: 'No date set',
                           signedByGSC: en19.signedByGSC,
                           signedByAdviser: en19.signedByAdviser,
