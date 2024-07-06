@@ -237,8 +237,9 @@ Future<List<Student>> getGraduatingStudents() async {
 
 Future<void> getNoEnrolledCourseStudents() async {
   noEnrolledStudents.clear();
+
   for (Student stud in studentList) {
-    if (stud.enrolledCourses.isEmpty) {
+    if (stud.enrolledCourses.isEmpty && stud.status != 'LOA') {
       noEnrolledStudents.add(stud);
     }
   }
