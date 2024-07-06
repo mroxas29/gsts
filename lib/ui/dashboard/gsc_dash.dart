@@ -635,11 +635,12 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
   bool newStudentsClicked = false;
   bool deviatedStudentsClicked = true;
   bool graduatingStudentsClicked = false;
+  bool noEnrolledStudentsClicked = false;
 
   bool isGraduatingWithinTimeFrame(String degree, String idNumber) {
     // Extract the year from the ID number
     int idYear =
-        int.parse(idNumber.substring(1, 2)) + 2000; // Convert to full year
+        int.parse(idNumber.substring(0, 3)) + 1900; // Convert to full year
 
     // Get the current year
     int currentYear = DateTime.now().year;
@@ -652,7 +653,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
       maxGraduationYear = idYear + 8;
     } else {
       // For other degrees, return true (no specific time frame)
-      return true;
+      maxGraduationYear = idYear + 4;
     }
 
     // Check if the current year is within the time frame
@@ -762,6 +763,10 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
               actions: [
                 TextButton(
                   onPressed: () {
+                    setState(() {
+                      notifications.add(
+                          'There are ${fromLOAStudents.length} students that came back from being LOA');
+                    });
                     Navigator.pop(context); // Close the dialog
                   },
                   child: Text('OK'),
@@ -847,7 +852,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                   crossAxisCount: 1,
                                   childAspectRatio: 1,
                                 ),
-                                itemCount: 5,
+                                itemCount: 6,
                                 itemBuilder: (context, index) {
                                   // Dummy data for counts (replace with actual data)
                                   int totalStudents = studentList
@@ -865,6 +870,8 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                           newStudentsClicked = false;
                                           deviatedStudentsClicked = false;
                                           graduatingStudentsClicked = false;
+
+                                          noEnrolledStudentsClicked = false;
                                         });
                                       }
                                       if (index == 1) {
@@ -874,6 +881,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                           newStudentsClicked = true;
                                           deviatedStudentsClicked = false;
                                           graduatingStudentsClicked = false;
+                                          noEnrolledStudentsClicked = false;
                                         });
                                       }
                                       if (index == 2) {
@@ -883,6 +891,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                           newStudentsClicked = false;
                                           deviatedStudentsClicked = true;
                                           graduatingStudentsClicked = false;
+                                          noEnrolledStudentsClicked = false;
                                           getDeviatedStudents();
                                         });
                                       }
@@ -893,6 +902,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                           newStudentsClicked = false;
                                           deviatedStudentsClicked = false;
                                           graduatingStudentsClicked = false;
+                                          noEnrolledStudentsClicked = false;
                                         });
                                       }
                                       if (index == 4) {
@@ -902,6 +912,17 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                           newStudentsClicked = false;
                                           deviatedStudentsClicked = false;
                                           graduatingStudentsClicked = true;
+                                          noEnrolledStudentsClicked = false;
+                                        });
+                                      }
+                                      if (index == 5) {
+                                        print('No Enrolled Students Clicked');
+                                        setState(() {
+                                          totalStudentsClicked = false;
+                                          newStudentsClicked = false;
+                                          deviatedStudentsClicked = false;
+                                          graduatingStudentsClicked = false;
+                                          noEnrolledStudentsClicked = true;
                                         });
                                       }
                                     },
@@ -916,6 +937,8 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                         cardCount: index,
                                         graduatingStudents:
                                             graduatingStudentsList.length,
+                                        noEnrolledStudents:
+                                            noEnrolledStudents.length,
                                       ),
                                     ),
                                   );
@@ -937,7 +960,9 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                 ? "Deviated Students (${getCurrentSYandTerm()})"
                                 : graduatingStudentsClicked
                                     ? ' Graduating Students'
-                                    : "Ineligible Students (${getCurrentSYandTerm()})", // Empty string if none of the buttons are clicked
+                                    : noEnrolledStudentsClicked
+                                        ? 'Students with no enrolled courses (${getCurrentSYandTerm()})'
+                                        : "Ineligible Students (${getCurrentSYandTerm()})", // Empty string if none of the buttons are clicked
                     textAlign: TextAlign.left,
                     style: TextStyle(
                       fontSize: 12,
@@ -1050,6 +1075,59 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                   )
                                 ],
                               )),
+                  if (noEnrolledStudentsClicked)
+                    Expanded(
+                        child: noEnrolledStudents.isNotEmpty
+                            ? ListView.builder(
+                                itemCount: noEnrolledStudents.length,
+                                itemBuilder: (context, index) {
+                                  return GestureDetector(
+                                    onTap: () async {
+                                      StudentPOS? clickedStudentPOS =
+                                          await retrieveStudentPOS(
+                                              noEnrolledStudents[index].uid);
+                                      EN19Form? en19details =
+                                          await EN19Form.getFormFromFirestore(
+                                              noEnrolledStudents[index].uid);
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => StudentInfoPage(
+                                            student: noEnrolledStudents[index],
+                                            studentpos: clickedStudentPOS,
+                                            en19: en19details!,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    child: MouseRegion(
+                                      cursor: SystemMouseCursors.click,
+                                      child: StudentList(
+                                        student: noEnrolledStudents[index],
+                                      ),
+                                    ),
+                                  );
+                                })
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.error_outline,
+                                    color: Colors.grey,
+                                  ),
+                                  SizedBox(
+                                    width: 20,
+                                  ),
+                                  Text(
+                                    'No students with no enrolled courses',
+                                    style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold),
+                                  )
+                                ],
+                              )),
                   if (deviatedStudentsClicked)
                     Expanded(
                         child: deviatedStudentList.isNotEmpty
@@ -1115,7 +1193,8 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                   if (!deviatedStudentsClicked &&
                       !newStudentsClicked &&
                       !totalStudentsClicked &&
-                      !graduatingStudentsClicked)
+                      !graduatingStudentsClicked &&
+                      !noEnrolledStudentsClicked)
                     Expanded(
                         child: ineligibleStudentList.isNotEmpty
                             ? ListView.builder(

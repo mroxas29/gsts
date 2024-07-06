@@ -60,10 +60,8 @@ String curpass = passwordTextController.text;
 
 final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-
 class ArrowPainter extends CustomPainter {
   @override
-  
   void paint(Canvas canvas, Size size) {
     Paint paint = Paint()
       ..color = Color.fromARGB(255, 25, 87, 27) // Set the color of the arrow
@@ -522,7 +520,7 @@ class _LoginPageState extends State<LoginPage> {
       await getGraduatingStudents();
       await getNewStudents();
       await getLOAStudents();
-      
+      await getNoEnrolledCourseStudents();
       allDefenseForms = await getAllFormsFromFirestore();
       route();
     } on FirebaseAuthException catch (e) {

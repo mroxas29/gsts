@@ -51,6 +51,18 @@ int getTotalUnits() {
   return totalUnitsCompleted;
 }
 
+int getTotalPOSUnits() {
+  int totalUnits = 0;
+  for (var year in studentPOS.schoolYears) {
+    for (var term in year.terms) {
+      for (var course in term.termcourses) {
+        totalUnits += course.units;
+      }
+    }
+  }
+  return totalUnits;
+}
+
 late Future<ListResult> documentations;
 late Future<ListResult> defenseForms;
 
@@ -95,10 +107,11 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   } // Function to get current academic year and term
 
   void _updatePOSForReturningStudent(StudentPOS posToChange) {
-    String currentSYandTerm = reformatSYandTerm(getCurrentSYandTerm());
     String nextSYandTerm = getNextSYandTerm();
 
     List<Course> coursesToMove = [];
+
+    // Loop through each school year and term to find courses to move
     for (SchoolYear sy in posToChange.schoolYears) {
       for (Term term in sy.terms) {
         for (int i = 0; i < term.termcourses.length; i++) {
@@ -108,6 +121,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                 pastcourse.coursecode == course.coursecode &&
                 pastcourse.grade >= 2.0,
           );
+
           if (!isPastCourse) {
             coursesToMove.add(course);
             term.termcourses.removeAt(i);
@@ -157,6 +171,9 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
           while (courseIndex < coursesToMove.length) {
             Course course = coursesToMove[courseIndex];
 
+            // Check if "OEX" is already in the term
+            bool hasOEX = term.termcourses.any((c) => c.coursecode == 'OEX');
+
             // If the course is "OEX", it should be alone in a term
             if (course.coursecode == 'OEX') {
               if (term.termcourses.isEmpty) {
@@ -166,8 +183,8 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
               break;
             }
 
-            // Otherwise, add the course if there are fewer than 2 courses in the term
-            if (term.termcourses.length < 2) {
+            // Otherwise, add the course if there are fewer than 2 courses in the term and no "OEX"
+            if (!hasOEX && term.termcourses.length < 2) {
               term.termcourses.add(course);
               coursesToMove.removeAt(courseIndex);
             } else {
@@ -210,6 +227,9 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
           while (courseIndex < coursesToMove.length) {
             Course course = coursesToMove[courseIndex];
 
+            // Check if "OEX" is already in the term
+            bool hasOEX = term.termcourses.any((c) => c.coursecode == 'OEX');
+
             if (course.coursecode == 'OEX') {
               if (term.termcourses.isEmpty) {
                 term.termcourses.add(course);
@@ -218,8 +238,8 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
               break;
             }
 
-            // Otherwise, add the course if there are fewer than 2 courses in the term
-            if (term.termcourses.length < 2) {
+            // Otherwise, add the course if there are fewer than 2 courses in the term and no "OEX"
+            if (!hasOEX && term.termcourses.length < 2) {
               term.termcourses.add(course);
               coursesToMove.removeAt(courseIndex);
             } else {
@@ -2178,7 +2198,6 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                     )
                     .toList(),
               ),
-              /*
               Center(
                 child: InkWell(
                   onTap: () async {
@@ -2200,7 +2219,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                             color: Colors.grey)),
                   ),
                 ),
-              ),*/
+              ),
               SizedBox(
                 height: 8,
               ),
@@ -3092,7 +3111,7 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
     Future<void> modifyDefenseForm(BuildContext context, EN19Form en19) async {
       String selectedDefenseType = 'Proposal Defense';
       final TextEditingController mainTitleController = TextEditingController();
-    
+
       bool isMainTitleEmpty = false;
 
       showDialog(
@@ -3429,18 +3448,36 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                           onPressed: () async {
                             String fileName =
                                 '${currentStudent!.idnumber}/Defense Forms/EN-18DefenseForm_${currentStudent!.idnumber}.pdf';
-                            final imageUrl = await FirebaseStorage.instance
-                                .ref()
-                                .child(fileName)
-                                .getDownloadURL();
-                            if (await canLaunch(imageUrl.toString())) {
-                              await launch(imageUrl.toString());
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Failed to download file'),
-                                ),
-                              );
+                            try {
+                              final imageUrl = await FirebaseStorage.instance
+                                  .ref()
+                                  .child(fileName)
+                                  .getDownloadURL();
+
+                              if (await canLaunch(imageUrl.toString())) {
+                                await launch(imageUrl.toString());
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Failed to download file'),
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (e is FirebaseException &&
+                                  e.code == 'object-not-found') {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('File does not exist'),
+                                  ),
+                                );
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Failed to download file'),
+                                  ),
+                                );
+                              }
                             }
                           },
                           tooltip: 'Download EN-18 Defense Form',
@@ -3489,7 +3526,7 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                       Text('Ready to graduate?'),
                       SizedBox(height: 5),
                       ElevatedButton(
-                        onPressed: unitsCompleted != 36
+                        onPressed: unitsCompleted != getTotalPOSUnits()
                             ? null
                             : () {
                                 FirebaseFirestore.instance
@@ -3511,7 +3548,7 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                   ),
                   Tooltip(
                     message:
-                        'Total units completed is ${getTotalUnits()} units (Required: 36 units)', // Display the list of students
+                        'Total units completed is ${getTotalUnits()} units (Required: ${getTotalPOSUnits()} units)', // Display the list of students
                     child: Icon(
                       Icons.info_outline,
                       color: Colors.blue,

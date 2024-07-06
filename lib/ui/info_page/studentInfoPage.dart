@@ -678,8 +678,6 @@ class StudentInfoPageState extends State<StudentInfoPage>
     });
   }
 
- 
-
   Future<void> retrieveEN19Form() async {
     EN19Form? form = await EN19Form.getFormFromFirestore(widget.student.uid);
 
@@ -979,6 +977,7 @@ class StudentInfoPageState extends State<StudentInfoPage>
                                     shownRecoGuide = true;
                                   });
                                 }
+                                posEdited = true;
                                 Navigator.pop(context, true);
                               },
                             );
@@ -1496,8 +1495,18 @@ class StudentInfoPageState extends State<StudentInfoPage>
                                 : Colors.red,
                           )),
                           DataCell(Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              Column(
+                                children: [
+                                  IconButton(
+                                    icon: Icon(Icons.file_download),
+                                    onPressed: downloadEN19File,
+                                    tooltip: 'Download EN-19 Form',
+                                  ),
+                                ],
+                              ),
                               Column(
                                 children: [
                                   IconButton(
@@ -1505,15 +1514,6 @@ class StudentInfoPageState extends State<StudentInfoPage>
                                     onPressed: uploadEN19File,
                                     tooltip:
                                         'Upload EN-19 Form, make sure that the uploaded EN-19 form is signed',
-                                  ),
-                                ],
-                              ),
-                              Column(
-                                children: [
-                                  IconButton(
-                                    icon: Icon(Icons.file_download),
-                                    onPressed: downloadEN19File,
-                                    tooltip: 'Download EN-19 Form',
                                   ),
                                 ],
                               ),

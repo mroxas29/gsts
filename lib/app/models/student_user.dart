@@ -132,7 +132,7 @@ List<Student> graduatingStudentsList = [];
 List<Student> newStudentList = [];
 List<Student> ineligibleStudentList = [];
 List<StudentPOS> fromLOAStudents = [];
-
+List<Student> noEnrolledStudents = [];
 Future<List<Student>> getLOAStudents() async {
   fromLOAStudents.clear();
 
@@ -235,6 +235,15 @@ Future<List<Student>> getGraduatingStudents() async {
   return graduatingStudentsList;
 }
 
+Future<void> getNoEnrolledCourseStudents() async {
+  noEnrolledStudents.clear();
+  for (Student stud in studentList) {
+    if (stud.enrolledCourses.isEmpty) {
+      noEnrolledStudents.add(stud);
+    }
+  }
+}
+
 Future<List<Student>> convertToStudentList(List<user> users) async {
   studentList.clear();
   ineligibleStudentList.clear();
@@ -247,7 +256,7 @@ Future<List<Student>> convertToStudentList(List<user> users) async {
           await getDegreeForStudent(user.uid); // Fetch degree information
       String status = await getStudentStatus(user.uid);
       // You need to fetch past courses here, update accordingly
-      studentList.add(Student(
+      Student studentToAdd = Student(
         uid: user.uid,
         displayname: user.displayname,
         role: user.role,
@@ -257,7 +266,8 @@ Future<List<Student>> convertToStudentList(List<user> users) async {
         pastCourses: pastCourses,
         degree: degree,
         status: status,
-      ));
+      );
+      studentList.add(studentToAdd);
 
       if (!isGraduatingWithinTimeFrame(degree, user.idnumber.toString())) {
         ineligibleStudentList.add(Student(

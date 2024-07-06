@@ -1066,8 +1066,17 @@ class _DeviatedInfoPage extends State<DeviatedInfoPage>
                                 : Colors.red,
                           )),
                           DataCell(Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            mainAxisAlignment: MainAxisAlignment.start,
                             children: [
+                              Column(
+                                children: [
+                                  IconButton(
+                                    icon: Icon(Icons.file_download),
+                                    onPressed: downloadEN19File,
+                                    tooltip: 'Download EN-19 Form',
+                                  ),
+                                ],
+                              ),
                               Column(
                                 children: [
                                   IconButton(
@@ -1075,15 +1084,6 @@ class _DeviatedInfoPage extends State<DeviatedInfoPage>
                                     onPressed: uploadEN19File,
                                     tooltip:
                                         'Upload EN-19 Form, make sure that the uploaded EN-19 form is signed',
-                                  ),
-                                ],
-                              ),
-                              Column(
-                                children: [
-                                  IconButton(
-                                    icon: Icon(Icons.file_download),
-                                    onPressed: downloadEN19File,
-                                    tooltip: 'Download EN-19 Form',
                                   ),
                                 ],
                               ),

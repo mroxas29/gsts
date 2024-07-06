@@ -9,6 +9,7 @@ class ProfileBox extends StatefulWidget {
   final int ineligibleStudents;
   final int cardCount;
   final int graduatingStudents;
+  final int noEnrolledStudents;
   const ProfileBox(
       {super.key,
       required this.totalStudents,
@@ -16,7 +17,8 @@ class ProfileBox extends StatefulWidget {
       required this.deviatedStudents,
       required this.cardCount,
       required this.ineligibleStudents,
-      required this.graduatingStudents});
+      required this.graduatingStudents,
+      required this.noEnrolledStudents});
 
   @override
   State<ProfileBox> createState() => _ProfileBoxState();
@@ -35,7 +37,9 @@ class _ProfileBoxState extends State<ProfileBox> {
                   ? const Color.fromARGB(255, 170, 63, 189)
                   : widget.cardCount == 4
                       ? const Color.fromARGB(255, 28, 95, 30)
-                      : Colors.black,
+                      : widget.cardCount == 5
+                          ? Color.fromARGB(255, 192, 61, 0)
+                          : Colors.black,
       borderRadius: BorderRadius.circular(10), // Adjust the radius as needed
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: 300, maxHeight: 100),
@@ -242,6 +246,48 @@ class _ProfileBoxState extends State<ProfileBox> {
                     Spacer(),
                     Text(
                       widget.graduatingStudents.toString(),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 35,
+                      ),
+                    )
+                  ],
+                ),
+              ),
+            if (widget.cardCount == 5)
+              Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(0.0),
+                      child: SizedBox(
+                        height: 50,
+                        width: 50,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Color.fromARGB(17, 255, 255, 255),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Icon(
+                            Icons.broken_image_rounded,
+                            size: 25,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Spacer(),
+                    Text(
+                      'Students w/o enrolled courses',
+                      style: TextStyle(color: Colors.white, fontSize: 18),
+                    ),
+                    Spacer(),
+                    Text(
+                      widget.noEnrolledStudents.toString(),
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,

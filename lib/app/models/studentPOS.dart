@@ -215,6 +215,7 @@ int countCourseOccurrences(
   print(occurrences);
   return occurrences;
 }
+
 StudentPOS generatePOSforMIT(
   Student student,
   StudentPOS studentpos,
@@ -377,6 +378,7 @@ StudentPOS generatePOSforMIT(
 
   return newStudentPOS;
 }
+
 StudentPOS generatePOSforMSIT(
   Student student,
   StudentPOS studentpos,
@@ -394,7 +396,6 @@ StudentPOS generatePOSforMSIT(
   print(foundationCourses.length);
 
   List<Course> specializationCourses = getSpecializedCourses(programCourses);
-
   print(specializationCourses.length);
 
   int maxUnitsPerTerm = 6;
@@ -417,6 +418,7 @@ StudentPOS generatePOSforMSIT(
   // Add THPROD and THWR1
   Course thprod = courses.firstWhere((course) => course.coursecode == "THPROD");
   Course thwr1 = courses.firstWhere((course) => course.coursecode == "THWR1");
+  Course oex = courses.firstWhere((course) => course.coursecode == "OEX");
 
   // Add THFIND and THWR2
   Course thfind = courses.firstWhere((course) => course.coursecode == "THFIND");
@@ -428,8 +430,10 @@ StudentPOS generatePOSforMSIT(
     int maxCount = -1;
     for (var year in newStudentPOS.schoolYears) {
       for (var term in year.terms) {
+        bool hasOEX = term.termcourses.any((c) => c.coursecode == 'OEX');
         if (!excludeTerms.contains(term) &&
             term.termcourses.length < 2 &&
+            !hasOEX &&
             term.termcourses.fold<int>(0, (acc, course) => acc + course.units) +
                     course.units <=
                 maxUnitsPerTerm) {
@@ -506,7 +510,14 @@ StudentPOS generatePOSforMSIT(
     }
   }
 
-  // Find the term for THWR2 and THFIND after THPROD and THWR1
+  // Find the term for OEX after THPROD and THWR1
+  Term? termForOex = findBestTermForCourse(oex, thesisTerms);
+  if (termForOex != null) {
+    termForOex.termcourses.add(oex);
+    thesisTerms.add(termForOex);
+  }
+
+  // Find the term for THWR2 and THFIND after OEX
   Term? termForThwr2Thfind = findBestTermForCourse(thwr2, thesisTerms);
   if (termForThwr2Thfind != null) {
     termForThwr2Thfind.termcourses.add(thwr2);
@@ -523,6 +534,7 @@ StudentPOS generatePOSforMSIT(
         for (var term in year.terms) {
           if (!thesisTerms.contains(term) &&
               term.termcourses.length < 2 &&
+              !term.termcourses.any((c) => c.coursecode == 'OEX') &&
               term.termcourses
                           .fold<int>(0, (acc, course) => acc + course.units) +
                       course.units <=
