@@ -75,7 +75,6 @@ Future<List<EnrolledCourseData>> getHistory(String facultyuid) async {
     return [];
   }
 }
-
 // Get a list of all faculty members from Firestore
 Future<List<Faculty>> getFacultyList() async {
   // Initialize an empty list to hold faculty data
@@ -90,12 +89,12 @@ Future<List<Faculty>> getFacultyList() async {
 
   FirebaseFirestore firestore = FirebaseFirestore.instance;
 
-  // Assuming you have a collection named 'users' in your Firestore database
+  // Assuming you have a collection named 'faculty' in your Firestore database
   QuerySnapshot<Map<String, dynamic>> querySnapshot =
       await firestore.collection('faculty').get();
 
-  for (QueryDocumentSnapshot doc in querySnapshot.docs) {
-    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+  for (QueryDocumentSnapshot<Map<String, dynamic>> doc in querySnapshot.docs) {
+    Map<String, dynamic> data = doc.data();
 
     // Extracting faculty details from document data
     String uid = data['uid'];
@@ -110,6 +109,7 @@ Future<List<Faculty>> getFacultyList() async {
       email: email,
       history: history.map((historyCourses) {
         return Course(
+          isOnline: historyCourses.isOnline,
           uid: historyCourses.uid,
           coursecode: historyCourses.coursecode,
           coursename: historyCourses.coursename,
@@ -119,13 +119,15 @@ Future<List<Faculty>> getFacultyList() async {
           units: historyCourses.units,
           type: historyCourses.type,
           program: historyCourses.program,
+          dayTimes:
+              Map<String, Map<String, String>>.from(historyCourses.dayTimes),
+          syAndTerm: historyCourses.syAndTerm,
+          section: historyCourses.section,
         );
       }).toList(),
     );
     facultyList.add(faculty);
   }
-
-  // Add a default faculty member if the list is empty
 
   return facultyList;
 }

@@ -1345,16 +1345,22 @@ class _MainViewState extends State<Gscscreen> {
   Future<void> addEnrolledStudents(
       List<String> students, String courseCode) async {
     print(courseCode);
-    Course course = Course(
-        uid: 'blank',
-        coursecode: 'Select a course',
-        coursename: '',
-        facultyassigned: '',
-        units: 0,
-        numstudents: 0,
-        isactive: false,
-        type: '',
-        program: '');
+ Course course = Course(
+      uid: 'blank',
+      coursecode: 'Select a course',
+      coursename: '',
+      isactive: false,
+      facultyassigned: '',
+      numstudents: 0,
+      units: 0,
+      type: '',
+      program: '',
+      dayTimes: {}, // Initialize as an empty map for days with their times
+      section: '', // Initialize as an empty string
+      syAndTerm:
+          getNextSYandTerm(), // Assume this function provides the correct string
+    );
+
 
     late EnrolledCourseData enrolledCourse;
     for (Course c in courses) {
@@ -1363,17 +1369,21 @@ class _MainViewState extends State<Gscscreen> {
       }
     }
 
-    enrolledCourse = EnrolledCourseData(
-      uid: course.uid,
+               enrolledCourse = EnrolledCourseData(
+      uid: generateUID(),
+      syAndTerm: reformatSYandTerm(getCurrentSYandTerm()),
+      dayTimes: course.dayTimes, // Add this line
+      section: course.section, // Add this line
       coursecode: course.coursecode,
       coursename: course.coursename,
       isactive: course.isactive,
       facultyassigned: course.facultyassigned,
-      numstudents: students.length - 1,
+      numstudents: course.numstudents + 1,
       units: course.units,
       type: course.type,
       program: course.program,
     );
+
 
     for (Student s in studentList) {
       for (String studentId in students) {

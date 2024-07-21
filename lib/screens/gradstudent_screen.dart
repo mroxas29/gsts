@@ -1297,17 +1297,21 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                           } else {
                             late EnrolledCourseData enrolledCourse;
 
-                            enrolledCourse = EnrolledCourseData(
-                              uid: generateUID(),
-                              coursecode: selectedCourse!.coursecode,
-                              coursename: selectedCourse!.coursename,
-                              isactive: selectedCourse!.isactive,
-                              facultyassigned: selectedCourse!.facultyassigned,
-                              numstudents: selectedCourse!.numstudents + 1,
-                              units: selectedCourse!.units,
-                              type: selectedCourse!.type,
-                              program: selectedCourse!.program,
-                            );
+            enrolledCourse = EnrolledCourseData(
+  uid: generateUID(),
+  syAndTerm: reformatSYandTerm(getCurrentSYandTerm()),
+  dayTimes: selectedCourse!.dayTimes, // Add this line
+  section: selectedCourse!.section, // Add this line
+  coursecode: selectedCourse!.coursecode,
+  coursename: selectedCourse!.coursename,
+  isactive: selectedCourse!.isactive,
+  facultyassigned: selectedCourse!.facultyassigned,
+  numstudents: selectedCourse!.numstudents + 1,
+  units: selectedCourse!.units,
+  type: selectedCourse!.type,
+  program: selectedCourse!.program,
+);
+
 
                             onAddEnrolledCourse(enrolledCourse);
 
@@ -1959,19 +1963,24 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                           });
                           return;
                         } else {
+                          String syAndTerm = currentStudent!.enrolledCourses.firstWhere((enrolledCourse) => enrolledCourse.coursecode == selectedCourse!.coursecode).syAndTerm;
+
                           final pastCourse = PastCourse(
-                              uid: generateUID(),
-                              coursecode: selectedCourse!.coursecode,
-                              coursename: selectedCourse!.coursename,
-                              facultyassigned: selectedCourse!.facultyassigned,
-                              units: selectedCourse!.units,
-                              numstudents: selectedCourse!.numstudents,
-                              isactive: selectedCourse!.isactive,
-                              grade: enteredGrade!,
-                              type: selectedCourse!.type,
-                              program: selectedCourse!
-                                  .program // Assign the entered grade
-                              );
+                            uid: generateUID(),
+                            syAndTerm: syAndTerm,
+                            dayTimes: selectedCourse!.dayTimes, // Add this line
+                            section: selectedCourse!.section, // Add this line
+                            coursecode: selectedCourse!.coursecode,
+                            coursename: selectedCourse!.coursename,
+                            facultyassigned: selectedCourse!.facultyassigned,
+                            units: selectedCourse!.units,
+                            numstudents: selectedCourse!.numstudents,
+                            isactive: selectedCourse!.isactive,
+                            grade: enteredGrade!, // Assign the entered grade
+                            type: selectedCourse!.type,
+                            program: selectedCourse!.program,
+                          );
+
 
                           onAddPastCourse(pastCourse);
 
@@ -2011,16 +2020,21 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
 
                           if (fromEnrolled) {
                             _deleteEnrolledCourse(
-                                EnrolledCourseData(
-                                    uid: pastCourse.uid,
-                                    coursecode: pastCourse.coursecode,
-                                    coursename: pastCourse.coursename,
-                                    isactive: pastCourse.isactive,
-                                    facultyassigned: pastCourse.facultyassigned,
-                                    numstudents: pastCourse.numstudents,
-                                    units: pastCourse.units,
-                                    type: pastCourse.type,
-                                    program: pastCourse.program),
+                                       EnrolledCourseData(
+  uid: generateUID(),
+  syAndTerm: reformatSYandTerm(getCurrentSYandTerm()),
+  dayTimes: selectedCourse!.dayTimes, // Add this line
+  section: selectedCourse!.section, // Add this line
+  coursecode: selectedCourse!.coursecode,
+  coursename: selectedCourse!.coursename,
+  isactive: selectedCourse!.isactive,
+  facultyassigned: selectedCourse!.facultyassigned,
+  numstudents: selectedCourse!.numstudents + 1,
+  units: selectedCourse!.units,
+  type: selectedCourse!.type,
+  program: selectedCourse!.program,
+)
+,
                                 fromEnrolled);
                           }
                         }
@@ -2198,7 +2212,6 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                     )
                     .toList(),
               ),
-              /*
               Center(
                 child: InkWell(
                   onTap: () async {
@@ -2220,7 +2233,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                             color: Colors.grey)),
                   ),
                 ),
-              ),*/
+              ),
               SizedBox(
                 height: 8,
               ),

@@ -3,7 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/faculty.dart';
+
 final controller = TextEditingController();
+
 class UserData {
   Map<String, String> displayname = {};
   String email = '';
@@ -66,6 +68,9 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
       ? "${facultyList[0].displayname['firstname']!} ${facultyList[0].displayname['lastname']!}"
       : '';
 
+  List<String> daysOfWeek = ['M', 'T', 'W', 'H', 'F', 'S'];
+  Map<String, String?> selectedDaysWithTimes = {};
+
   showDialog(
     context: context,
     builder: (BuildContext context) {
@@ -76,7 +81,9 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
             key: formKey,
             autovalidateMode: AutovalidateMode.always,
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Course Code
                 TextFormField(
                   decoration: InputDecoration(labelText: 'Course code'),
                   validator: (value) {
@@ -94,6 +101,7 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                     _courseData.coursecode = value ?? '';
                   },
                 ),
+                // Course Name
                 TextFormField(
                   decoration: InputDecoration(labelText: 'Course name'),
                   validator: (value) {
@@ -106,6 +114,7 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                     _courseData.coursename = value ?? '';
                   },
                 ),
+                // Faculty Assignment
                 DropdownButtonFormField<String>(
                   value: selectedFaculty,
                   items: facultyList.map((faculty) {
@@ -123,6 +132,7 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                   },
                   decoration: InputDecoration(labelText: 'Assign to'),
                 ),
+                // Course Units
                 TextFormField(
                   decoration: InputDecoration(labelText: 'Course units'),
                   keyboardType: TextInputType.number,
@@ -136,6 +146,7 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                     _courseData.units = int.parse(value ?? '');
                   },
                 ),
+                // Program
                 DropdownButtonFormField<String>(
                   value: selectedProgram,
                   items: programs.map((program) {
@@ -152,6 +163,7 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                   },
                   decoration: InputDecoration(labelText: 'Program'),
                 ),
+                // Status
                 DropdownButtonFormField<String>(
                   value: selectedStatus,
                   items: status.map((role) {
@@ -168,6 +180,7 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                   },
                   decoration: InputDecoration(labelText: 'Is active?'),
                 ),
+                // Course Type
                 DropdownButtonFormField<String>(
                   value: selectedType,
                   items: type.map((type) {
@@ -184,6 +197,51 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                   },
                   decoration: InputDecoration(labelText: 'Course Type'),
                 ),
+                // Days of the Week
+                SizedBox(height: 16.0),
+                Text('Select Days:',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                Wrap(
+                  spacing: 8.0,
+                  children: daysOfWeek.map((day) {
+                    return ChoiceChip(
+                      label: Text(day),
+                      selected: selectedDaysWithTimes.containsKey(day),
+                      onSelected: (selected) async {
+                        if (selected) {
+                          // Show time picker dialog
+                          TimeOfDay? startTime = await showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay.now(),
+                          );
+                          if (startTime != null) {
+                            TimeOfDay? endTime = await showTimePicker(
+                              context: context,
+                              initialTime: TimeOfDay.now().replacing(
+                                hour: startTime.hour + 1,
+                              ),
+                            );
+                            if (endTime != null) {
+                              // Save the selected day and time
+                              selectedDaysWithTimes[day] =
+                                  '${startTime.format(context)} - ${endTime.format(context)}';
+                            }
+                          }
+                        } else {
+                          // Remove the day if deselected
+                          selectedDaysWithTimes.remove(day);
+                        }
+                        // Refresh UI
+                        (context as Element).rebuild();
+                      },
+                    );
+                  }).toList(),
+                ),
+                // Display selected days and times
+                SizedBox(height: 16.0),
+                ...selectedDaysWithTimes.entries.map((entry) {
+                  return Text('${entry.key}: ${entry.value}');
+                }).toList(),
               ],
             ),
           ),
@@ -225,6 +283,13 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                       'numstudents': 0,
                       'type': selectedType,
                       'program': selectedProgram,
+                      'days': selectedDaysWithTimes.keys.toList(),
+                      'startTime': selectedDaysWithTimes.values
+                          .map((time) => time!.split(' - ')[0])
+                          .toList(),
+                      'endTime': selectedDaysWithTimes.values
+                          .map((time) => time!.split(' - ')[1])
+                          .toList(),
                     });
                     Navigator.pop(context);
 
@@ -255,10 +320,6 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
   );
 }
 
-
-
-
-
 String generateUID() {
   var random = Random();
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -270,5 +331,3 @@ String generateUID() {
 
   return uid;
 }
-
-

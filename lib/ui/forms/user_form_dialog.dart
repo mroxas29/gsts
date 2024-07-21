@@ -45,6 +45,13 @@ Future<String?> showStudentTypeDialog(
           children: [
             ElevatedButton(
               onPressed: () {
+                studentType = 'New Applicant';
+                showAddApplicantForm(context, formKey);
+              },
+              child: Text('New User'),
+            ),
+            ElevatedButton(
+              onPressed: () {
                 studentType = 'New';
                 showAddNewUserForm(context, formKey, studentType);
               },
@@ -57,6 +64,218 @@ Future<String?> showStudentTypeDialog(
     },
   );
 }
+
+void showAddApplicantForm(
+    BuildContext context, GlobalKey<FormState> formKey) {
+  List<String> roles = [
+    'Coordinator',
+    'Graduate Student',
+    'Admin',
+    'DIT Secretary'
+  ];
+  List<String> degrees = [
+    'No degree',
+    'MIT',
+    'MSIT',
+    'MIT-Masters',
+    'MIT-Doctorate',
+    'MSIT-Masters',
+    'MSIT-Doctorate'
+  ];
+
+  UserData _userData = UserData();
+
+
+  String selectedDegree = degrees[0];
+
+  String uid;
+  final scaffoldContext = ScaffoldMessenger.of(context);
+
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Add New Applicant'),
+        content: SingleChildScrollView(
+          child: Form(
+            key: formKey,
+            autovalidateMode: AutovalidateMode.always,
+            child: Column(
+              children: [
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'First Name'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter first name';
+                    }
+                    return null;
+                  },
+                  onSaved: (value) {
+                    _userData.displayname['firstname'] = value ?? '';
+                  },
+                ),
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'Last Name'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter last name';
+                    }
+                    return null;
+                  },
+                  onSaved: (value) {
+                    _userData.displayname['lastname'] = value ?? '';
+                  },
+                ),
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'Email'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter an email';
+                    }
+/*
+                    if (!value.contains('@dlsu.edu.ph')) {
+                      return 'Enter a valid @dlsu.edu.ph email';
+                    }
+*/
+                    // Add email validation if needed
+                    return null;
+                  },
+                  onSaved: (value) {
+                    _userData.email = value ?? '';
+                  },
+                ),
+
+                DropdownButtonFormField<String>(
+                  value: selectedDegree,
+                  items: degrees.map((degree) {
+                    return DropdownMenuItem<String>(
+                      value: degree,
+                      child: Text(degree),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    // Add the necessary setState method if needed
+                    selectedDegree = value!;
+                  },
+                  onSaved: (value) {
+                      _userData.degree = value ?? '';
+                    
+                  },
+                  decoration: InputDecoration(labelText: 'Degree'),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (formKey.currentState!.validate()) {
+                formKey.currentState!.save();
+
+                String otp = generateRandomPassword();
+
+                try {
+                  UserCredential userCredential = await FirebaseAuth.instance
+                      .createUserWithEmailAndPassword(
+                    email: _userData.email,
+                    password: '123123',
+                  );
+
+                  User? user = userCredential.user;
+
+                  await user?.sendEmailVerification();
+                  /*   sendEmail(
+                      firstname: _userData.displayname['firstname'],
+                      email: _userData.email,
+                      toemail: _userData.email,
+                      subject:
+                          'New account at the Graduate Student Tracking System',
+                      password: otp);
+*/
+                  String userID = user!.uid;
+                  uid = userID;
+                    await FirebaseFirestore.instance
+                        .collection('Applicants')
+                        .doc(userID)
+                        .set({
+                      'displayname': {
+                        'firstname': _userData.displayname['firstname']!,
+                        'lastname': _userData.displayname['lastname']!,
+                      },
+                      'role': 'Applicant',
+                      'email': _userData.email.toLowerCase(),
+                      'enrolledCourses': [],
+                      'pastCourses': [],
+                      'idnumber': '',
+                      'degree': _userData.degree,
+                      'status': ''
+                    });
+
+
+
+                    /*
+                    if (studentType == 'New') {
+                      Map<String, dynamic>? studentPosData;
+                      if (_userData.degree.contains('MIT')) {
+                        print('student is MIT');
+
+                        studentPosData = generatePOSforMIT(
+                                newStudent, studentPOSList, courses)
+                            .toJson();
+                      }
+
+                      if (_userData.degree.contains('MSIT')) {
+                        print('Student is MSIT');
+                        studentPosData = generatePOSforMSIT(
+                                newStudent, studentPOSList, courses)
+                            .toJson();
+                      }
+
+                      try {
+                        firestore
+                            .collection('studentpos')
+                            .doc(newStudent.uid)
+                            .set(studentPosData!);
+                        print('Student POS MADE');
+                        // Update local data after saving changes
+                        retrieveAllPOS();
+                      } catch (error) {
+                        print('Failed to update Program of Study');
+                      }
+                    }
+                      */
+                  
+
+                  users.clear();
+
+                  addUserFromFirestore();
+                  Navigator.pop(context);
+                  scaffoldContext.showSnackBar(
+                    SnackBar(
+                      content: Text('Applicant added'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                } catch (e) {
+                  print('Error creating user: $e');
+                }
+              }
+            },
+            child: Text('Add'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
 
 void showAddNewUserForm(
     BuildContext context, GlobalKey<FormState> formKey, String studentType) {
