@@ -14,11 +14,13 @@ class PastCourse extends Course {
     required this.grade,
     required String type,
     required String program,
-    required Map<String, Map<String, String>> dayTimes,
+    required List<Map<String, String>> dayTimes,
     required String section,
     required String syAndTerm,
-    required bool isOnline
+    required bool isOnline,
+    required String roomNum,
   }) : super(
+    roomNum: roomNum,
     isOnline: isOnline,
           uid: uid,
           coursecode: coursecode,
@@ -47,9 +49,10 @@ class PastCourse extends Course {
       grade: json['grade'],
       type: json['type'],
       program: json['program'],
-      dayTimes: Map<String, Map<String, String>>.from(json['dayTimes'] ?? {}),
+      dayTimes: List<Map<String, String>>.from(json['dayTimes'] ?? {}),
       section: json['section'] ?? '',
       syAndTerm: json['syAndTerm'] ?? '',
+      roomNum: json['roomNum']
     );
   }
 

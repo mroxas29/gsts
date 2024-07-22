@@ -1347,6 +1347,8 @@ class _MainViewState extends State<Gscscreen> {
     print(courseCode);
  Course course = Course(
       uid: 'blank',
+      isOnline: false,
+      roomNum: '',
       coursecode: 'Select a course',
       coursename: '',
       isactive: false,
@@ -1355,7 +1357,7 @@ class _MainViewState extends State<Gscscreen> {
       units: 0,
       type: '',
       program: '',
-      dayTimes: {}, // Initialize as an empty map for days with their times
+      dayTimes: [], // Initialize as an empty map for days with their times
       section: '', // Initialize as an empty string
       syAndTerm:
           getNextSYandTerm(), // Assume this function provides the correct string
@@ -1370,6 +1372,8 @@ class _MainViewState extends State<Gscscreen> {
     }
 
                enrolledCourse = EnrolledCourseData(
+                roomNum:course.roomNum,
+                isOnline: course.isOnline,
       uid: generateUID(),
       syAndTerm: reformatSYandTerm(getCurrentSYandTerm()),
       dayTimes: course.dayTimes, // Add this line

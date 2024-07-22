@@ -11,7 +11,7 @@ class Course {
   String type;
   String program;
   bool isOnline;
-  Map<String, Map<String, String>> dayTimes; // Day-wise start and end times
+  List< Map<String, String>> dayTimes; // Day-wise start and end times
   String syAndTerm;
   String section; // New section field
   String roomNum;
@@ -35,7 +35,7 @@ class Course {
 
   Map<String, dynamic> toJson() {
     return {
-      "roomNum": roomNum,
+ 
       "uid": uid,
       "coursecode": coursecode,
       "coursename": coursename,
@@ -48,7 +48,8 @@ class Course {
       "dayTimes": dayTimes,
       "syAndTerm": syAndTerm,
       "section": section, // Add section to JSON
-      "isOnline": isOnline
+      "isOnline": isOnline,
+           "roomNum": roomNum,
     };
   }
 
@@ -65,8 +66,8 @@ class Course {
         units = map['units'],
         type = map['type'],
         program = map['program'],
-        dayTimes = (map['dayTimes'] as Map).map((key, value) =>
-            MapEntry(key as String, Map<String, String>.from(value as Map))),
+
+        dayTimes = List<Map<String, String>>.from(map['dayTimes']),
         syAndTerm = map['syAndTerm'],
         section = map['section']; // Initialize section from map
 
@@ -103,7 +104,7 @@ List<Course> examcourses = [];
 List<Course> specializedcourses = [];
 List<Course> thesiscourses = [];
 final blankCourse = Course(
-  dayTimes: {}, // Initialize with empty map
+  dayTimes: [], // Initialize with empty map
   uid: 'blank',
   isOnline: false,
   coursecode: 'Select a course',
@@ -116,6 +117,7 @@ final blankCourse = Course(
   program: '',
   syAndTerm: '',
   section: '', // Initialize section
+  roomNum: '',
 );
 
 Future<List<Course>> getCoursesFromFirestore() async {
@@ -140,12 +142,6 @@ Future<List<Course>> getCoursesFromFirestore() async {
         in querySnapshot.docs) {
       Map<String, dynamic> courseData = document.data();
 
-      // Ensure the 'days' field is a list of strings
-      List<String> days = List<String>.from(courseData['days'] ?? []);
-      Map<String, Map<String, String>> dayTimes =
-          (courseData['dayTimes'] as Map<String, dynamic> ?? {}).map(
-        (key, value) => MapEntry(key, Map<String, String>.from(value)),
-      );
 
       Course newCourse = Course(
         uid: document.id,
@@ -158,9 +154,10 @@ Future<List<Course>> getCoursesFromFirestore() async {
         units: courseData['units'],
         type: courseData['type'],
         program: courseData['program'],
-        dayTimes: dayTimes,
+        dayTimes: courseData['dayTimes'],
         syAndTerm: courseData['syAndTerm'],
-        section: courseData['section'], // Initialize section from Firestore
+        section: courseData['section'], // Initialize section from Firestore'
+        roomNum: courseData['roomNum']
       );
       print(newCourse.uid);
 
@@ -199,8 +196,11 @@ Future<List<Course>> getCoursesFromFirestore() async {
       if (newCourse.type.toLowerCase().contains('thesis')) {
         thesiscourses.add(newCourse);
       }
+      
     }
-  } catch (e) {
+   
+  } catch (e) { 
+    
     print("Error fetching courses from Firestore: $e");
   }
 

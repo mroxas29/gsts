@@ -1309,7 +1309,9 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
   numstudents: selectedCourse!.numstudents + 1,
   units: selectedCourse!.units,
   type: selectedCourse!.type,
+  roomNum: selectedCourse!.roomNum,
   program: selectedCourse!.program,
+  isOnline: selectedCourse!.isOnline,
 );
 
 
@@ -1968,6 +1970,8 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                           final pastCourse = PastCourse(
                             uid: generateUID(),
                             syAndTerm: syAndTerm,
+                            roomNum: selectedCourse!.roomNum,
+                            isOnline: selectedCourse!.isOnline,
                             dayTimes: selectedCourse!.dayTimes, // Add this line
                             section: selectedCourse!.section, // Add this line
                             coursecode: selectedCourse!.coursecode,
@@ -2022,6 +2026,8 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                             _deleteEnrolledCourse(
                                        EnrolledCourseData(
   uid: generateUID(),
+  isOnline: selectedCourse!.isOnline,
+  roomNum: selectedCourse!.roomNum,
   syAndTerm: reformatSYandTerm(getCurrentSYandTerm()),
   dayTimes: selectedCourse!.dayTimes, // Add this line
   section: selectedCourse!.section, // Add this line

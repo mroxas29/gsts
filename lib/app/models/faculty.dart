@@ -103,29 +103,32 @@ Future<List<Faculty>> getFacultyList() async {
     String email = data['email'];
     List<Course> history = await getHistory(uid);
 
-    Faculty faculty = Faculty(
-      uid: uid,
-      displayname: displayName,
-      email: email,
-      history: history.map((historyCourses) {
-        return Course(
-          isOnline: historyCourses.isOnline,
-          uid: historyCourses.uid,
-          coursecode: historyCourses.coursecode,
-          coursename: historyCourses.coursename,
-          isactive: historyCourses.isactive,
-          facultyassigned: historyCourses.facultyassigned,
-          numstudents: historyCourses.numstudents,
-          units: historyCourses.units,
-          type: historyCourses.type,
-          program: historyCourses.program,
-          dayTimes:
-              Map<String, Map<String, String>>.from(historyCourses.dayTimes),
-          syAndTerm: historyCourses.syAndTerm,
-          section: historyCourses.section,
-        );
-      }).toList(),
+Faculty faculty = Faculty(
+  uid: uid,
+  displayname: displayName,
+  email: email,
+  history: history.map((historyCourse) {
+    return Course(
+      uid: historyCourse.uid,
+      coursecode: historyCourse.coursecode,
+      coursename: historyCourse.coursename,
+      isactive: historyCourse.isactive,
+      facultyassigned: historyCourse.facultyassigned,
+      numstudents: historyCourse.numstudents,
+      units: historyCourse.units,
+      type: historyCourse.type,
+      program: historyCourse.program,
+      dayTimes: List<Map<String, String>>.from(
+        historyCourse.dayTimes.map((dayTime) => Map<String, String>.from(dayTime)),
+      ),
+      syAndTerm: historyCourse.syAndTerm,
+      section: historyCourse.section,
+      roomNum: historyCourse.roomNum,
+      isOnline: historyCourse.isOnline,
     );
+  }).toList(),
+);
+
     facultyList.add(faculty);
   }
 
