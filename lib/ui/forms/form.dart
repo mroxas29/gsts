@@ -78,7 +78,6 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
   String selectedSetup = setups[0];
   Map<String, String?> selectedDaysWithTimes = {};
   String? selectedHybridDay;
-  String? selectedOnlineDay;
 
   showDialog(
     context: context,
@@ -418,7 +417,7 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                               })),
                           'section': _courseData.section,
                           'setup': _courseData.setup,
-                          'onlineDay': selectedOnlineDay,
+                          'onlineDay': selectedHybridDay ?? 'No online',
                           'roomNum': _courseData.roomNum,
                           'syAndTerm': getNextSYandTerm()
                         });
