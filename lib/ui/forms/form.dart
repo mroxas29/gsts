@@ -17,23 +17,6 @@ class UserData {
   String degree = '';
 }
 
-class CourseData {
- String uid = "";
-  String coursecode = "";
-  String coursename = "";
-  bool isactive = false;
-  String facultyassigned = "No faculty Assigned";
-  int numstudents = 0;
-  int units = 0;
-  String type = "";
-  String program = "";
-  String setup = "";
-  List< Map<String, String>> dayTimes = []; // Day-wise start and end times
-  String syAndTerm = "";
-  String section = ""; // New section field
-  String roomNum = "";
-}
-
 class FacultyData {
   String uid = generateUID();
   String email = '';
@@ -52,6 +35,7 @@ Future<bool> doesCourseCodeExist(String courseCode) async {
 String getFullname(Faculty faculty) {
   return '${faculty.displayname['firstname']} ${faculty.displayname['lastname']}';
 }
+
 void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
   List<String> status = ['true', 'false'];
   List<String> programs = ['MIT/MSIT', 'MIT', 'MSIT'];
@@ -65,22 +49,22 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
     'Thesis Course'
   ];
 
-  final Course _courseData =Course(
-  dayTimes: [], // Initialize with empty map
-  uid: 'blank',
-  setup: '',
-  coursecode: 'Select a course',
-  coursename: '',
-  facultyassigned: '',
-  units: 0,
-  numstudents: 0,
-  isactive: false,
-  type: '',
-  program: '',
-  syAndTerm: '',
-  section: '', // Initialize section
-  roomNum: '',
-);
+  final Course _courseData = Course(
+    dayTimes: [], // Initialize with empty map
+    uid: 'blank',
+    setup: '',
+    coursecode: 'Select a course',
+    coursename: '',
+    facultyassigned: '',
+    units: 0,
+    numstudents: 0,
+    isactive: false,
+    type: '',
+    program: '',
+    syAndTerm: '',
+    section: '', // Initialize section
+    roomNum: '',
+  );
 
   String selectedStatus = status[0];
   String selectedProgram = programs[0];
@@ -90,7 +74,10 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
       : '';
 
   List<String> daysOfWeek = ['M', 'T', 'W', 'H', 'F', 'S'];
+  List<String> setups = ['Full-Online', 'Hybrid', 'Full-Onsite'];
+  String selectedSetup = setups[0];
   Map<String, String?> selectedDaysWithTimes = {};
+  String? selectedHybridDay;
   String? selectedOnlineDay;
 
   showDialog(
@@ -99,7 +86,7 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
       return StatefulBuilder(
         builder: (context, setState) {
           return AlertDialog(
-            contentPadding: EdgeInsets.symmetric(horizontal: 16.0),
+            contentPadding: EdgeInsets.symmetric(horizontal: 40.0),
             title: Text('Add New Course'),
             content: SingleChildScrollView(
               child: Form(
@@ -115,7 +102,8 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                         children: [
                           // Course Code
                           TextFormField(
-                            decoration: InputDecoration(labelText: 'Course code'),
+                            decoration:
+                                InputDecoration(labelText: 'Course code'),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Please enter the course code';
@@ -133,7 +121,8 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                           ),
                           // Course Name
                           TextFormField(
-                            decoration: InputDecoration(labelText: 'Course name'),
+                            decoration:
+                                InputDecoration(labelText: 'Course name'),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Please enter the course name';
@@ -164,7 +153,8 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                           ),
                           // Course Units
                           TextFormField(
-                            decoration: InputDecoration(labelText: 'Course units'),
+                            decoration:
+                                InputDecoration(labelText: 'Course units'),
                             keyboardType: TextInputType.number,
                             validator: (value) {
                               if (value == null || value.isEmpty) {
@@ -208,7 +198,8 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                             onSaved: (value) {
                               _courseData.isactive = bool.parse(value ?? '');
                             },
-                            decoration: InputDecoration(labelText: 'Is active?'),
+                            decoration:
+                                InputDecoration(labelText: 'Is active?'),
                           ),
                           // Course Type
                           DropdownButtonFormField<String>(
@@ -225,7 +216,8 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                             onSaved: (type) {
                               _courseData.type = type!;
                             },
-                            decoration: InputDecoration(labelText: 'Course Type'),
+                            decoration:
+                                InputDecoration(labelText: 'Course Type'),
                           ),
                           // Section
                           TextFormField(
@@ -242,9 +234,12 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                           ),
                           // Room Number
                           TextFormField(
-                            decoration: InputDecoration(labelText: 'Room Number'),
+                            decoration:
+                                InputDecoration(labelText: 'Room Number'),
                             validator: (value) {
-                              if (value == null || value.isEmpty) {
+                              if (value == null ||
+                                  value.isEmpty &&
+                                      selectedSetup != 'Full-Online') {
                                 return 'Please enter the room number';
                               }
                               return null;
@@ -253,45 +248,6 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                               _courseData.roomNum = value ?? '';
                             },
                           ),
-                          // Is Online
-                          CheckboxListTile(
-                            title: Text('Is Online'),
-                            value: _courseData.isOnline,
-                            onChanged: (value) {
-                              setState(() {
-                                _courseData.isOnline = value ?? false;
-                                if (!_courseData.isOnline) {
-                                  selectedOnlineDay = null; // Reset online day when unchecked
-                                }
-                              });
-                            },
-                            controlAffinity: ListTileControlAffinity.leading,
-                          ),
-                          if (_courseData.isOnline) ...[
-                            DropdownButtonFormField<String>(
-                              value: selectedOnlineDay,
-                              items: selectedDaysWithTimes.entries
-                                  .map((entry) {
-                                return DropdownMenuItem<String>(
-                                  value: entry.key,
-                                  child: Text('${entry.key}: ${entry.value}'),
-                                );
-                              }).toList(),
-                              onChanged: (value) {
-                                setState(() {
-                                  selectedOnlineDay = value!;
-                                });
-                              },
-                              decoration:
-                                  InputDecoration(labelText: 'Select Online Day'),
-                              validator: (value) {
-                                if (_courseData.isOnline && value == null) {
-                                  return 'Please select an online day';
-                                }
-                                return null;
-                              },
-                            ),
-                          ]
                         ],
                       ),
                     ),
@@ -323,8 +279,8 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                                     if (startTime != null) {
                                       TimeOfDay? endTime = await showTimePicker(
                                         context: context,
-                                        initialTime: startTime
-                                            .replacing(hour: startTime.hour + 1),
+                                        initialTime: startTime.replacing(
+                                            hour: startTime.hour + 1),
                                       );
                                       if (endTime != null) {
                                         setState(() {
@@ -342,18 +298,24 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                                           vertical: 8.0, horizontal: 12.0),
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        border: selectedDaysWithTimes[day] != null
-                                            ? Border.all(
-                                                color: Colors.blue, width: 2.0)
-                                            : null,
+                                        border:
+                                            selectedDaysWithTimes[day] != null
+                                                ? Border.all(
+                                                    color: Colors.blue,
+                                                    width: 2.0)
+                                                : null,
                                       ),
                                       child: Text(day),
                                     ),
                                     if (selectedDaysWithTimes.containsKey(day))
                                       Padding(
-                                        padding: const EdgeInsets.only(top: 8.0),
+                                        padding:
+                                            const EdgeInsets.only(top: 8.0),
                                         child: Text(
-                                          selectedDaysWithTimes[day]!,
+                                          selectedDaysWithTimes[day]! +
+                                              (selectedHybridDay == day
+                                                  ? ' (Hybrid)'
+                                                  : ''),
                                           style: TextStyle(fontSize: 12),
                                         ),
                                       ),
@@ -362,6 +324,48 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                               );
                             }).toList(),
                           ),
+                          DropdownButtonFormField<String>(
+                            value: selectedSetup,
+                            items: setups.map((setup) {
+                              return DropdownMenuItem<String>(
+                                value: setup,
+                                child: Text(setup),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                selectedSetup = value!;
+                              });
+                            },
+                            onSaved: (value) {
+                              _courseData.setup = value ?? '';
+                            },
+                            decoration: InputDecoration(labelText: 'Setup'),
+                          ),
+                          if (selectedSetup == 'Hybrid')
+                            DropdownButtonFormField<String>(
+                              value: selectedHybridDay,
+                              items: selectedDaysWithTimes.entries.map((entry) {
+                                return DropdownMenuItem<String>(
+                                  value: entry.key,
+                                  child: Text('${entry.key}: ${entry.value}'),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  selectedHybridDay = value!;
+                                });
+                              },
+                              decoration: InputDecoration(
+                                  labelText: 'Select Hybrid Day'),
+                              validator: (value) {
+                                if (selectedSetup == 'Hybrid' &&
+                                    value == null) {
+                                  return 'Please select a hybrid day';
+                                }
+                                return null;
+                              },
+                            ),
                         ],
                       ),
                     ),
@@ -379,8 +383,7 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
               TextButton(
                 onPressed: () async {
                   if (formKey.currentState!.validate()) {
-                    
-                                        formKey.currentState!.save();
+                    formKey.currentState!.save();
 
                     final courseCodeExists =
                         await doesCourseCodeExist(_courseData.coursecode);
@@ -417,6 +420,7 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                           'setup': _courseData.setup,
                           'onlineDay': selectedOnlineDay,
                           'roomNum': _courseData.roomNum,
+                          'syAndTerm': getNextSYandTerm()
                         });
                         Navigator.pop(context);
 
@@ -448,7 +452,6 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
     },
   );
 }
-
 
 String generateUID() {
   var random = Random();

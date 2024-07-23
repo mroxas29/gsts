@@ -11,10 +11,12 @@ class Course {
   String type;
   String program;
   String setup;
-  List< Map<String, String>> dayTimes; 
-  String syAndTerm;//auto-generated
+  List<Map<String, String>> dayTimes;
+  String syAndTerm; // auto-generated
   String section; // New section field
   String roomNum;
+  String? onlineDay; // New onlineDay field
+
   Course({
     required this.uid,
     required this.coursecode,
@@ -25,17 +27,16 @@ class Course {
     required this.units,
     required this.type,
     required this.program,
+    required this.setup,
     required this.dayTimes,
     required this.syAndTerm,
-    required this.setup,
     required this.section, // Initialize section
-    required this.roomNum
-
+    required this.roomNum,
+    this.onlineDay, // Initialize onlineDay
   });
 
   Map<String, dynamic> toJson() {
     return {
- 
       "uid": uid,
       "coursecode": coursecode,
       "coursename": coursename,
@@ -45,19 +46,20 @@ class Course {
       "units": units,
       "type": type,
       "program": program,
+      "setup": setup,
       "dayTimes": dayTimes,
       "syAndTerm": syAndTerm,
       "section": section, // Add section to JSON
-      "setup": setup,
-           "roomNum": roomNum,
+      "roomNum": roomNum,
+      "onlineDay": onlineDay, // Add onlineDay to JSON
     };
   }
 
   // Add this constructor to create a Course object from a map
   Course.fromMap(Map<String, dynamic> map)
       : uid = map['uid'],
-      roomNum= map['roomNum'],
-      setup= map['setup'],
+        roomNum = map['roomNum'],
+        setup = map['setup'],
         coursecode = map['coursecode'],
         coursename = map['coursename'],
         isactive = map['isactive'],
@@ -66,16 +68,14 @@ class Course {
         units = map['units'],
         type = map['type'],
         program = map['program'],
-
         dayTimes = List<Map<String, String>>.from(map['dayTimes']),
         syAndTerm = map['syAndTerm'],
-        section = map['section']; // Initialize section from map
+        section = map['section'], // Initialize section from map
+        onlineDay = map['onlineDay']; // Initialize onlineDay from map
 
   Map<String, dynamic> toMap() {
     return {
-      'roomNum': roomNum,
       'uid': uid,
-      'setup': setup,
       'coursecode': coursecode,
       'coursename': coursename,
       'isactive': isactive,
@@ -84,14 +84,15 @@ class Course {
       'units': units,
       'type': type,
       'program': program,
+      'setup': setup,
       'dayTimes': dayTimes,
       'syAndTerm': syAndTerm,
       'section': section, // Add section to map
+      'roomNum': roomNum,
+      'onlineDay': onlineDay, // Add onlineDay to map
     };
   }
 }
-
-
 
 List<Course> courses = [];
 List<Course> activecourses = [];
@@ -119,7 +120,6 @@ final blankCourse = Course(
   section: '', // Initialize section
   roomNum: '',
 );
-
 Future<List<Course>> getCoursesFromFirestore() async {
   courses.clear();
   activecourses.clear();
@@ -142,23 +142,33 @@ Future<List<Course>> getCoursesFromFirestore() async {
         in querySnapshot.docs) {
       Map<String, dynamic> courseData = document.data();
 
+      // Convert dayTimes back to the desired format
+      List<Map<String, String>> dayTimes = [];
+      if (courseData['dayTimes'] != null) {
+        courseData['dayTimes'].forEach((day, times) {
+          dayTimes
+              .add({'day': day, 'start': times['start'], 'end': times['end']});
+        });
+      }
 
       Course newCourse = Course(
-        uid: document.id,
-        setup: courseData['setup'],
-        coursecode: courseData['coursecode'],
-        coursename: courseData['coursename'],
-        isactive: courseData['isactive'],
-        facultyassigned: courseData['facultyassigned'],
-        numstudents: courseData['numstudents'],
-        units: courseData['units'],
-        type: courseData['type'],
-        program: courseData['program'],
-        dayTimes: courseData['dayTimes'],
-        syAndTerm: courseData['syAndTerm'],
-        section: courseData['section'], // Initialize section from Firestore'
-        roomNum: courseData['roomNum']
-      );
+          uid: document.id,
+          setup: courseData['setup'],
+          coursecode: courseData['coursecode'],
+          coursename: courseData['coursename'],
+          isactive: courseData['isactive'],
+          facultyassigned: courseData['facultyassigned'],
+          numstudents: courseData['numstudents'],
+          units: courseData['units'],
+          type: courseData['type'],
+          program: courseData['program'],
+          dayTimes: dayTimes,
+          syAndTerm: courseData['syAndTerm'],
+          section: courseData['section'], // Initialize section from Firestore
+          roomNum: courseData['roomNum'],
+          onlineDay: courseData['onlineDay'] // Add onlineDay field
+          );
+
       print(newCourse.uid);
 
       courses.add(newCourse);
@@ -196,11 +206,8 @@ Future<List<Course>> getCoursesFromFirestore() async {
       if (newCourse.type.toLowerCase().contains('thesis')) {
         thesiscourses.add(newCourse);
       }
-      
     }
-   
-  } catch (e) { 
-    
+  } catch (e) {
     print("Error fetching courses from Firestore: $e");
   }
 
