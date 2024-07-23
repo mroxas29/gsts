@@ -10,9 +10,9 @@ class Course {
   int units;
   String type;
   String program;
-  bool isOnline;
-  List< Map<String, String>> dayTimes; // Day-wise start and end times
-  String syAndTerm;
+  String setup;
+  List< Map<String, String>> dayTimes; 
+  String syAndTerm;//auto-generated
   String section; // New section field
   String roomNum;
   Course({
@@ -27,7 +27,7 @@ class Course {
     required this.program,
     required this.dayTimes,
     required this.syAndTerm,
-    required this.isOnline,
+    required this.setup,
     required this.section, // Initialize section
     required this.roomNum
 
@@ -48,7 +48,7 @@ class Course {
       "dayTimes": dayTimes,
       "syAndTerm": syAndTerm,
       "section": section, // Add section to JSON
-      "isOnline": isOnline,
+      "setup": setup,
            "roomNum": roomNum,
     };
   }
@@ -57,7 +57,7 @@ class Course {
   Course.fromMap(Map<String, dynamic> map)
       : uid = map['uid'],
       roomNum= map['roomNum'],
-      isOnline= map['isOnline'],
+      setup= map['setup'],
         coursecode = map['coursecode'],
         coursename = map['coursename'],
         isactive = map['isactive'],
@@ -75,7 +75,7 @@ class Course {
     return {
       'roomNum': roomNum,
       'uid': uid,
-      'isOnline': isOnline,
+      'setup': setup,
       'coursecode': coursecode,
       'coursename': coursename,
       'isactive': isactive,
@@ -106,7 +106,7 @@ List<Course> thesiscourses = [];
 final blankCourse = Course(
   dayTimes: [], // Initialize with empty map
   uid: 'blank',
-  isOnline: false,
+  setup: '',
   coursecode: 'Select a course',
   coursename: '',
   facultyassigned: '',
@@ -145,7 +145,7 @@ Future<List<Course>> getCoursesFromFirestore() async {
 
       Course newCourse = Course(
         uid: document.id,
-        isOnline: courseData['isOnline'],
+        setup: courseData['setup'],
         coursecode: courseData['coursecode'],
         coursename: courseData['coursename'],
         isactive: courseData['isactive'],

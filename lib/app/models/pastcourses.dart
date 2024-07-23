@@ -17,11 +17,11 @@ class PastCourse extends Course {
     required List<Map<String, String>> dayTimes,
     required String section,
     required String syAndTerm,
-    required bool isOnline,
+    required String setup,
     required String roomNum,
   }) : super(
     roomNum: roomNum,
-    isOnline: isOnline,
+    setup: setup,
           uid: uid,
           coursecode: coursecode,
           coursename: coursename,
@@ -39,7 +39,7 @@ class PastCourse extends Course {
   factory PastCourse.fromJson(Map<String, dynamic> json) {
     return PastCourse(
       uid: json['uid'],
-      isOnline: json['isOnline'],
+      setup: json['setup'],
       coursecode: json['coursecode'],
       coursename: json['coursename'],
       isactive: json['isactive'],

@@ -1347,7 +1347,7 @@ class _MainViewState extends State<Gscscreen> {
     print(courseCode);
  Course course = Course(
       uid: 'blank',
-      isOnline: false,
+      setup: '',
       roomNum: '',
       coursecode: 'Select a course',
       coursename: '',
@@ -1373,7 +1373,7 @@ class _MainViewState extends State<Gscscreen> {
 
                enrolledCourse = EnrolledCourseData(
                 roomNum:course.roomNum,
-                isOnline: course.isOnline,
+                setup: course.setup,
       uid: generateUID(),
       syAndTerm: reformatSYandTerm(getCurrentSYandTerm()),
       dayTimes: course.dayTimes, // Add this line

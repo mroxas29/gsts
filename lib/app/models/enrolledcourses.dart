@@ -15,7 +15,7 @@ class EnrolledCourseData extends Course {
     required String syAndTerm,
     required String section,
     required String roomNum,
-    required bool isOnline,
+    required String setup,
   }) : super(
           uid: uid,
           coursecode: coursecode,
@@ -30,13 +30,13 @@ class EnrolledCourseData extends Course {
           syAndTerm: syAndTerm,
           section: section,
           roomNum: roomNum,
-          isOnline: isOnline,
+          setup: setup,
         );
 
   factory EnrolledCourseData.fromJson(Map<String, dynamic> json) {
     return EnrolledCourseData(
       uid: json['uid'],
-      isOnline: json['isOnline'],
+      setup: json['setup'],
       coursecode: json['coursecode'],
       coursename: json['coursename'],
       isactive: json['isactive'],
@@ -60,7 +60,7 @@ class EnrolledCourseData extends Course {
   Map<String, dynamic> toJson() {
     final courseData = super.toJson();
     courseData.addAll({
-      'isOnline': isOnline,
+      'setup': setup,
       'roomNum': roomNum,
     });
     return courseData;

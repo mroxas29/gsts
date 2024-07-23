@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:sysadmindb/app/models/AcademicCalendar.dart';
 import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/faculty.dart';
 
@@ -17,14 +18,20 @@ class UserData {
 }
 
 class CourseData {
-  String coursecode = '';
-  String coursename = '';
+ String uid = "";
+  String coursecode = "";
+  String coursename = "";
   bool isactive = false;
-  String facultyassigned = '';
+  String facultyassigned = "No faculty Assigned";
   int numstudents = 0;
   int units = 0;
-  String type = '';
-  String program = '';
+  String type = "";
+  String program = "";
+  String setup = "";
+  List< Map<String, String>> dayTimes = []; // Day-wise start and end times
+  String syAndTerm = "";
+  String section = ""; // New section field
+  String roomNum = "";
 }
 
 class FacultyData {
@@ -45,7 +52,6 @@ Future<bool> doesCourseCodeExist(String courseCode) async {
 String getFullname(Faculty faculty) {
   return '${faculty.displayname['firstname']} ${faculty.displayname['lastname']}';
 }
-
 void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
   List<String> status = ['true', 'false'];
   List<String> programs = ['MIT/MSIT', 'MIT', 'MSIT'];
@@ -59,7 +65,22 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
     'Thesis Course'
   ];
 
-  final CourseData _courseData = CourseData();
+  final Course _courseData =Course(
+  dayTimes: [], // Initialize with empty map
+  uid: 'blank',
+  setup: '',
+  coursecode: 'Select a course',
+  coursename: '',
+  facultyassigned: '',
+  units: 0,
+  numstudents: 0,
+  isactive: false,
+  type: '',
+  program: '',
+  syAndTerm: '',
+  section: '', // Initialize section
+  roomNum: '',
+);
 
   String selectedStatus = status[0];
   String selectedProgram = programs[0];
@@ -70,255 +91,364 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
 
   List<String> daysOfWeek = ['M', 'T', 'W', 'H', 'F', 'S'];
   Map<String, String?> selectedDaysWithTimes = {};
+  String? selectedOnlineDay;
 
   showDialog(
     context: context,
     builder: (BuildContext context) {
-      return AlertDialog(
-        title: Text('Add New Course'),
-        content: SingleChildScrollView(
-          child: Form(
-            key: formKey,
-            autovalidateMode: AutovalidateMode.always,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Course Code
-                TextFormField(
-                  decoration: InputDecoration(labelText: 'Course code'),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter the course code';
-                    }
-                    if (courses.any((course) =>
-                        course.coursecode.toString().toUpperCase() ==
-                        value.toUpperCase())) {
-                      return "Course with course code: $value already exists";
-                    }
-                    return null;
-                  },
-                  onSaved: (value) {
-                    _courseData.coursecode = value ?? '';
-                  },
-                ),
-                // Course Name
-                TextFormField(
-                  decoration: InputDecoration(labelText: 'Course name'),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter the course name';
-                    }
-                    return null;
-                  },
-                  onSaved: (value) {
-                    _courseData.coursename = value ?? '';
-                  },
-                ),
-                // Faculty Assignment
-                DropdownButtonFormField<String>(
-                  value: selectedFaculty,
-                  items: facultyList.map((faculty) {
-                    return DropdownMenuItem<String>(
-                      value: getFullname(faculty),
-                      child: Text(
-                          '${faculty.displayname['firstname']} ${faculty.displayname['lastname']}'),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    selectedFaculty = value!;
-                  },
-                  onSaved: (value) {
-                    _courseData.facultyassigned = value ?? '';
-                  },
-                  decoration: InputDecoration(labelText: 'Assign to'),
-                ),
-                // Course Units
-                TextFormField(
-                  decoration: InputDecoration(labelText: 'Course units'),
-                  keyboardType: TextInputType.number,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter the course units';
-                    }
-                    return null;
-                  },
-                  onSaved: (value) {
-                    _courseData.units = int.parse(value ?? '');
-                  },
-                ),
-                // Program
-                DropdownButtonFormField<String>(
-                  value: selectedProgram,
-                  items: programs.map((program) {
-                    return DropdownMenuItem<String>(
-                      value: program,
-                      child: Text(program),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    selectedProgram = value!;
-                  },
-                  onSaved: (value) {
-                    _courseData.program = value ?? '';
-                  },
-                  decoration: InputDecoration(labelText: 'Program'),
-                ),
-                // Status
-                DropdownButtonFormField<String>(
-                  value: selectedStatus,
-                  items: status.map((role) {
-                    return DropdownMenuItem<String>(
-                      value: role,
-                      child: Text(role),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    selectedStatus = value!;
-                  },
-                  onSaved: (value) {
-                    _courseData.isactive = bool.parse(value ?? '');
-                  },
-                  decoration: InputDecoration(labelText: 'Is active?'),
-                ),
-                // Course Type
-                DropdownButtonFormField<String>(
-                  value: selectedType,
-                  items: type.map((type) {
-                    return DropdownMenuItem<String>(
-                      value: type,
-                      child: Text(type),
-                    );
-                  }).toList(),
-                  onChanged: (type) {
-                    selectedType = type!;
-                  },
-                  onSaved: (type) {
-                    _courseData.type = type!;
-                  },
-                  decoration: InputDecoration(labelText: 'Course Type'),
-                ),
-                // Days of the Week
-                SizedBox(height: 16.0),
-                Text('Select Days:',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-                Wrap(
-                  spacing: 8.0,
-                  children: daysOfWeek.map((day) {
-                    return ChoiceChip(
-                      label: Text(day),
-                      selected: selectedDaysWithTimes.containsKey(day),
-                      onSelected: (selected) async {
-                        if (selected) {
-                          // Show time picker dialog
-                          TimeOfDay? startTime = await showTimePicker(
-                            context: context,
-                            initialTime: TimeOfDay.now(),
-                          );
-                          if (startTime != null) {
-                            TimeOfDay? endTime = await showTimePicker(
-                              context: context,
-                              initialTime: TimeOfDay.now().replacing(
-                                hour: startTime.hour + 1,
-                              ),
-                            );
-                            if (endTime != null) {
-                              // Save the selected day and time
-                              selectedDaysWithTimes[day] =
-                                  '${startTime.format(context)} - ${endTime.format(context)}';
-                            }
-                          }
-                        } else {
-                          // Remove the day if deselected
-                          selectedDaysWithTimes.remove(day);
-                        }
-                        // Refresh UI
-                        (context as Element).rebuild();
-                      },
-                    );
-                  }).toList(),
-                ),
-                // Display selected days and times
-                SizedBox(height: 16.0),
-                ...selectedDaysWithTimes.entries.map((entry) {
-                  return Text('${entry.key}: ${entry.value}');
-                }).toList(),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              if (formKey.currentState!.validate()) {
-                formKey.currentState!.save();
-
-                final courseCodeExists =
-                    await doesCourseCodeExist(_courseData.coursecode);
-
-                if (courseCodeExists) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                          'Course with the same course code already exists.'),
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            contentPadding: EdgeInsets.symmetric(horizontal: 16.0),
+            title: Text('Add New Course'),
+            content: SingleChildScrollView(
+              child: Form(
+                key: formKey,
+                autovalidateMode: AutovalidateMode.always,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 1,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Course Code
+                          TextFormField(
+                            decoration: InputDecoration(labelText: 'Course code'),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter the course code';
+                              }
+                              if (courses.any((course) =>
+                                  course.coursecode.toString().toUpperCase() ==
+                                  value.toUpperCase())) {
+                                return "Course with course code: $value already exists";
+                              }
+                              return null;
+                            },
+                            onSaved: (value) {
+                              _courseData.coursecode = value ?? '';
+                            },
+                          ),
+                          // Course Name
+                          TextFormField(
+                            decoration: InputDecoration(labelText: 'Course name'),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter the course name';
+                              }
+                              return null;
+                            },
+                            onSaved: (value) {
+                              _courseData.coursename = value ?? '';
+                            },
+                          ),
+                          // Faculty Assignment
+                          DropdownButtonFormField<String>(
+                            value: selectedFaculty,
+                            items: facultyList.map((faculty) {
+                              return DropdownMenuItem<String>(
+                                value: getFullname(faculty),
+                                child: Text(
+                                    '${faculty.displayname['firstname']} ${faculty.displayname['lastname']}'),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              selectedFaculty = value!;
+                            },
+                            onSaved: (value) {
+                              _courseData.facultyassigned = value ?? '';
+                            },
+                            decoration: InputDecoration(labelText: 'Assign to'),
+                          ),
+                          // Course Units
+                          TextFormField(
+                            decoration: InputDecoration(labelText: 'Course units'),
+                            keyboardType: TextInputType.number,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter the course units';
+                              }
+                              return null;
+                            },
+                            onSaved: (value) {
+                              _courseData.units = int.parse(value ?? '');
+                            },
+                          ),
+                          // Program
+                          DropdownButtonFormField<String>(
+                            value: selectedProgram,
+                            items: programs.map((program) {
+                              return DropdownMenuItem<String>(
+                                value: program,
+                                child: Text(program),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              selectedProgram = value!;
+                            },
+                            onSaved: (value) {
+                              _courseData.program = value ?? '';
+                            },
+                            decoration: InputDecoration(labelText: 'Program'),
+                          ),
+                          // Status
+                          DropdownButtonFormField<String>(
+                            value: selectedStatus,
+                            items: status.map((role) {
+                              return DropdownMenuItem<String>(
+                                value: role,
+                                child: Text(role),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              selectedStatus = value!;
+                            },
+                            onSaved: (value) {
+                              _courseData.isactive = bool.parse(value ?? '');
+                            },
+                            decoration: InputDecoration(labelText: 'Is active?'),
+                          ),
+                          // Course Type
+                          DropdownButtonFormField<String>(
+                            value: selectedType,
+                            items: type.map((type) {
+                              return DropdownMenuItem<String>(
+                                value: type,
+                                child: Text(type),
+                              );
+                            }).toList(),
+                            onChanged: (type) {
+                              selectedType = type!;
+                            },
+                            onSaved: (type) {
+                              _courseData.type = type!;
+                            },
+                            decoration: InputDecoration(labelText: 'Course Type'),
+                          ),
+                          // Section
+                          TextFormField(
+                            decoration: InputDecoration(labelText: 'Section'),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter the section';
+                              }
+                              return null;
+                            },
+                            onSaved: (value) {
+                              _courseData.section = value ?? '';
+                            },
+                          ),
+                          // Room Number
+                          TextFormField(
+                            decoration: InputDecoration(labelText: 'Room Number'),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter the room number';
+                              }
+                              return null;
+                            },
+                            onSaved: (value) {
+                              _courseData.roomNum = value ?? '';
+                            },
+                          ),
+                          // Is Online
+                          CheckboxListTile(
+                            title: Text('Is Online'),
+                            value: _courseData.isOnline,
+                            onChanged: (value) {
+                              setState(() {
+                                _courseData.isOnline = value ?? false;
+                                if (!_courseData.isOnline) {
+                                  selectedOnlineDay = null; // Reset online day when unchecked
+                                }
+                              });
+                            },
+                            controlAffinity: ListTileControlAffinity.leading,
+                          ),
+                          if (_courseData.isOnline) ...[
+                            DropdownButtonFormField<String>(
+                              value: selectedOnlineDay,
+                              items: selectedDaysWithTimes.entries
+                                  .map((entry) {
+                                return DropdownMenuItem<String>(
+                                  value: entry.key,
+                                  child: Text('${entry.key}: ${entry.value}'),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  selectedOnlineDay = value!;
+                                });
+                              },
+                              decoration:
+                                  InputDecoration(labelText: 'Select Online Day'),
+                              validator: (value) {
+                                if (_courseData.isOnline && value == null) {
+                                  return 'Please select an online day';
+                                }
+                                return null;
+                              },
+                            ),
+                          ]
+                        ],
+                      ),
                     ),
-                  );
-                } else {
-                  var uid = generateUID();
-                  try {
-                    await FirebaseFirestore.instance
-                        .collection('courses')
-                        .doc(uid)
-                        .set({
-                      'coursecode': _courseData.coursecode.toUpperCase(),
-                      'coursename': _courseData.coursename,
-                      'facultyassigned': selectedFaculty,
-                      'units': _courseData.units,
-                      'isactive': _courseData.isactive,
-                      'numstudents': 0,
-                      'type': selectedType,
-                      'program': selectedProgram,
-                      'days': selectedDaysWithTimes.keys.toList(),
-                      'startTime': selectedDaysWithTimes.values
-                          .map((time) => time!.split(' - ')[0])
-                          .toList(),
-                      'endTime': selectedDaysWithTimes.values
-                          .map((time) => time!.split(' - ')[1])
-                          .toList(),
-                    });
-                    Navigator.pop(context);
-
-                    getCoursesFromFirestore();
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Course created'),
-                        duration: Duration(seconds: 2),
+                    SizedBox(width: 16.0),
+                    Expanded(
+                      flex: 1,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Days of the Week
+                          SizedBox(height: 16.0),
+                          Text('Select Days:',
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          Wrap(
+                            spacing: 8.0,
+                            runSpacing: 16.0, // Adding spacing between rows
+                            children: daysOfWeek.map((day) {
+                              return GestureDetector(
+                                onTap: () async {
+                                  if (selectedDaysWithTimes.containsKey(day)) {
+                                    setState(() {
+                                      selectedDaysWithTimes.remove(day);
+                                    });
+                                  } else {
+                                    TimeOfDay? startTime = await showTimePicker(
+                                      context: context,
+                                      initialTime: TimeOfDay.now(),
+                                    );
+                                    if (startTime != null) {
+                                      TimeOfDay? endTime = await showTimePicker(
+                                        context: context,
+                                        initialTime: startTime
+                                            .replacing(hour: startTime.hour + 1),
+                                      );
+                                      if (endTime != null) {
+                                        setState(() {
+                                          selectedDaysWithTimes[day] =
+                                              '${startTime.format(context)} - ${endTime.format(context)}';
+                                        });
+                                      }
+                                    }
+                                  }
+                                },
+                                child: Column(
+                                  children: [
+                                    Container(
+                                      padding: EdgeInsets.symmetric(
+                                          vertical: 8.0, horizontal: 12.0),
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: selectedDaysWithTimes[day] != null
+                                            ? Border.all(
+                                                color: Colors.blue, width: 2.0)
+                                            : null,
+                                      ),
+                                      child: Text(day),
+                                    ),
+                                    if (selectedDaysWithTimes.containsKey(day))
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 8.0),
+                                        child: Text(
+                                          selectedDaysWithTimes[day]!,
+                                          style: TextStyle(fontSize: 12),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ],
                       ),
-                    );
-                  } catch (e) {
-                    print('Error creating course: $e');
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error creating course: $e'),
-                      ),
-                    );
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  if (formKey.currentState!.validate()) {
+                    
+                                        formKey.currentState!.save();
+
+                    final courseCodeExists =
+                        await doesCourseCodeExist(_courseData.coursecode);
+
+                    if (courseCodeExists) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                              'Course with the same course code already exists.'),
+                        ),
+                      );
+                    } else {
+                      var uid = generateUID();
+                      try {
+                        await FirebaseFirestore.instance
+                            .collection('courses')
+                            .doc(uid)
+                            .set({
+                          'uid': uid,
+                          'coursecode': _courseData.coursecode.toUpperCase(),
+                          'coursename': _courseData.coursename,
+                          'facultyassigned': selectedFaculty,
+                          'units': _courseData.units,
+                          'isactive': _courseData.isactive,
+                          'numstudents': 0,
+                          'type': selectedType,
+                          'program': selectedProgram,
+                          'dayTimes': selectedDaysWithTimes.map((day, time) =>
+                              MapEntry(day, {
+                                'start': time!.split(' - ')[0],
+                                'end': time.split(' - ')[1]
+                              })),
+                          'section': _courseData.section,
+                          'setup': _courseData.setup,
+                          'onlineDay': selectedOnlineDay,
+                          'roomNum': _courseData.roomNum,
+                        });
+                        Navigator.pop(context);
+
+                        getCoursesFromFirestore();
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Course created'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      } catch (e) {
+                        print('Error creating course: $e');
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error creating course: $e'),
+                          ),
+                        );
+                      }
+                    }
                   }
-                }
-              }
-            },
-            child: Text('Add'),
-          ),
-        ],
+                },
+                child: Text('Add'),
+              ),
+            ],
+          );
+        },
       );
     },
   );
 }
+
 
 String generateUID() {
   var random = Random();
