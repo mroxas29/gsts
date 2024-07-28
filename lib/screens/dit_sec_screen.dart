@@ -15,6 +15,7 @@ import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/main.dart';
 import 'package:sysadmindb/app/models/user.dart';
+import 'package:sysadmindb/screens/gradstudent_screen.dart';
 import 'package:sysadmindb/ui/defense_card.dart';
 import 'package:sysadmindb/ui/defense_sched.dart';
 import 'package:sysadmindb/ui/forms/form.dart';
@@ -220,6 +221,14 @@ class _MainViewState extends State<DITSec> {
   // Function to capitalize the first letter of a string
   String capitalizeFirstLetter(String text) {
     return text.replaceFirst(RegExp(r'^[a-z]'), text[0].toUpperCase());
+  }
+
+  Future<void> uploadGeneratedPdf(
+      Uint8List data, String form, String idnumber) async {
+    String fileName = '$idnumber/Defense Forms/${form}_$idnumber.pdf';
+    final ref = FirebaseStorage.instance.ref().child(fileName);
+    await ref.putData(data);
+    print('Generated PDF uploaded successfully');
   }
 
   void showDefenseDetailsDialog(BuildContext context, EN19Form defense) {
@@ -520,23 +529,15 @@ class _MainViewState extends State<DITSec> {
                             IconButton(
                               icon: Icon(Icons.attach_file),
                               onPressed: () async {
-                                FilePickerResult? result =
-                                    await FilePicker.platform.pickFiles();
-
-                                PlatformFile file = result!.files.first;
-                                String fileName =
-                                    '${defense.idNumber}/Defense Forms/Form-R_23_${defense.idNumber}.pdf';
-                                Uint8List fileBytes = file.bytes!;
-                                final ref = FirebaseStorage.instance
-                                    .ref()
-                                    .child(fileName);
-                                await ref.putData(fileBytes);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Uploaded successfully'),
-                                    backgroundColor: Colors.green,
-                                  ),
+                                Uint8List pdfData =
+                                    await service.createPanelChairReport(
+                                  defense,
                                 );
+                                await uploadGeneratedPdf(
+                                    pdfData, 'Form-R_23', defense.idNumber);
+                                service.savePdfFile(
+                                    'Form-R_23_${defense.idNumber}.pdf',
+                                    pdfData);
                               },
                             ),
                             SizedBox(
@@ -567,7 +568,7 @@ class _MainViewState extends State<DITSec> {
                               ),
                               onPressed: () async {
                                 try {
-                               String fileName =
+                                  String fileName =
                                       '${defense.idNumber}/Defense Forms/Eval_Form_${defense.lastName}_${defense.firstName}.docx';
                                   final imageUrl = await FirebaseStorage
                                       .instance
@@ -636,7 +637,7 @@ class _MainViewState extends State<DITSec> {
                 ),
                 TextButton(
                   child: Text('Save'),
-                  onPressed: () {
+                  onPressed: () async {
                     String formattedDate = dateController.text;
                     String formattedTime = selectedTime.format(context);
 
@@ -667,19 +668,43 @@ class _MainViewState extends State<DITSec> {
 
                     EN19Form formToModify = allDefenseForms.firstWhere(
                         (form) => form.idNumber == defense.idNumber);
+
                     setState(() {
                       formToModify.defenseDate = formattedDate;
                       formToModify.defenseTime = formattedTime;
                     });
 
-                    String? studentUid = studentList
-                        .firstWhere((student) =>
-                            student.idnumber.toString() == defense.idNumber)
-                        .uid;
+                    EN19Form updatepdf = EN19Form(
+                      proposedTitle: formToModify.proposedTitle,
+                      lastName: formToModify.lastName,
+                      firstName: formToModify.firstName,
+                      middleName: formToModify.middleName,
+                      idNumber: formToModify.idNumber,
+                      college: formToModify.college,
+                      program: formToModify.program,
+                      passedComprehensiveExams:
+                          formToModify.passedComprehensiveExams,
+                      submittedCertificate: formToModify.submittedCertificate,
+                      adviserName: formToModify.adviserName,
+                      enrollmentStage: formToModify.enrollmentStage,
+                      date: formToModify.date,
+                      leadPanel: formToModify.leadPanel,
+                      panelMembers: formToModify.panelMembers,
+                      defenseDate: formattedDate, // Updated date
+                      signedByGSC: formToModify.signedByGSC,
+                      signedByAdviser: formToModify.signedByAdviser,
+                      defenseTime: formattedTime, // Updated time
+                      mainTitle: formToModify.mainTitle,
+                      defenseType: formToModify.defenseType,
+                      verdict: formToModify.verdict,
+                    );
+
+                    Student? student = studentList.firstWhere((student) =>
+                        student.idnumber.toString() == defense.idNumber);
                     try {
                       FirebaseFirestore.instance
                           .collection('defenseInformation')
-                          .doc(studentUid)
+                          .doc(student.uid)
                           .update({
                         'defenseDate': defense.defenseDate,
                         'defenseTime': defense.defenseTime,
@@ -688,6 +713,13 @@ class _MainViewState extends State<DITSec> {
                     } catch (e) {
                       print('Error updating defense details: $e');
                     }
+
+                    Uint8List pdfData = await service.createDefenseForm(
+                        updatepdf, updatepdf.defenseType, student);
+                    await uploadGeneratedPdf(pdfData, 'EN-18DefenseForm',
+                        student.idnumber.toString());
+                    service.savePdfFile(
+                        'EN18Defense Form_${student.idnumber}.pdf', pdfData);
                     Navigator.of(context).pop();
                   },
                 ),

@@ -28,6 +28,8 @@ Future<bool> doesCourseCodeExist(String courseCode) async {
       .collection('courses')
       .where('coursecode', isEqualTo: courseCode)
       .get();
+  final document = snapshot.docs.first;
+  print(document.data());
 
   return snapshot.docs.isNotEmpty;
 }
@@ -49,22 +51,22 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
     'Thesis Course'
   ];
 
-  final Course _courseData = Course(
-    dayTimes: [], // Initialize with empty map
-    uid: 'blank',
-    setup: '',
-    coursecode: 'Select a course',
-    coursename: '',
-    facultyassigned: '',
-    units: 0,
-    numstudents: 0,
-    isactive: false,
-    type: '',
-    program: '',
-    syAndTerm: '',
-    section: '', // Initialize section
-    roomNum: '',
-  );
+  final Course courseData = Course(
+      dayTimes: [], // Initialize with empty map
+      uid: 'blank',
+      setup: '',
+      coursecode: 'Select a course',
+      coursename: '',
+      facultyassigned: '',
+      units: 0,
+      numstudents: 0,
+      isactive: false,
+      type: '',
+      program: '',
+      syAndTerm: '',
+      section: '', // Initialize section
+      roomNum: '',
+      onlineDay: '');
 
   String selectedStatus = status[0];
   String selectedProgram = programs[0];
@@ -73,12 +75,12 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
       ? "${facultyList[0].displayname['firstname']!} ${facultyList[0].displayname['lastname']!}"
       : '';
 
-  List<String> daysOfWeek = ['M', 'T', 'W', 'H', 'F', 'S'];
-  List<String> setups = ['Full-Online', 'Hybrid', 'Full-Onsite'];
+  List<String> daysOfWeek = ['M', 'T', 'W', 'Th', 'F', 'S'];
+  List<String> setups = ['Full Online', 'Hybrid', 'Full Onsite'];
   String selectedSetup = setups[0];
   Map<String, String?> selectedDaysWithTimes = {};
-  String? selectedHybridDay;
-
+  String selectedHybridDay = 'No online day';
+  TextEditingController courseCodeController = TextEditingController();
   showDialog(
     context: context,
     builder: (BuildContext context) {
@@ -101,21 +103,18 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                         children: [
                           // Course Code
                           TextFormField(
+                            controller: courseCodeController,
                             decoration:
                                 InputDecoration(labelText: 'Course code'),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Please enter the course code';
                               }
-                              if (courses.any((course) =>
-                                  course.coursecode.toString().toUpperCase() ==
-                                  value.toUpperCase())) {
-                                return "Course with course code: $value already exists";
-                              }
+
                               return null;
                             },
                             onSaved: (value) {
-                              _courseData.coursecode = value ?? '';
+                              courseData.coursecode = value ?? '';
                             },
                           ),
                           // Course Name
@@ -129,7 +128,7 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                               return null;
                             },
                             onSaved: (value) {
-                              _courseData.coursename = value ?? '';
+                              courseData.coursename = value ?? '';
                             },
                           ),
                           // Faculty Assignment
@@ -146,7 +145,7 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                               selectedFaculty = value!;
                             },
                             onSaved: (value) {
-                              _courseData.facultyassigned = value ?? '';
+                              courseData.facultyassigned = value ?? '';
                             },
                             decoration: InputDecoration(labelText: 'Assign to'),
                           ),
@@ -162,7 +161,7 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                               return null;
                             },
                             onSaved: (value) {
-                              _courseData.units = int.parse(value ?? '');
+                              courseData.units = int.parse(value ?? '');
                             },
                           ),
                           // Program
@@ -178,7 +177,7 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                               selectedProgram = value!;
                             },
                             onSaved: (value) {
-                              _courseData.program = value ?? '';
+                              courseData.program = value ?? '';
                             },
                             decoration: InputDecoration(labelText: 'Program'),
                           ),
@@ -195,7 +194,7 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                               selectedStatus = value!;
                             },
                             onSaved: (value) {
-                              _courseData.isactive = bool.parse(value ?? '');
+                              courseData.isactive = bool.parse(value ?? '');
                             },
                             decoration:
                                 InputDecoration(labelText: 'Is active?'),
@@ -213,7 +212,7 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                               selectedType = type!;
                             },
                             onSaved: (type) {
-                              _courseData.type = type!;
+                              courseData.type = type!;
                             },
                             decoration:
                                 InputDecoration(labelText: 'Course Type'),
@@ -225,10 +224,15 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                               if (value == null || value.isEmpty) {
                                 return 'Please enter the section';
                               }
+                              if (courses.any((course) =>
+                                  course.section.toString().toUpperCase() ==
+                                  value.toUpperCase())) {
+                                return "Course with course code ${courseCodeController.text} with section $value already exists";
+                              }
                               return null;
                             },
                             onSaved: (value) {
-                              _courseData.section = value ?? '';
+                              courseData.section = value ?? '';
                             },
                           ),
                           // Room Number
@@ -244,7 +248,7 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                               return null;
                             },
                             onSaved: (value) {
-                              _courseData.roomNum = value ?? '';
+                              courseData.roomNum = value ?? '';
                             },
                           ),
                         ],
@@ -279,7 +283,11 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                                       TimeOfDay? endTime = await showTimePicker(
                                         context: context,
                                         initialTime: startTime.replacing(
-                                            hour: startTime.hour + 1),
+                                          hour: (startTime.hour + 1) %
+                                              24, // Handle hour overflow
+                                          minute: (startTime.minute + 90) %
+                                              60, // Add 90 minutes
+                                        ),
                                       );
                                       if (endTime != null) {
                                         setState(() {
@@ -313,7 +321,7 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                                         child: Text(
                                           selectedDaysWithTimes[day]! +
                                               (selectedHybridDay == day
-                                                  ? ' (Hybrid)'
+                                                  ? ' (Online day)'
                                                   : ''),
                                           style: TextStyle(fontSize: 12),
                                         ),
@@ -337,7 +345,7 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                               });
                             },
                             onSaved: (value) {
-                              _courseData.setup = value ?? '';
+                              courseData.setup = value ?? '';
                             },
                             decoration: InputDecoration(labelText: 'Setup'),
                           ),
@@ -356,11 +364,11 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                                 });
                               },
                               decoration: InputDecoration(
-                                  labelText: 'Select Hybrid Day'),
+                                  labelText: 'Select online day'),
                               validator: (value) {
                                 if (selectedSetup == 'Hybrid' &&
                                     value == null) {
-                                  return 'Please select a hybrid day';
+                                  return 'Please select online day';
                                 }
                                 return null;
                               },
@@ -384,61 +392,53 @@ void showAddCourseForm(BuildContext context, GlobalKey<FormState> formKey) {
                   if (formKey.currentState!.validate()) {
                     formKey.currentState!.save();
 
-                    final courseCodeExists =
-                        await doesCourseCodeExist(_courseData.coursecode);
+                    var uid = generateUID();
+                    try {
+                      await FirebaseFirestore.instance
+                          .collection('courses')
+                          .doc(uid)
+                          .set({
+                        'uid': uid,
+                        'coursecode': courseData.coursecode.toUpperCase(),
+                        'coursename': courseData.coursename,
+                        'facultyassigned': selectedFaculty,
+                        'units': courseData.units,
+                        'isactive': courseData.isactive,
+                        'numstudents': 0,
+                        'type': selectedType,
+                        'program': selectedProgram,
+                        'dayTimes': selectedDaysWithTimes.map((day, time) =>
+                            MapEntry(day, {
+                              'start': time!.split(' - ')[0],
+                              'end': time.split(' - ')[1]
+                            })),
+                        'section': courseData.section,
+                        'setup': courseData.setup,
+                        'onlineDay': selectedSetup == 'Full Online'
+                            ? 'Full Online'
+                            : selectedSetup == 'Full Onsite'
+                                ? 'Full Onsite'
+                                : selectedHybridDay,
+                        'roomNum': courseData.roomNum,
+                        'syAndTerm': getNextSYandTerm()
+                      });
+                      Navigator.pop(context);
 
-                    if (courseCodeExists) {
+                      getCoursesFromFirestore();
+
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text(
-                              'Course with the same course code already exists.'),
+                          content: Text('Course created'),
+                          duration: Duration(seconds: 2),
                         ),
                       );
-                    } else {
-                      var uid = generateUID();
-                      try {
-                        await FirebaseFirestore.instance
-                            .collection('courses')
-                            .doc(uid)
-                            .set({
-                          'uid': uid,
-                          'coursecode': _courseData.coursecode.toUpperCase(),
-                          'coursename': _courseData.coursename,
-                          'facultyassigned': selectedFaculty,
-                          'units': _courseData.units,
-                          'isactive': _courseData.isactive,
-                          'numstudents': 0,
-                          'type': selectedType,
-                          'program': selectedProgram,
-                          'dayTimes': selectedDaysWithTimes.map((day, time) =>
-                              MapEntry(day, {
-                                'start': time!.split(' - ')[0],
-                                'end': time.split(' - ')[1]
-                              })),
-                          'section': _courseData.section,
-                          'setup': _courseData.setup,
-                          'onlineDay': selectedHybridDay ?? 'No online',
-                          'roomNum': _courseData.roomNum,
-                          'syAndTerm': getNextSYandTerm()
-                        });
-                        Navigator.pop(context);
-
-                        getCoursesFromFirestore();
-
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Course created'),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                      } catch (e) {
-                        print('Error creating course: $e');
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Error creating course: $e'),
-                          ),
-                        );
-                      }
+                    } catch (e) {
+                      print('Error creating course: $e');
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error creating course: $e'),
+                        ),
+                      );
                     }
                   }
                 },

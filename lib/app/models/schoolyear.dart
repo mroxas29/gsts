@@ -8,8 +8,8 @@ class SchoolYear {
 
   factory SchoolYear.fromJson(Map<String, dynamic> json) {
     final name = json['name'] as String;
-    final List<dynamic> termsJson = json['terms'] ?? [];
-    final List<Term> terms = termsJson
+    final termsJson = json['terms'] as List<dynamic>? ?? [];
+    final terms = termsJson
         .map((termJson) => Term.fromJson(termJson as Map<String, dynamic>))
         .toList();
 
@@ -17,10 +17,9 @@ class SchoolYear {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = <String, dynamic>{
+    return {
       'name': name,
       'terms': terms.map((term) => term.toJson()).toList(),
     };
-    return data;
   }
 }

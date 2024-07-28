@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
@@ -5,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart' as date;
 import 'package:path_provider/path_provider.dart';
 import 'package:confetti/confetti.dart';
 import 'package:side_navigation/side_navigation.dart';
@@ -65,6 +67,7 @@ int getTotalPOSUnits() {
 
 late Future<ListResult> documentations;
 late Future<ListResult> defenseForms;
+final PdfInvoiceService service = PdfInvoiceService();
 
 String _capitalize(String input) {
   if (input.isEmpty) {
@@ -1297,23 +1300,26 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                           } else {
                             late EnrolledCourseData enrolledCourse;
 
-            enrolledCourse = EnrolledCourseData(
-  uid: generateUID(),
-  syAndTerm: reformatSYandTerm(getCurrentSYandTerm()),
-  dayTimes: selectedCourse!.dayTimes, // Add this line
-  section: selectedCourse!.section, // Add this line
-  coursecode: selectedCourse!.coursecode,
-  coursename: selectedCourse!.coursename,
-  isactive: selectedCourse!.isactive,
-  facultyassigned: selectedCourse!.facultyassigned,
-  numstudents: selectedCourse!.numstudents + 1,
-  units: selectedCourse!.units,
-  type: selectedCourse!.type,
-  roomNum: selectedCourse!.roomNum,
-  program: selectedCourse!.program,
-  setup: selectedCourse!.setup,
-);
-
+                            enrolledCourse = EnrolledCourseData(
+                                uid: generateUID(),
+                                syAndTerm:
+                                    reformatSYandTerm(getCurrentSYandTerm()),
+                                dayTimes:
+                                    selectedCourse!.dayTimes, // Add this line
+                                section:
+                                    selectedCourse!.section, // Add this line
+                                coursecode: selectedCourse!.coursecode,
+                                coursename: selectedCourse!.coursename,
+                                isactive: selectedCourse!.isactive,
+                                facultyassigned:
+                                    selectedCourse!.facultyassigned,
+                                numstudents: selectedCourse!.numstudents + 1,
+                                units: selectedCourse!.units,
+                                type: selectedCourse!.type,
+                                roomNum: selectedCourse!.roomNum,
+                                program: selectedCourse!.program,
+                                setup: selectedCourse!.setup,
+                                onlineDay: selectedCourse!.onlineDay);
 
                             onAddEnrolledCourse(enrolledCourse);
 
@@ -1965,26 +1971,30 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                           });
                           return;
                         } else {
-                          String syAndTerm = currentStudent!.enrolledCourses.firstWhere((enrolledCourse) => enrolledCourse.coursecode == selectedCourse!.coursecode).syAndTerm;
+                          String syAndTerm = currentStudent!.enrolledCourses
+                              .firstWhere((enrolledCourse) =>
+                                  enrolledCourse.coursecode ==
+                                  selectedCourse!.coursecode)
+                              .syAndTerm;
 
                           final pastCourse = PastCourse(
-                            uid: generateUID(),
-                            syAndTerm: syAndTerm,
-                            roomNum: selectedCourse!.roomNum,
-                            setup: selectedCourse!.setup,
-                            dayTimes: selectedCourse!.dayTimes, // Add this line
-                            section: selectedCourse!.section, // Add this line
-                            coursecode: selectedCourse!.coursecode,
-                            coursename: selectedCourse!.coursename,
-                            facultyassigned: selectedCourse!.facultyassigned,
-                            units: selectedCourse!.units,
-                            numstudents: selectedCourse!.numstudents,
-                            isactive: selectedCourse!.isactive,
-                            grade: enteredGrade!, // Assign the entered grade
-                            type: selectedCourse!.type,
-                            program: selectedCourse!.program,
-                          );
-
+                              uid: generateUID(),
+                              syAndTerm: syAndTerm,
+                              roomNum: selectedCourse!.roomNum,
+                              setup: selectedCourse!.setup,
+                              dayTimes:
+                                  selectedCourse!.dayTimes, // Add this line
+                              section: selectedCourse!.section, // Add this line
+                              coursecode: selectedCourse!.coursecode,
+                              coursename: selectedCourse!.coursename,
+                              facultyassigned: selectedCourse!.facultyassigned,
+                              units: selectedCourse!.units,
+                              numstudents: selectedCourse!.numstudents,
+                              isactive: selectedCourse!.isactive,
+                              grade: enteredGrade!, // Assign the entered grade
+                              type: selectedCourse!.type,
+                              program: selectedCourse!.program,
+                              onlineDay: selectedCourse!.onlineDay);
 
                           onAddPastCourse(pastCourse);
 
@@ -2024,23 +2034,27 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
 
                           if (fromEnrolled) {
                             _deleteEnrolledCourse(
-                                       EnrolledCourseData(
-  uid: generateUID(),
-  setup: selectedCourse!.setup,
-  roomNum: selectedCourse!.roomNum,
-  syAndTerm: reformatSYandTerm(getCurrentSYandTerm()),
-  dayTimes: selectedCourse!.dayTimes, // Add this line
-  section: selectedCourse!.section, // Add this line
-  coursecode: selectedCourse!.coursecode,
-  coursename: selectedCourse!.coursename,
-  isactive: selectedCourse!.isactive,
-  facultyassigned: selectedCourse!.facultyassigned,
-  numstudents: selectedCourse!.numstudents + 1,
-  units: selectedCourse!.units,
-  type: selectedCourse!.type,
-  program: selectedCourse!.program,
-)
-,
+                                EnrolledCourseData(
+                                    uid: generateUID(),
+                                    setup: selectedCourse!.setup,
+                                    roomNum: selectedCourse!.roomNum,
+                                    syAndTerm: reformatSYandTerm(
+                                        getCurrentSYandTerm()),
+                                    dayTimes: selectedCourse!
+                                        .dayTimes, // Add this line
+                                    section: selectedCourse!
+                                        .section, // Add this line
+                                    coursecode: selectedCourse!.coursecode,
+                                    coursename: selectedCourse!.coursename,
+                                    isactive: selectedCourse!.isactive,
+                                    facultyassigned:
+                                        selectedCourse!.facultyassigned,
+                                    numstudents:
+                                        selectedCourse!.numstudents + 1,
+                                    units: selectedCourse!.units,
+                                    type: selectedCourse!.type,
+                                    program: selectedCourse!.program,
+                                    onlineDay: selectedCourse!.onlineDay),
                                 fromEnrolled);
                           }
                         }
@@ -2357,8 +2371,6 @@ DataCell capstoneCell(PastCourse pastCourse) {
   return DataCell(Text(''));
 }
 
-final PdfInvoiceService service = PdfInvoiceService();
-
 class RemoteFile {
   final String name;
   final String url; // Assuming you have a download URL for the file
@@ -2384,7 +2396,7 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
   bool hasEn19Form = false;
   Future<void> retrieveEN19Form() async {
     EN19Form? form = await EN19Form.getFormFromFirestore(currentStudent!.uid);
-
+    print("MAIN TITLE: ${form!.mainTitle}");
     setState(() {
       _retrievedForm = form;
     });
@@ -2500,171 +2512,6 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
       print('Generated PDF uploaded successfully');
     }
 
-    Future<void> uploadEN19File(EN19Form formDetails) async {
-      bool confirmSign = false;
-      bool signedByGSC = false;
-      bool signedByAdviser = false;
-
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return StatefulBuilder(builder: (context, setState) {
-            return SingleChildScrollView(
-              child: AlertDialog(
-                title: Text('Confirm Signatories'),
-                content: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                        'Please confirm that the document that will be\nuploaded is signed by the Coordinator and your Adviser.'),
-                    SizedBox(
-                      height: 10,
-                    ),
-                    Text(
-                      'Signed by Coordinator?',
-                      style: TextStyle(fontSize: 15),
-                    ),
-                    SizedBox(
-                      height: 10,
-                    ),
-                    Row(
-                      children: [
-                        Radio<bool>(
-                          value: true,
-                          groupValue: signedByGSC,
-                          onChanged: (bool? value) {
-                            setState(() {
-                              signedByGSC = value!;
-                            });
-                          },
-                        ),
-                        Text('Yes'),
-                        Radio<bool>(
-                          value: false,
-                          groupValue: signedByGSC,
-                          onChanged: (bool? value) {
-                            setState(() {
-                              signedByGSC = value!;
-                            });
-                          },
-                        ),
-                        Text('No'),
-                      ],
-                    ),
-                    SizedBox(
-                      height: 10,
-                    ),
-                    Text(
-                      'Signed by adviser?',
-                      style: TextStyle(fontSize: 15),
-                    ),
-                    SizedBox(
-                      height: 10,
-                    ),
-                    Row(
-                      children: [
-                        Radio<bool>(
-                          value: true,
-                          groupValue: signedByAdviser,
-                          onChanged: (bool? value) {
-                            setState(() {
-                              signedByAdviser = value!;
-                            });
-                          },
-                        ),
-                        Text('Yes'),
-                        Radio<bool>(
-                          value: false,
-                          groupValue: signedByAdviser,
-                          onChanged: (bool? value) {
-                            setState(() {
-                              signedByAdviser = value!;
-                            });
-                          },
-                        ),
-                        Text('No'),
-                      ],
-                    ),
-                  ],
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      confirmSign = false;
-                      Navigator.pop(context, false); // No, do not delete
-                    },
-                    child: Text('Cancel'),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      setState(() async {
-                        confirmSign = true;
-                        if (confirmSign) {
-                          FilePickerResult? result =
-                              await FilePicker.platform.pickFiles();
-                          if (result != null) {
-                            PlatformFile file = result.files.first;
-                            String fileName =
-                                '${currentStudent!.idnumber}/Defense Forms/EN-19Form_${currentStudent!.idnumber}.pdf';
-                            Uint8List fileBytes = file.bytes!;
-
-                            // Create EN19Form object
-                            EN19Form form = EN19Form(
-                              proposedTitle: formDetails.proposedTitle,
-                              lastName: _capitalize(
-                                  currentStudent!.displayname['lastname']!),
-                              firstName: _capitalize(
-                                  currentStudent!.displayname['firstname']!),
-                              middleName: formDetails.middleName,
-                              idNumber: currentStudent!.idnumber.toString(),
-                              college: 'Computer Studies',
-                              program: currentStudent!.degree,
-                              passedComprehensiveExams: false,
-                              submittedCertificate: false,
-                              adviserName: formDetails.adviserName,
-                              enrollmentStage: formDetails.enrollmentStage,
-                              date: DateTime.now(),
-                              leadPanel: formDetails.leadPanel,
-                              panelMembers: formDetails.panelMembers,
-                              defenseDate: formDetails.defenseDate,
-                              signedByGSC: signedByGSC,
-                              signedByAdviser: signedByAdviser,
-                              defenseTime: formDetails.defenseTime,
-                              mainTitle: formDetails.mainTitle,
-                              defenseType: formDetails.defenseType,
-                              verdict: formDetails.verdict,
-                            );
-
-                            form.saveFormToFirestore(form, currentStudent!.uid);
-                            final ref =
-                                FirebaseStorage.instance.ref().child(fileName);
-
-                            await ref.putData(fileBytes);
-                            setState(() {
-                              retrieveEN19Form();
-                            });
-
-                            print('File uploaded successfully');
-                            Navigator.pop(context, true);
-                          } else {
-                            print('No file selected');
-                          }
-                        }
-                      });
-
-                      Navigator.pop(context, true); // Yes, delete
-                    },
-                    child: Text('Proceed'),
-                  ),
-                ],
-              ),
-            );
-          });
-        },
-      );
-    }
-
     Future<void> showEN19FormDialog(BuildContext context) async {
       String selectedType = 'Thesis';
       int selectedNumber = 1;
@@ -2675,6 +2522,7 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
       bool isMainTitleEmpty = false;
       bool signedByAdviser = false;
       bool signedByGSC = false;
+
       showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -2687,13 +2535,8 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      SizedBox(
-                        height: 10,
-                      ),
-                      Text(
-                        'Proposed Title',
-                        style: TextStyle(fontSize: 15),
-                      ),
+                      SizedBox(height: 10),
+                      Text('Proposed Title', style: TextStyle(fontSize: 15)),
                       DropdownButton<String>(
                         value: selectedType,
                         onChanged: (String? newValue) {
@@ -2711,13 +2554,8 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                           );
                         }).toList(),
                       ),
-                      SizedBox(
-                        height: 10,
-                      ),
-                      Text(
-                        'Enrollment Stage',
-                        style: TextStyle(fontSize: 15),
-                      ),
+                      SizedBox(height: 10),
+                      Text('Enrollment Stage', style: TextStyle(fontSize: 15)),
                       DropdownButton<int>(
                         value: selectedNumber,
                         onChanged: (int? newValue) {
@@ -2734,16 +2572,8 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                           );
                         }).toList(),
                       ),
-                      SizedBox(
-                        height: 10,
-                      ),
-                      SizedBox(
-                        height: 10,
-                      ),
-                      Text(
-                        'Title',
-                        style: TextStyle(fontSize: 15),
-                      ),
+                      SizedBox(height: 10),
+                      Text('Title', style: TextStyle(fontSize: 15)),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.start,
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2760,13 +2590,8 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                           ),
                         ],
                       ),
-                      SizedBox(
-                        height: 10,
-                      ),
-                      Text(
-                        'Adviser',
-                        style: TextStyle(fontSize: 15),
-                      ),
+                      SizedBox(height: 10),
+                      Text('Adviser', style: TextStyle(fontSize: 15)),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.start,
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2815,13 +2640,7 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                         isAdviserNameEmpty = adviserNameController.text.isEmpty;
                         isMainTitleEmpty = mainTitleController.text.isEmpty;
                       });
-                      if (isAdviserNameEmpty) {
-                        // Do not close the dialog if the adviser name is empty
-                        return;
-                      }
-
-                      if (isMainTitleEmpty) {
-                        // Do not close the dialog if the adviser name is empty
+                      if (isAdviserNameEmpty || isMainTitleEmpty) {
                         return;
                       }
 
@@ -2846,8 +2665,8 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                         adviserName: adviserName,
                         enrollmentStage: enrollmentStage,
                         date: DateTime.now(),
-                        leadPanel: 'No lead panel assigned',
-                        panelMembers: ['', '', '', ''],
+                        leadPanel: _retrievedForm!.leadPanel,
+                        panelMembers: _retrievedForm!.panelMembers,
                         defenseDate: 'No date set',
                         signedByGSC: signedByGSC,
                         signedByAdviser: signedByAdviser,
@@ -2858,9 +2677,47 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                       );
 
                       Navigator.of(context).pop();
+                      String formattedDate =
+                          date.DateFormat('yyyy-MM-ddTHH:mm:ss.SSS')
+                              .format(DateTime.now());
 
-                      // If the first dialog was successfully closed, proceed to open the second dialo
-                      await uploadEN19File(form);
+                      // Upload the form data to Firebase Firestore
+                      await FirebaseFirestore.instance
+                          .collection('defenseInformation')
+                          .doc(currentUser.uid)
+                          .set({
+                        'proposedTitle': selectedType,
+                        'lastName': currentStudent!.displayname['lastname'],
+                        'firstName': currentStudent!.displayname['firstname'],
+                        'middleName': '',
+                        'idNumber': currentStudent!.idnumber.toString(),
+                        'college': 'Computer Studies',
+                        'program': currentStudent!.degree,
+                        'passedComprehensiveExams': false,
+                        'submittedCertificate': false,
+                        'adviserName': adviserName,
+                        'enrollmentStage': enrollmentStage,
+                        'date': formattedDate,
+                        'leadPanel': 'No lead panel assigned',
+                        'panelMembers': ['', '', '', ''],
+                        'defenseDate': 'No date set',
+                        'signedByGSC': signedByGSC,
+                        'signedByAdviser': signedByAdviser,
+                        'defenseTime': 'No time set',
+                        'mainTitle': mainTitleController.text,
+                        'defenseType': ' ',
+                        'verdict': 'No verdict',
+                      });
+
+                      // Generate the PDF
+                      Uint8List pdfData =
+                          await service.createEN19(form, currentUser.role);
+
+                      // Upload the generated PDF
+                      await uploadGeneratedPdf(pdfData, 'EN-19Form');
+
+                      service.savePdfFile(
+                          'EN-19Form_${currentUser.idnumber}.pdf', pdfData);
                     },
                     child: Text('Submit'),
                   ),
@@ -3130,8 +2987,10 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
 
     Future<void> modifyDefenseForm(BuildContext context, EN19Form en19) async {
       String selectedDefenseType = 'Proposal Defense';
-      final TextEditingController mainTitleController = TextEditingController();
-
+      final TextEditingController mainTitleController =
+          TextEditingController(text: en19.mainTitle);
+      final TextEditingController adviserName =
+          TextEditingController(text: en19.adviserName);
       bool isMainTitleEmpty = false;
 
       showDialog(
@@ -3183,7 +3042,19 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                                 TextField(
                                   controller: mainTitleController,
                                   decoration: InputDecoration(
-                                    hintText: en19.mainTitle,
+                                    errorText: isMainTitleEmpty
+                                        ? 'This is a required field'
+                                        : null,
+                                  ),
+                                ),
+                                SizedBox(height: 10),
+                                Text(
+                                  'Adviser',
+                                  style: TextStyle(fontSize: 15),
+                                ),
+                                TextField(
+                                  controller: adviserName,
+                                  decoration: InputDecoration(
                                     errorText: isMainTitleEmpty
                                         ? 'This is a required field'
                                         : null,
@@ -3214,70 +3085,63 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                         return;
                       }
 
-                      FilePickerResult? result =
-                          await FilePicker.platform.pickFiles();
+                      String fileName =
+                          '${en19.idNumber}/Defense Forms/EN-18DefenseForm_${en19.idNumber}.pdf';
 
-                      if (result != null) {
-                        PlatformFile file = result.files.first;
-                        String fileName =
-                            '${en19.idNumber}/Defense Forms/EN-18DefenseForm_${en19.idNumber}.pdf';
+                      // If the first dialog was successfully closed, proceed to open the second dialo
 
-                        Uint8List fileBytes = file.bytes!;
-                        final ref =
-                            FirebaseStorage.instance.ref().child(fileName);
-                        await ref.putData(fileBytes);
+                      EN19Form form = EN19Form(
+                        proposedTitle: en19.proposedTitle,
+                        lastName: _capitalize(
+                            currentStudent!.displayname['lastname']!),
+                        firstName: _capitalize(
+                            currentStudent!.displayname['firstname']!),
+                        middleName: '',
+                        idNumber: currentStudent!.idnumber.toString(),
+                        college: 'Computer Studies',
+                        program: currentStudent!.degree,
+                        passedComprehensiveExams: en19.passedComprehensiveExams,
+                        submittedCertificate: en19.submittedCertificate,
+                        adviserName: adviserName.text,
+                        enrollmentStage: en19.enrollmentStage,
+                        date: DateTime.now(),
+                        leadPanel: en19.leadPanel,
+                        panelMembers: en19.panelMembers,
+                        defenseDate: 'No date set',
+                        signedByGSC: en19.signedByGSC,
+                        signedByAdviser: en19.signedByAdviser,
+                        defenseTime: 'No time set',
+                        mainTitle: _capitalize(mainTitleController.text),
+                        defenseType: selectedDefenseType,
+                        verdict: 'No verdict',
+                      );
 
-                        EN19Form form = EN19Form(
-                          proposedTitle: en19.proposedTitle,
-                          lastName: _capitalize(
-                              currentStudent!.displayname['lastname']!),
-                          firstName: _capitalize(
-                              currentStudent!.displayname['firstname']!),
-                          middleName: '',
-                          idNumber: currentStudent!.idnumber.toString(),
-                          college: 'Computer Studies',
-                          program: currentStudent!.degree,
-                          passedComprehensiveExams:
-                              en19.passedComprehensiveExams,
-                          submittedCertificate: en19.submittedCertificate,
-                          adviserName: en19.adviserName,
-                          enrollmentStage: en19.enrollmentStage,
-                          date: DateTime.now(),
-                          leadPanel: en19.leadPanel,
-                          panelMembers: en19.panelMembers,
-                          defenseDate: 'No date set',
-                          signedByGSC: en19.signedByGSC,
-                          signedByAdviser: en19.signedByAdviser,
-                          defenseTime: 'No time set',
-                          mainTitle: _capitalize(mainTitleController.text),
-                          defenseType: selectedDefenseType,
-                          verdict: 'No verdict',
-                        );
-
-                        form.saveFormToFirestore(form, currentStudent!.uid);
-
-                        Navigator.of(context).pop();
-                        showDialog(
-                          context: context,
-                          builder: (BuildContext context) {
-                            return AlertDialog(
-                              title: Text(
-                                  'Upload Official Receipt from registrar'),
-                              content: Text(
-                                  'Remember to upload your official receipt as well.'),
-                              actions: <Widget>[
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.of(context)
-                                        .pop(); // Close the dialog
-                                  },
-                                  child: Text('Ok'),
-                                ),
-                              ],
-                            );
-                          },
-                        );
-                      }
+                      Uint8List pdfData = await service.createDefenseForm(
+                          form, form.defenseType, currentStudent!);
+                      await uploadGeneratedPdf(pdfData, 'EN-18DefenseForm');
+                      service.savePdfFile(
+                          'EN18Defense Form_${currentUser.idnumber}.pdf', pdfData);
+                      Navigator.of(context).pop();
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title:
+                                Text('Upload Official Receipt from registrar'),
+                            content: Text(
+                                'Remember to upload your official receipt as well.'),
+                            actions: <Widget>[
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.of(context)
+                                      .pop(); // Close the dialog
+                                },
+                                child: Text('Ok'),
+                              ),
+                            ],
+                          );
+                        },
+                      );
                     },
                     child: Text('Submit'),
                   ),
@@ -3400,29 +3264,6 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                             await showEN19FormDialog(context);
                           },
                         ),
-                        TextButton(
-                          onPressed: () async {
-                            String fileName =
-                                'templates/EN-19 Thesis Writing Form.pdf';
-                            final imageUrl = await FirebaseStorage.instance
-                                .ref()
-                                .child(fileName)
-                                .getDownloadURL();
-                            if (await canLaunch(imageUrl.toString())) {
-                              await launch(imageUrl.toString());
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Failed to download file'),
-                                ),
-                              );
-                            }
-                          },
-                          child: Text(
-                            'Download EN-19 Template',
-                            style: TextStyle(fontSize: 10),
-                          ),
-                        ),
                       ],
                     )),
                   ]),
@@ -3509,29 +3350,7 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                           },
                           tooltip: 'Upload EN-18 Defense Form',
                         ),
-                        TextButton(
-                          onPressed: () async {
-                            String fileName =
-                                'templates/EN-18-201904 Defense Form.pdf';
-                            final imageUrl = await FirebaseStorage.instance
-                                .ref()
-                                .child(fileName)
-                                .getDownloadURL();
-                            if (await canLaunch(imageUrl.toString())) {
-                              await launch(imageUrl.toString());
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Failed to download file'),
-                                ),
-                              );
-                            }
-                          },
-                          child: Text(
-                            'Download EN-18 Template',
-                            style: TextStyle(fontSize: 10),
-                          ),
-                        ),
+
                       ],
                     )),
                   ]),

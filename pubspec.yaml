@@ -14,6 +14,7 @@ dependencies:
   cupertino_icons: ^1.0.6
   drag_and_drop_lists: ^0.3.3
   english_words: ^4.0.0
+  excel: ^4.0.3
   extension_google_sign_in_as_googleapis_auth: ^2.0.12
   file_picker: ^6.2.0
   firebase_auth: ^4.17.5

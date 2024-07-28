@@ -112,11 +112,22 @@ Future<List<PastCourse>> getPastCoursesForStudent(String studentUid) async {
         .get();
 
     if (studentSnapshot.exists) {
-      final List<dynamic> coursesJson = studentSnapshot['pastCourses'];
+      final Map<String, dynamic>? userData =
+          studentSnapshot.data() as Map<String, dynamic>?;
 
-      return coursesJson
-          .map((courseJson) => PastCourse.fromJson(courseJson))
-          .toList();
+      // Ensure 'pastCourses' is correctly cast
+      final List<dynamic>? coursesJson =
+          userData?['pastCourses'] as List<dynamic>?;
+
+      if (coursesJson != null) {
+        return coursesJson
+            .map((courseJson) => PastCourse.fromJson(
+                Map<String, dynamic>.from(courseJson as Map)))
+            .toList();
+      } else {
+        print('No pastCourses found for uid: $studentUid');
+        return [];
+      }
     } else {
       print('Student not found with uid: $studentUid');
       return [];
@@ -129,7 +140,7 @@ Future<List<PastCourse>> getPastCoursesForStudent(String studentUid) async {
 
 List<Student> studentList = [];
 List<Student> graduatingStudentsList = [];
-List<Student> newStudentList = [];
+List<Student> applicantList = [];
 List<Student> ineligibleStudentList = [];
 List<StudentPOS> fromLOAStudents = [];
 List<Student> noEnrolledStudents = [];
@@ -170,36 +181,37 @@ Future<List<Student>> getLOAStudents() async {
 }
 
 Future<List<Student>> getNewStudents() async {
-  newStudentList.clear();
+  applicantList.clear();
   try {
     // Access the Firestore instance
     FirebaseFirestore firestore = FirebaseFirestore.instance;
 
     // Query the "graduatingStudents" collection
     QuerySnapshot<Map<String, dynamic>> querySnapshot =
-        await firestore.collection('newStudents').get();
+        await firestore.collection('users').get();
 
     for (QueryDocumentSnapshot<Map<String, dynamic>> document
         in querySnapshot.docs) {
       Map<String, dynamic> userData = document.data();
-      Student newStudent = Student(
-          uid: document.id,
-          displayname: Map<String, String>.from(userData['displayname']),
-          enrolledCourses: await getEnrolledCoursesForStudent(document.id),
-          pastCourses: await getPastCoursesForStudent(document.id),
-          role: userData['role'],
-          email: userData['email'],
-          idnumber: userData['idnumber'],
-          status: userData['status'],
-          degree: await getDegreeForStudent(document.id));
+      if (userData['role'] == 'Applicant') {
+        Student newStudent = Student(
+            uid: document.id,
+            displayname: Map<String, String>.from(userData['displayname']),
+            enrolledCourses: await getEnrolledCoursesForStudent(document.id),
+            pastCourses: await getPastCoursesForStudent(document.id),
+            role: userData['role'],
+            email: userData['email'],
+            idnumber: userData['idnumber'],
+            status: userData['status'],
+            degree: await getDegreeForStudent(document.id));
 
-      newStudentList.add(newStudent);
-      print('adding new student');
+        applicantList.add(newStudent);
+      }
     }
   } catch (e) {
     print(e);
   }
-  return newStudentList;
+  return applicantList;
 }
 
 Future<List<Student>> getGraduatingStudents() async {
@@ -290,6 +302,11 @@ Future<List<Student>> convertToStudentList(List<user> users) async {
 }
 
 bool isGraduatingWithinTimeFrame(String degree, String idNumber) {
+  // Disregard if idNumber is '0'
+  if (idNumber == '0') {
+    return true;
+  }
+
   // Extract the year from the ID number
   int idYear =
       int.parse(idNumber.substring(0, 3)) + 1900; // Convert to full year
@@ -300,7 +317,7 @@ bool isGraduatingWithinTimeFrame(String degree, String idNumber) {
   // Calculate the maximum graduation year based on degree
   int maxGraduationYear;
   if (degree.toLowerCase().contains('doctorate')) {
-    maxGraduationYear = idYear + 12;
+    maxGraduationYear = idYear + 10;
   } else if (degree.toLowerCase().contains('masters')) {
     maxGraduationYear = idYear + 8;
   } else {

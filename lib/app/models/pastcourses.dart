@@ -18,42 +18,47 @@ class PastCourse extends Course {
     required String section,
     required String syAndTerm,
     required String setup,
+    required String onlineDay,
     required String roomNum,
   }) : super(
-    roomNum: roomNum,
-    setup: setup,
-          uid: uid,
-          coursecode: coursecode,
-          coursename: coursename,
-          isactive: isactive,
-          facultyassigned: facultyassigned,
-          numstudents: numstudents,
-          units: units,
-          type: type,
-          program: program,
-          dayTimes: dayTimes,
-          section: section,
-          syAndTerm: syAndTerm,
-        );
+            roomNum: roomNum,
+            setup: setup,
+            uid: uid,
+            coursecode: coursecode,
+            coursename: coursename,
+            isactive: isactive,
+            facultyassigned: facultyassigned,
+            numstudents: numstudents,
+            units: units,
+            type: type,
+            program: program,
+            dayTimes: dayTimes,
+            section: section,
+            syAndTerm: syAndTerm,
+            onlineDay: onlineDay);
 
   factory PastCourse.fromJson(Map<String, dynamic> json) {
     return PastCourse(
-      uid: json['uid'],
-      setup: json['setup'],
-      coursecode: json['coursecode'],
-      coursename: json['coursename'],
-      isactive: json['isactive'],
-      facultyassigned: json['facultyassigned'],
-      numstudents: json['numstudents'],
-      units: json['units'],
-      grade: json['grade'],
-      type: json['type'],
-      program: json['program'],
-      dayTimes: List<Map<String, String>>.from(json['dayTimes'] ?? {}),
-      section: json['section'] ?? '',
-      syAndTerm: json['syAndTerm'] ?? '',
-      roomNum: json['roomNum']
-    );
+        uid: json['uid'],
+        setup: json['setup'],
+        coursecode: json['coursecode'],
+        coursename: json['coursename'],
+        isactive: json['isactive'],
+        facultyassigned: json['facultyassigned'],
+        numstudents: json['numstudents'],
+        units: json['units'],
+        grade: json['grade'],
+        type: json['type'],
+        program: json['program'],
+        dayTimes: List<Map<String, String>>.from(
+          (json['dayTimes'] as List).map(
+            (item) => Map<String, String>.from(item as Map),
+          ),
+        ),
+        section: json['section'] ?? '',
+        syAndTerm: json['syAndTerm'] ?? '',
+        roomNum: json['roomNum'],
+        onlineDay: json['onlineDay']);
   }
 
   @override

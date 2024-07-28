@@ -86,7 +86,7 @@ class PdfInvoiceService {
                             ),
                             children: [
                               pw.TextSpan(
-                                text: 'Sample Date',
+                                text: en19.defenseDate,
                                 style: pw.TextStyle(
                                   fontSize: 8,
                                   fontWeight: pw.FontWeight.bold,
@@ -106,7 +106,7 @@ class PdfInvoiceService {
                             ),
                             children: [
                               pw.TextSpan(
-                                text: 'Sample AY/TERM',
+                                text: getCurrentSYandTerm(),
                                 style: pw.TextStyle(
                                   fontSize: 8,
                                   fontWeight: pw.FontWeight.bold,
@@ -165,7 +165,7 @@ class PdfInvoiceService {
                             ),
                             children: [
                               pw.TextSpan(
-                                text: 'Doe',
+                                text: en19.lastName,
                                 style: pw.TextStyle(
                                   fontSize: 8,
                                   fontWeight: pw.FontWeight.bold,
@@ -196,7 +196,7 @@ class PdfInvoiceService {
                             ),
                             children: [
                               pw.TextSpan(
-                                text: 'John',
+                                text: en19.firstName,
                                 style: pw.TextStyle(
                                   fontSize: 8,
                                   fontWeight: pw.FontWeight.bold,
@@ -227,7 +227,7 @@ class PdfInvoiceService {
                             ),
                             children: [
                               pw.TextSpan(
-                                text: '1234567890',
+                                text: en19.idNumber,
                                 style: pw.TextStyle(
                                   fontSize: 8,
                                   fontWeight: pw.FontWeight.bold,
@@ -282,7 +282,7 @@ class PdfInvoiceService {
                             ),
                             children: [
                               pw.TextSpan(
-                                text: 'Sample Thesis Title',
+                                text: en19.mainTitle,
                                 style: pw.TextStyle(
                                   fontSize: 8,
                                   fontWeight: pw.FontWeight.bold,
@@ -2948,9 +2948,10 @@ class PdfInvoiceService {
 
   Future<Uint8List> createRecommendationForm(
       StudentPOS studentPOS,
-      List<Course> recommendedRemedialCourses,
-      List<Course> recommendedPriorityCourses,
-      bool isEng501MChecked) async {
+      List<Course>? recommendedRemedialCourses,
+      List<Course>? recommendedPriorityCourses,
+      bool isEng501MChecked,
+      bool isAccepted) async {
     final pdf = pw.Document();
 
     int startCount = isEng501MChecked ? 2 : 3;
@@ -2983,7 +2984,7 @@ class PdfInvoiceService {
 
           // Rectangle and text on the top right corner
           final referenceNoText = pw.Text("Reference No: ________________");
-          final idNumberText = pw.Text("ID Number: ${studentPOS.idnumber}");
+          final idNumberText = pw.Text("ID Number: ");
 
           return pw.Container(
             margin: pw.EdgeInsets.all(10),
@@ -3186,12 +3187,25 @@ class PdfInvoiceService {
                                 decoration: pw.BoxDecoration(
                                   border: pw.Border.all(color: PdfColors.black),
                                 ),
+                                child: isAccepted
+                                    ? pw.Container() // Empty if accepted
+                                    : pw.Center(
+                                        child: pw.Text(
+                                          'X',
+                                          style: pw.TextStyle(
+                                            fontSize: 10,
+                                            color: PdfColors.black,
+                                          ),
+                                        ),
+                                      ),
                               ),
-                              pw.Text("Not Accepted",
-                                  style: pw.TextStyle(
-                                    fontWeight: pw.FontWeight.bold,
-                                    fontSize: 10,
-                                  )),
+                              pw.Text(
+                                "Not Accepted",
+                                style: pw.TextStyle(
+                                  fontWeight: pw.FontWeight.bold,
+                                  fontSize: 10,
+                                ),
+                              ),
                             ],
                           ),
                           pw.SizedBox(
@@ -3240,7 +3254,7 @@ class PdfInvoiceService {
                             pw.Text(
                               isEng501MChecked
                                   ? "1.$startCount. ENG501M/ENGF01M"
-                                  : "1.$startCount. ${recommendedRemedialCourses[0].coursecode}: ${recommendedRemedialCourses[0].coursename}",
+                                  : "1.$startCount. ${recommendedRemedialCourses![0].coursecode}: ${recommendedRemedialCourses[0].coursename}",
                               style: pw.TextStyle(
                                   fontSize: 10,
                                   decoration: TextDecoration.underline),
@@ -3253,7 +3267,7 @@ class PdfInvoiceService {
                           children: [
                             pw.SizedBox(height: 10),
                             for (var i = 1;
-                                i < recommendedRemedialCourses.length;
+                                i < recommendedRemedialCourses!.length;
                                 i++)
                               pw.Text(
                                 "1.${i + startCount}. ${recommendedRemedialCourses[i].coursecode}: ${recommendedRemedialCourses[i].coursename}",
@@ -3280,7 +3294,7 @@ class PdfInvoiceService {
                           crossAxisAlignment: pw.CrossAxisAlignment.start,
                           children: [
                             for (var i = 0;
-                                i < recommendedPriorityCourses.length;
+                                i < recommendedPriorityCourses!.length;
                                 i++)
                               pw.Text(
                                 "2.${i + 1}. ${recommendedPriorityCourses[i].coursecode}: ${recommendedPriorityCourses[i].coursename}",
@@ -3290,6 +3304,357 @@ class PdfInvoiceService {
                               ),
                           ],
                         ),
+                      ],
+                    ),
+                  ],
+                ),
+                pw.SizedBox(height: 10),
+                pw.Text(
+                  "CHAIR/PROGRAM COORDINATOR's REMARKS (IF ANY):",
+                  style: pw.TextStyle(fontSize: 10),
+                ),
+                pw.Text(
+                  "______________________________________________________________",
+                  style: pw.TextStyle(fontSize: 10),
+                ),
+                pw.Text(
+                  "______________________________________________________________",
+                  style: pw.TextStyle(fontSize: 10),
+                ),
+                pw.Text(
+                  "______________________________________________________________",
+                  style: pw.TextStyle(fontSize: 10),
+                ),
+                pw.Text(
+                  "NOTE TO DEPARTMENT:",
+                  style: pw.TextStyle(fontSize: 10),
+                ),
+                pw.Text(
+                  "1. Please make sure that any change (ie., course addition and/or deletion) to the list of courses above must be countersigned by the Chair or the Program Coordinator using his/her full name.",
+                  style: pw.TextStyle(fontSize: 10),
+                ),
+                pw.Text(
+                  "2. Please submit to OAS in three (3) copies.",
+                  style: pw.TextStyle(fontSize: 10),
+                ),
+                pw.Text(
+                  "NOTE TO STUDENT:",
+                  style: pw.TextStyle(fontSize: 10),
+                ),
+                pw.Text(
+                  "1. You may see the course description at http://www.dlsu.edu.ph/academics/graduate-studies/programs.asp",
+                  style: pw.TextStyle(fontSize: 8),
+                ),
+                pw.Text(
+                  "2. In case of changes, please present the revised copy of the DeRF to OAS during the Special Adjustment Period.",
+                  style: pw.TextStyle(fontSize: 8),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+    return pdf.save();
+  }
+
+  Future<Uint8List> createRejectedDerf(bool isAccepted) async {
+    final pdf = pw.Document();
+
+    final image = (await rootBundle.load("assets/images/dlsulogo.png"))
+        .buffer
+        .asUint8List();
+
+    // Define custom page format for long bond paper (8.5 x 13 inches) with margins of 0.5 inches
+    final PdfPageFormat longBondPaper = PdfPageFormat(
+      8.5 * PdfPageFormat.inch -
+          0.5 *
+              PdfPageFormat.inch *
+              2, // Subtract 0.5 inches from each side for left and right margins
+      13 * PdfPageFormat.inch -
+          0.5 *
+              PdfPageFormat.inch *
+              2, // Subtract 0.5 inches from each side for top and bottom margins
+    );
+    final double columnHeight = 200.0; // Adjust the height as needed
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: longBondPaper,
+        build: (pw.Context context) {
+          final officeText = pw.Text("Office of Admissions\nand Scholarships",
+              style: pw.TextStyle(
+                fontSize: 16,
+              ));
+
+          // Rectangle and text on the top right corner
+          final referenceNoText = pw.Text("Reference No: ________________");
+          final idNumberText = pw.Text("ID Number: ");
+
+          return pw.Container(
+            margin: pw.EdgeInsets.all(10),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.SizedBox(height: 50),
+                pw.Row(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.SizedBox(
+                        height: 100,
+                        width: 200,
+                        child: pw.Image(pw.MemoryImage(image)),
+                      ),
+                      pw.SizedBox(width: 10), // Add space between logo and text
+                      officeText,
+                      pw.Spacer(),
+                      pw.Container(
+                          width: 200,
+                          height: 50,
+                          decoration: pw.BoxDecoration(
+                              border: pw.Border.all(
+                                  color: PdfColors.black, width: 1)),
+                          child: pw.Column(
+                              crossAxisAlignment: pw.CrossAxisAlignment.start,
+                              children: [
+                                referenceNoText,
+                                idNumberText,
+                              ]))
+                    ]),
+                pw.Column(
+                  mainAxisAlignment: pw.MainAxisAlignment.center,
+                  crossAxisAlignment: pw.CrossAxisAlignment.center,
+                  children: [
+                    pw.SizedBox(height: 15),
+                    pw.Text(
+                      "GRADUATE STUDIES ADMISSION\nDEPARTMENT RECOMMENDATION FORM (DeRF)",
+                      style: pw.TextStyle(
+                          fontSize: 18, fontWeight: pw.FontWeight.bold),
+                      textAlign: pw.TextAlign.center, // Center the text
+                    ),
+                    pw.SizedBox(height: 15),
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.center,
+                      children: [
+                        pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                            pw.Text(
+                              "DATE: ${DateTime.now().month}/${DateTime.now().day}/${DateTime.now().year}",
+                              style:
+                                  pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                            ),
+                            pw.Text(
+                                'TO: OFFICE OF ADMISSIONS AND SCHOLARSHIPS (OAS)'),
+                            pw.Text(
+                              "FROM:_______________",
+                            ),
+                            pw.Text(
+                              "Chair/Graduate Program Coordinator",
+                              textAlign: pw.TextAlign.center, // Center the text
+                            ),
+                            pw.Text(
+                              "(Sign over Printed Name)",
+                              textAlign: pw.TextAlign.center, // Center the text
+                            ),
+                            pw.SizedBox(height: 15),
+                            pw.Text(
+                              "${capitalize(studentPOS.displayname['lastname']!)}, ${capitalize(studentPOS.displayname['firstname']!)}",
+                              style:
+                                  pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                              textAlign: pw.TextAlign.center, // Center the text
+                            ),
+                          ],
+                        ),
+                        pw.SizedBox(width: 50), // Add space between the columns
+                        pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                            pw.Text(
+                              "___________________",
+                            ),
+                            pw.Text(
+                              "Department Name",
+                            ),
+                            pw.SizedBox(height: 15),
+                            pw.Text(
+                              "___________________",
+                            ),
+                            pw.Text(
+                              "Graduate Program Code\n(where applicant was accepted)",
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                pw.SizedBox(height: 10),
+                pw.Text('Please be informed that the applicant is:',
+                    style: pw.TextStyle(fontSize: 8)),
+                pw.Row(
+                  children: [
+                    // Left column
+                    pw.Container(
+                      width: PdfPageFormat.letter.width / 2 -
+                          20, // Adjust width as needed
+                      height: 75,
+                      padding: pw.EdgeInsets.all(10), // Add padding for borders
+                      decoration: pw.BoxDecoration(
+                        border: pw.Border.all(width: 1), // Add border
+                      ),
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Row(
+                            children: [
+                              pw.Container(
+                                width: 10,
+                                height: 10,
+                                margin: pw.EdgeInsets.only(right: 5),
+                                decoration: pw.BoxDecoration(
+                                  border: pw.Border.all(color: PdfColors.black),
+                                ),
+                              ),
+                              pw.Text("Accepted",
+                                  style: pw.TextStyle(
+                                      fontWeight: pw.FontWeight.bold)),
+                            ],
+                          ),
+                          pw.Row(
+                            children: [
+                              pw.Container(
+                                  width: 10,
+                                  height: 10,
+                                  margin: pw.EdgeInsets.only(right: 5),
+                                  decoration: pw.BoxDecoration(
+                                    border:
+                                        pw.Border.all(color: PdfColors.black),
+                                  ),
+                                  child: pw.Center(
+                                      child: pw.Text(' ',
+                                          style: pw.TextStyle(
+                                              fontSize: 8,
+                                              color: PdfColors.black)))),
+                              pw.Text("Exempted from course"),
+                            ],
+                          ),
+                          pw.Row(
+                            children: [
+                              pw.Container(
+                                  width: 10,
+                                  height: 10,
+                                  margin: pw.EdgeInsets.only(right: 5),
+                                  decoration: pw.BoxDecoration(
+                                    border:
+                                        pw.Border.all(color: PdfColors.black),
+                                  ),
+                                  child: pw.Center(
+                                      child: pw.Text(' ',
+                                          style: pw.TextStyle(
+                                              fontSize: 8,
+                                              color: PdfColors.black)))),
+                              pw.Text("NOT Exempted from course",
+                                  style: pw.TextStyle(fontSize: 10)),
+                            ],
+                          ),
+                          pw.SizedBox(
+                              height:
+                                  20), // Add space between checkboxes and signature line
+                          pw.Container(
+                              height: 1,
+                              color: PdfColors.black), // Signature line
+                          pw.Text("Signature",
+                              style: pw.TextStyle(fontSize: 10)),
+                        ],
+                      ),
+                    ),
+                    // Right column
+                    pw.Container(
+                      width: PdfPageFormat.letter.width / 2 -
+                          20, // Adjust width as needed
+                      height: 75,
+                      padding: pw.EdgeInsets.all(10), // Add padding for borders
+                      decoration: pw.BoxDecoration(
+                        border: pw.Border.all(width: 1), // Add border
+                      ),
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Row(
+                            children: [
+                              pw.Container(
+                                width: 10,
+                                height: 10,
+                                margin: pw.EdgeInsets.only(right: 5),
+                                decoration: pw.BoxDecoration(
+                                  border: pw.Border.all(color: PdfColors.black),
+                                ),
+                                child: pw.Center(
+                                  child: pw.Text(
+                                    'X',
+                                    style: pw.TextStyle(
+                                      fontSize: 10,
+                                      color: PdfColors.black,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              pw.Text(
+                                "Not Accepted",
+                                style: pw.TextStyle(
+                                  fontWeight: pw.FontWeight.bold,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
+                          ),
+                          pw.SizedBox(
+                              height:
+                                  20), // Add space between checkbox and signature line
+                          pw.Container(
+                              height: 1,
+                              color: PdfColors.black), // Signature line
+                          pw.Text("Signature",
+                              style: pw.TextStyle(fontSize: 10)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                pw.SizedBox(height: 5),
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    // Header for the chair/program coordinator
+                    pw.Text(
+                      "FOR THE CHAIR/PROGRAM COORDINATOR - Kindly indicate the COURSE CODE of the course requirements. Please mark N/A on lines left blank. Errors must be countersigned using your full name.",
+                      style: pw.TextStyle(fontSize: 10),
+                    ),
+                    // Header for section 1
+                    pw.SizedBox(height: 10),
+                    pw.Text(
+                      "1. The following NON-ACADEMIC (e.g., Orientation) and BRIDGING ACADEMIC/COURSES (includes ENG501m/ENGF01M) are required in order to proceed to the program proper. For students, see course description at http://www.dlsu.edu.ph/academics/graduate-studies/programs.asp",
+                      style: pw.TextStyle(fontSize: 10),
+                    ),
+                    // Lines 1.1 - 1.6 split into two columns
+                    pw.Row(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        // Left column for lines 1.1 - 1.3
+                      ],
+                    ),
+                    // Header for section 2
+                    pw.SizedBox(height: 10),
+                    pw.Text(
+                      "2. On the first term of enrollment, the student is advised to enroll in any of the following courses:",
+                      style: pw.TextStyle(fontSize: 10),
+                    ),
+                    // Lines 2.1 - 2.8 split into two columns
+                    pw.Row(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        // Left column for lines 2.1 - 2.4
                       ],
                     ),
                   ],

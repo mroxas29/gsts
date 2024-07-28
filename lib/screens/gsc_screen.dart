@@ -7,7 +7,9 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:googleapis/admob/v1.dart';
 import 'package:intl/intl.dart';
+import 'package:excel/excel.dart' as exc;
 import 'package:side_navigation/side_navigation.dart';
 import 'package:sysadmindb/api/email/invoice_service.dart';
 import 'package:sysadmindb/api/calendar/test_calendar.dart';
@@ -18,10 +20,12 @@ import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/en-19.dart';
 import 'package:sysadmindb/app/models/enrolledcourses.dart';
 import 'package:sysadmindb/app/models/faculty.dart';
+import 'package:sysadmindb/app/models/pastcourses.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/main.dart';
 import 'package:sysadmindb/app/models/user.dart';
+import 'package:sysadmindb/ui/dashboard_utils/studentList.dart';
 import 'package:sysadmindb/ui/deRF_dialog.dart';
 import 'package:sysadmindb/ui/defense_card.dart';
 import 'package:sysadmindb/ui/defense_sched.dart';
@@ -687,12 +691,135 @@ class _MainViewState extends State<Gscscreen> {
     }
   }
 
-  void _editCourseData(BuildContext context, Course course) {
-    bool hasStudents = false;
+  List<Faculty> _getFilteredFacultyList(Course course) {
+    return facultyList.where((faculty) {
+      return faculty.history.any((h) => h.coursecode == course.coursecode);
+    }).toList();
+  }
+
+  // Get faculty details for tooltip
+  String _getFacultyDetails(Faculty faculty) {
+    return 'History Courses: ${faculty.history.join('\n')}';
+  }
+  // Suggest relevant faculty members if no faculty is assigned
+
+  // Suggest relevant faculty members if no faculty is assigned
+  String _getSuggestedFaculty(String selectedFaculty, Course course) {
+    if (selectedFaculty == 'None Assigned') {
+      return 'Suggested Faculty: ${_getFilteredFacultyList(course).map((faculty) => getFullname(faculty)).join('\n')}';
+    }
+    return 'Faculty with relevant history:\n${_getFilteredFacultyList(course).map((faculty) => getFullname(faculty)).join('\n')}';
+  }
+
+  Widget studentEnrolledList(Course course) {
+    List<Student> enrolledStudents = [];
+    for (Student s in studentList) {
+      if (s.enrolledCourses.any((c) =>
+              c.coursecode == course.coursecode &&
+              c.section == course.section) ||
+          s.pastCourses.any((c) =>
+              c.coursecode == course.coursecode &&
+              c.section == course.section)) {
+        enrolledStudents.add(s);
+      }
+    }
+
+    return SizedBox(
+      height: 400,
+      width: 300,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (Student student in enrolledStudents)
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                          "${capitalizeFirstLetter(student.displayname['firstname']!)} ${capitalizeFirstLetter(student.displayname['lastname']!)}"),
+                    ),
+                    SizedBox(width: 8), // Add spacing between text and button
+                    ElevatedButton(
+                      onPressed: () async {
+                        try {
+                          bool isStudentDeviated = false;
+                          DeviatedStudent? devStudent;
+
+                          // Fetch EN19Form details
+                          EN19Form? en19details =
+                              await EN19Form.getFormFromFirestore(student.uid);
+                          if (en19details == null) {
+                            print(
+                                'EN19Form details not found for student UID: ${student.uid}');
+                          }
+
+                          // Find deviated student
+                          for (DeviatedStudent devstudent
+                              in deviatedStudentList) {
+                            if (devstudent.studentPOS.idnumber ==
+                                student.idnumber) {
+                              devStudent = devstudent;
+                              isStudentDeviated = true;
+                              break; // Stop searching once found
+                            }
+                          }
+
+                          // Fetch student POS details
+                          await retrieveStudentPOS(student.uid);
+
+                          // Use setState to update the widget state
+                          setState(() {});
+
+                          // Navigate to the appropriate page
+                          if (isStudentDeviated && devStudent != null) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => DeviatedInfoPage(
+                                  student: devStudent!,
+                                  studentpos: studentPOS,
+                                  en19: en19details,
+                                ),
+                              ),
+                            );
+                          } else {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => StudentInfoPage(
+                                  student: student,
+                                  studentpos: studentPOS,
+                                  en19: en19details,
+                                ),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          // Handle exceptions
+                          print('Error navigating to student profile: $e');
+                        }
+                      },
+                      child: Text("View profile"),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void showCourseDetails(
+      BuildContext context, Course course, GlobalKey<FormState> formKey) {
     List<String> status = ['true', 'false'];
-    enrolledStudent.clear();
     List<String> programs = ['MIT/MSIT', 'MIT', 'MSIT'];
-    List<String> type = [
+    List<String> types = [
       'Bridging/Remedial Courses',
       'Foundation Courses',
       'Elective Courses',
@@ -701,344 +828,728 @@ class _MainViewState extends State<Gscscreen> {
       'Specialized Courses',
       'Thesis Course'
     ];
+    List<String> setups = ['Full Online', 'Hybrid', 'Full Onsite'];
+    List<String> daysOfWeek = ['M', 'T', 'W', 'Th', 'F', 'S'];
 
-    String selectedProgram = course.program;
     String selectedStatus = course.isactive.toString();
-    String selectedType = course.type.toString();
-    String selectedFaculty = course.facultyassigned.toString();
+    String selectedProgram = course.program;
+    String selectedType = course.type;
+    String selectedSetup = course.setup;
+    String selectedHybridDay = course.onlineDay;
 
-    List<Faculty> facultySuggestions = [facultyList[0]];
-    for (Faculty facultySuggest in facultyList) {
-      // Check if the faculty's history contains the specified course code
-      bool hasCourseInHistory = false;
-      for (Course historyCourse in facultySuggest.history) {
-        if (historyCourse.coursecode == course.coursecode) {
-          hasCourseInHistory = true;
-          break;
-        }
-      }
-      // If the faculty has the specified course in their history, add them to the suggestions
-      if (hasCourseInHistory) {
-        facultySuggestions.add(facultySuggest);
-      }
-    }
+    String selectedFaculty = course.facultyassigned.isNotEmpty
+        ? course.facultyassigned
+        : (facultyList.isNotEmpty
+            ? "${facultyList[0].displayname['firstname']!} ${facultyList[0].displayname['lastname']!}"
+            : '');
 
-    List<Map<String, String>> history = [];
-    for (Faculty faculty in facultyList) {
-      if (faculty.displayname['firstname']!.contains(course.facultyassigned) &&
-          faculty.displayname['lastname']!.contains(course.facultyassigned)) {
-        // Extract coursecode and coursename from faculty history and add to history list
-        for (Course historyCourse in faculty.history) {
-          history.add({
-            'coursecode': historyCourse.coursecode,
-            'coursename': historyCourse.coursename,
-          });
-        }
-      }
-    }
-
-    final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-    TextEditingController coursecodeController =
-        TextEditingController(text: course.coursecode);
-    TextEditingController coursenameController =
-        TextEditingController(text: course.coursename);
-    TextEditingController unitsController =
-        TextEditingController(text: course.units.toString());
-
-    graduateStudents.then((List<Student> graduateStudentList) {
-      graduateStudentList.forEach((student) {
-        student.enrolledCourses.forEach((enrolledCourse) {
-          if (enrolledCourse.coursecode == course.coursecode) {
-            enrolledStudent.add(student);
-          }
-        });
-      });
-    });
-
-    if (course.numstudents > 0) {
-      print('!EMPTY');
-      hasStudents = true;
-    } else {
-      print('EMPTY');
-      hasStudents = false;
-    }
+    // Initialize selectedDaysWithTimes from course.dayTimes
+    Map<String, String> selectedDaysWithTimes = {
+      for (var dayTime in course.dayTimes)
+        dayTime['day']!: "${dayTime['start']} - ${dayTime['end']}"
+    };
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Edit Course'),
-          content: SingleChildScrollView(
-            child: Form(
-              key: _formKey,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 1,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildEditableField(
-                            'Course code', coursecodeController, hasStudents),
-                        _buildEditableField(
-                            'Course Name', coursenameController, hasStudents),
-                        DropdownButtonFormField<String>(
-                          value: selectedFaculty,
-                          items: facultySuggestions.map((faculty) {
-                            return DropdownMenuItem<String>(
-                              value:
-                                  "${faculty.displayname['firstname']} ${faculty.displayname['lastname']}",
-                              child: SizedBox(
-                                width: 250,
-                                child: Row(
-                                  children: [
-                                    Text(getFullname(faculty)),
-                                    Spacer(),
-                                    Tooltip(
-                                      message: buildCourseHistoryMessage(
-                                          faculty, facultySuggestions),
-                                      child: MouseRegion(
-                                        cursor: SystemMouseCursors.click,
-                                        child: Icon(Icons.info_outline_rounded),
-                                      ),
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              contentPadding: EdgeInsets.symmetric(horizontal: 40.0),
+              title: Text('Course Details'),
+              content: SingleChildScrollView(
+                child: Form(
+                  key: formKey,
+                  autovalidateMode: AutovalidateMode.always,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 1,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Course Code
+                            TextFormField(
+                              initialValue: course.coursecode,
+                              decoration:
+                                  InputDecoration(labelText: 'Course code'),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter the course code';
+                                }
+                                if (courses.any((c) =>
+                                    c.coursecode.toUpperCase() ==
+                                        value.toUpperCase() &&
+                                    c.uid != course.uid)) {
+                                  return "Course with course code: $value already exists";
+                                }
+                                return null;
+                              },
+                              onSaved: (value) {
+                                course.coursecode = value ?? '';
+                              },
+                            ),
+                            // Course Name
+                            TextFormField(
+                              initialValue: course.coursename,
+                              decoration:
+                                  InputDecoration(labelText: 'Course name'),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter the course name';
+                                }
+                                return null;
+                              },
+                              onSaved: (value) {
+                                course.coursename = value ?? '';
+                              },
+                            ),
+                            // Faculty Assignment
+                            DropdownButtonFormField<String>(
+                              value: selectedFaculty.isNotEmpty
+                                  ? selectedFaculty
+                                  : 'None assigned',
+                              items: [
+                                DropdownMenuItem<String>(
+                                  value: 'None assigned',
+                                  child: Text('None assigned'),
+                                ),
+                                ..._getFilteredFacultyList(course)
+                                    .map((faculty) {
+                                  return DropdownMenuItem<String>(
+                                    value: getFullname(faculty),
+                                    child: Tooltip(
+                                      message: _getFacultyDetails(faculty),
+                                      child: Text(
+                                          '${faculty.displayname['firstname']} ${faculty.displayname['lastname']}'),
                                     ),
-                                  ],
+                                  );
+                                }).toList(),
+                              ],
+                              onChanged: (value) {
+                                setState(() {
+                                  selectedFaculty = value!;
+                                });
+                              },
+                              onSaved: (value) {
+                                course.facultyassigned =
+                                    (value == 'None assigned') ? '' : value!;
+                              },
+                              decoration: InputDecoration(
+                                labelText: 'Assign to',
+                                suffixIcon: Tooltip(
+                                  message: _getSuggestedFaculty(
+                                      selectedFaculty, course),
+                                  child: Icon(Icons.info),
                                 ),
                               ),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              selectedFaculty = value!;
-                            });
-                          },
-                          decoration:
-                              InputDecoration(labelText: 'Faculty Assigned'),
-                        ),
-                        DropdownButtonFormField<String>(
-                          value: selectedProgram,
-                          items: programs.map((program) {
-                            return DropdownMenuItem<String>(
-                              value: program,
-                              child: Text(program),
-                            );
-                          }).toList(),
-                          onChanged: !hasStudents
-                              ? (value) {
-                                  setState(() {
-                                    selectedProgram = value!;
-                                  });
-                                }
-                              : null,
-                          decoration: InputDecoration(labelText: 'Program'),
-                        ),
-                        DropdownButtonFormField<String>(
-                          value: selectedType,
-                          items: type.map((type) {
-                            return DropdownMenuItem<String>(
-                              value: type,
-                              child: Text(type),
-                            );
-                          }).toList(),
-                          onChanged: !hasStudents
-                              ? (type) {
-                                  setState(() {
-                                    selectedType = type!;
-                                  });
-                                }
-                              : null,
-                          decoration: InputDecoration(labelText: 'Course Type'),
-                        ),
-                        _buildEditableField(
-                            'Units', unitsController, hasStudents),
-                        DropdownButtonFormField<String>(
-                          value: selectedStatus,
-                          items: status.map((role) {
-                            return DropdownMenuItem<String>(
-                              value: role,
-                              child: Text(role == 'true' ? 'offered' : 'not offered'),
-                            );
-                          }).toList(),
-                          onChanged: !hasStudents
-                              ? (value) {
-                                  setState(() {
-                                    selectedStatus = value!;
-                                  });
-                                }
-                              : null,
-                          decoration: InputDecoration(labelText: 'Is offered?'),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(
-                    width: 20,
-                  ),
-                  Expanded(
-                    flex: 1,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Enrolled Students',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        for (int i = 0; i < enrolledStudent.length; i++)
-                          GestureDetector(
-                            onTap: () async {
-                              // Handle the click event for the ListTile
-                              currentStudent = enrolledStudent[i];
-                              studentPOS = StudentPOS(
-                                  acceptanceTerm: getCurrentSYandTerm(),
-                                  schoolYears: defaultschoolyears,
-                                  uid: enrolledStudent[i].uid,
-                                  displayname: enrolledStudent[i].displayname,
-                                  role: enrolledStudent[i].role,
-                                  email: enrolledStudent[i].email,
-                                  idnumber: enrolledStudent[i].idnumber,
-                                  enrolledCourses:
-                                      enrolledStudent[i].enrolledCourses,
-                                  pastCourses: enrolledStudent[i].pastCourses,
-                                  degree: enrolledStudent[i].degree,
-                                  status: enrolledStudent[i].status);
-                              await retrieveStudentPOS(currentStudent!.uid);
-                              EN19Form? en19details =
-                                  await EN19Form.getFormFromFirestore(
-                                      currentStudent!.uid);
-                              Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) => StudentInfoPage(
-                                            student: enrolledStudent[i],
-                                            studentpos: studentPOS,
-                                            en19: en19details!,
-                                          )));
-                            },
-                            child: ListTile(
-                              mouseCursor: SystemMouseCursors.click,
-                              title: Text(
-                                '${enrolledStudent[i].displayname['firstname']!} ${enrolledStudent[i].displayname['lastname']!}',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              subtitle: Text(enrolledStudent[i].email),
                             ),
-                          ),
-                      ],
-                    ),
+
+                            // Course Units
+                            TextFormField(
+                              initialValue: course.units.toString(),
+                              decoration:
+                                  InputDecoration(labelText: 'Course units'),
+                              keyboardType: TextInputType.number,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter the course units';
+                                }
+                                return null;
+                              },
+                              onSaved: (value) {
+                                course.units = int.parse(value ?? '');
+                              },
+                            ),
+                            // Program
+                            DropdownButtonFormField<String>(
+                              value: selectedProgram,
+                              items: programs.map((program) {
+                                return DropdownMenuItem<String>(
+                                  value: program,
+                                  child: Text(program),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  selectedProgram = value!;
+                                });
+                              },
+                              onSaved: (value) {
+                                course.program = value ?? '';
+                              },
+                              decoration: InputDecoration(labelText: 'Program'),
+                            ),
+                            // Status
+                            DropdownButtonFormField<String>(
+                              value: selectedStatus,
+                              items: status.map((role) {
+                                return DropdownMenuItem<String>(
+                                  value: role,
+                                  child: Text(role),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  selectedStatus = value!;
+                                });
+                              },
+                              onSaved: (value) {
+                                course.isactive = value == 'true';
+                              },
+                              decoration:
+                                  InputDecoration(labelText: 'Is active?'),
+                            ),
+                            // Course Type
+                            DropdownButtonFormField<String>(
+                              value: selectedType,
+                              items: types.map((type) {
+                                return DropdownMenuItem<String>(
+                                  value: type,
+                                  child: Text(type),
+                                );
+                              }).toList(),
+                              onChanged: (type) {
+                                setState(() {
+                                  selectedType = type!;
+                                });
+                              },
+                              onSaved: (type) {
+                                course.type = type!;
+                              },
+                              decoration:
+                                  InputDecoration(labelText: 'Course Type'),
+                            ),
+                            // Section
+                            TextFormField(
+                              initialValue: course.section,
+                              decoration: InputDecoration(labelText: 'Section'),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter the section';
+                                }
+                                return null;
+                              },
+                              onSaved: (value) {
+                                course.section = value ?? '';
+                              },
+                            ),
+                            // Room Number
+                            TextFormField(
+                              initialValue: course.roomNum,
+                              decoration:
+                                  InputDecoration(labelText: 'Room Number'),
+                              validator: (value) {
+                                if (value == null ||
+                                    value.isEmpty &&
+                                        selectedSetup != 'Full Online') {
+                                  return 'Please enter the room number';
+                                }
+                                return null;
+                              },
+                              onSaved: (value) {
+                                course.roomNum = value ?? '';
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(width: 16.0),
+                      Expanded(
+                        flex: 1,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Days of the Week
+                            SizedBox(height: 16.0),
+                            Text('Select Days:',
+                                style: TextStyle(fontWeight: FontWeight.bold)),
+                            Wrap(
+                              spacing: 8.0,
+                              runSpacing: 16.0, // Adding spacing between rows
+                              children: daysOfWeek.map((day) {
+                                return GestureDetector(
+                                  onTap: () async {
+                                    if (selectedDaysWithTimes
+                                        .containsKey(day)) {
+                                      setState(() {
+                                        selectedDaysWithTimes.remove(day);
+                                      });
+                                    } else {
+                                      TimeOfDay? startTime =
+                                          await showTimePicker(
+                                        context: context,
+                                        initialTime: TimeOfDay.now(),
+                                      );
+                                      if (startTime != null) {
+                                        TimeOfDay? endTime =
+                                            await showTimePicker(
+                                          context: context,
+                                          initialTime: startTime.replacing(
+                                            hour: (startTime.hour + 1) %
+                                                24, // Handle hour overflow
+                                            minute: (startTime.minute + 90) %
+                                                60, // Add 90 minutes
+                                          ),
+                                        );
+                                        if (endTime != null) {
+                                          setState(() {
+                                            selectedDaysWithTimes[day] =
+                                                '${startTime.format(context)} - ${endTime.format(context)}';
+                                          });
+                                        }
+                                      }
+                                    }
+                                  },
+                                  child: Column(
+                                    children: [
+                                      Container(
+                                        padding: EdgeInsets.symmetric(
+                                            vertical: 8.0, horizontal: 12.0),
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          border:
+                                              selectedDaysWithTimes[day] != null
+                                                  ? Border.all(
+                                                      color: Colors.blue,
+                                                      width: 2.0)
+                                                  : null,
+                                        ),
+                                        child: Text(day),
+                                      ),
+                                      if (selectedDaysWithTimes
+                                          .containsKey(day))
+                                        Padding(
+                                          padding:
+                                              const EdgeInsets.only(top: 8.0),
+                                          child: Text(
+                                            selectedDaysWithTimes[day]! +
+                                                (selectedHybridDay == day
+                                                    ? ' (Online day)'
+                                                    : ''),
+                                            style: TextStyle(fontSize: 12),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                            DropdownButtonFormField<String>(
+                              value: selectedSetup,
+                              items: setups.map((setup) {
+                                return DropdownMenuItem<String>(
+                                  value: setup,
+                                  child: Text(setup),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  selectedSetup = value!;
+                                });
+                              },
+                              onSaved: (value) {
+                                course.setup = value ?? '';
+                              },
+                              decoration: InputDecoration(labelText: 'Setup'),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please select a setup';
+                                }
+                                return null;
+                              },
+                            ),
+                            if (selectedSetup == 'Hybrid')
+                              DropdownButtonFormField<String>(
+                                value: selectedHybridDay,
+                                items:
+                                    selectedDaysWithTimes.entries.map((entry) {
+                                  return DropdownMenuItem<String>(
+                                    value: entry.key,
+                                    child: Text('${entry.key}: ${entry.value}'),
+                                  );
+                                }).toList(),
+                                onChanged: (value) {
+                                  setState(() {
+                                    selectedHybridDay = value!;
+                                  });
+                                },
+                                decoration: InputDecoration(
+                                    labelText: 'Select online day'),
+                                validator: (value) {
+                                  if (selectedSetup == 'Hybrid' &&
+                                      value == null) {
+                                    return 'Please select a hybrid day';
+                                  }
+                                  return null;
+                                },
+                              ),
+                            SizedBox(height: 16.0),
+                            Row(
+                              children: [
+                                Text('Students:',
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.bold)),
+                                Spacer(),
+                                ElevatedButton(
+                                  onPressed: () async {
+                                    FilePickerResult? result =
+                                        await FilePicker.platform.pickFiles(
+                                      type: FileType.custom,
+                                      allowedExtensions: ['xlsx', 'xls'],
+                                    );
+
+                                    if (result != null) {
+                                      PlatformFile file = result.files.first;
+
+                                      var bytes = file.bytes;
+                                      if (bytes != null) {
+                                        var excel =
+                                            exc.Excel.decodeBytes(bytes);
+
+                                        List<Map<String, dynamic>> parsedData =
+                                            [];
+                                        for (var table in excel.tables.keys) {
+                                          var sheet = excel.tables[table];
+                                          if (sheet != null) {
+                                            bool isFirstRow = true;
+                                            for (var row in sheet.rows) {
+                                              if (isFirstRow) {
+                                                isFirstRow = false;
+                                                continue;
+                                              }
+
+                                              var number = row[0]?.value;
+                                              var idNumber = row[1]?.value;
+                                              var name = row[2]?.value;
+                                              var grade = row[3]?.value;
+
+                                              double? gradeToDouble;
+                                              if (grade != null) {
+                                                try {
+                                                  gradeToDouble = double.parse(
+                                                      grade.toString());
+                                                } catch (e) {
+                                                  print(
+                                                      'Error parsing grade: $e');
+                                                  gradeToDouble = null;
+                                                }
+                                              }
+
+                                              parsedData.add({
+                                                'number': number,
+                                                'idNumber': idNumber,
+                                                'name': name,
+                                                'grade': gradeToDouble,
+                                              });
+                                            }
+                                          }
+                                        }
+
+                                        // Show confirmation dialog
+                                        if (parsedData.isNotEmpty) {
+                                          showDialog(
+                                            context: context,
+                                            builder: (BuildContext context) {
+                                              return AlertDialog(
+                                                title: Text('Verify Grades'),
+                                                content: Container(
+                                                  width:
+                                                      400, // Set a fixed width for the dialog
+                                                  child: Column(
+                                                    mainAxisSize: MainAxisSize
+                                                        .min, // Make sure the column size is minimal
+                                                    children: [
+                                                      Expanded(
+                                                        child: ListView.builder(
+                                                          shrinkWrap: true,
+                                                          itemCount:
+                                                              parsedData.length,
+                                                          itemBuilder:
+                                                              (BuildContext
+                                                                      context,
+                                                                  int index) {
+                                                            var data =
+                                                                parsedData[
+                                                                    index];
+                                                            return Padding(
+                                                              padding:
+                                                                  const EdgeInsets
+                                                                      .symmetric(
+                                                                      vertical:
+                                                                          4.0),
+                                                              child: Row(
+                                                                children: [
+                                                                  Expanded(
+                                                                    flex: 3,
+                                                                    child: Text(
+                                                                      '${data['name']} (${data['idNumber']})',
+                                                                      overflow:
+                                                                          TextOverflow
+                                                                              .ellipsis, // Handle long text gracefully
+                                                                    ),
+                                                                  ),
+                                                                  SizedBox(
+                                                                      width:
+                                                                          16), // Add spacing between text and input field
+                                                                  SizedBox(
+                                                                    width:
+                                                                        80, // Set a fixed width for the TextField
+                                                                    child:
+                                                                        TextField(
+                                                                      controller:
+                                                                          TextEditingController(
+                                                                        text: data['grade']?.toString() ??
+                                                                            '',
+                                                                      ),
+                                                                      keyboardType:
+                                                                          TextInputType
+                                                                              .number,
+                                                                      onChanged:
+                                                                          (value) {
+                                                                        data['grade'] =
+                                                                            double.tryParse(value);
+                                                                      },
+                                                                      decoration:
+                                                                          InputDecoration(
+                                                                        labelText:
+                                                                            'Grade',
+                                                                        isDense:
+                                                                            true, // Reduce the padding inside the TextField
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            );
+                                                          },
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                                actions: <Widget>[
+                                                  TextButton(
+                                                    child: Text('Cancel'),
+                                                    onPressed: () {
+                                                      Navigator.of(context)
+                                                          .pop();
+                                                    },
+                                                  ),
+                                                  TextButton(
+                                                    child: Text('Confirm'),
+                                                    onPressed: () {
+                                                      setState(() {
+                                                        for (var data
+                                                            in parsedData) {
+                                                          var idNumber =
+                                                              data['idNumber'];
+                                                          var grade =
+                                                              data['grade'];
+
+                                                          if (grade != null) {
+                                                            PastCourse past =
+                                                                PastCourse(
+                                                              coursecode: course
+                                                                  .coursecode,
+                                                              coursename: course
+                                                                  .coursename,
+                                                              facultyassigned:
+                                                                  course
+                                                                      .facultyassigned,
+                                                              uid: course.uid,
+                                                              units:
+                                                                  course.units,
+                                                              dayTimes: course
+                                                                  .dayTimes,
+                                                              syAndTerm: course
+                                                                  .syAndTerm,
+                                                              section: course
+                                                                  .section,
+                                                              setup:
+                                                                  course.setup,
+                                                              program: course
+                                                                  .program,
+                                                              grade: grade,
+                                                              roomNum: course
+                                                                  .roomNum,
+                                                              onlineDay: course
+                                                                  .onlineDay,
+                                                              type: course.type,
+                                                              isactive: course
+                                                                  .isactive,
+                                                              numstudents: course
+                                                                  .numstudents,
+                                                            );
+
+                                                            studentList
+                                                                .firstWhere((student) =>
+                                                                    student
+                                                                        .idnumber
+                                                                        .toString() ==
+                                                                    idNumber
+                                                                        .toString())
+                                                                .pastCourses
+                                                                .add(past);
+
+                                                            studentList
+                                                                .firstWhere((student) =>
+                                                                    student
+                                                                        .idnumber
+                                                                        .toString() ==
+                                                                    idNumber
+                                                                        .toString())
+                                                                .enrolledCourses
+                                                                .removeWhere((enrolledCourse) =>
+                                                                    enrolledCourse
+                                                                            .coursecode ==
+                                                                        past
+                                                                            .coursecode &&
+                                                                    enrolledCourse
+                                                                            .section ==
+                                                                        past.section);
+
+                                                            FirebaseFirestore
+                                                                .instance
+                                                                .collection(
+                                                                    'users')
+                                                                .doc(studentList
+                                                                    .firstWhere((student) =>
+                                                                        student
+                                                                            .idnumber
+                                                                            .toString() ==
+                                                                        idNumber
+                                                                            .toString())
+                                                                    .uid)
+                                                                .update(studentList
+                                                                    .firstWhere((student) =>
+                                                                        student
+                                                                            .idnumber
+                                                                            .toString() ==
+                                                                        idNumber
+                                                                            .toString())
+                                                                    .toJson());
+                                                            FirebaseFirestore
+                                                                .instance
+                                                                .collection(
+                                                                    'studentpos')
+                                                                .doc(studentPOSList
+                                                                    .firstWhere((student) =>
+                                                                        student
+                                                                            .idnumber
+                                                                            .toString() ==
+                                                                        idNumber
+                                                                            .toString())
+                                                                    .uid)
+                                                                .update(studentList
+                                                                    .firstWhere((student) =>
+                                                                        student
+                                                                            .idnumber
+                                                                            .toString() ==
+                                                                        idNumber
+                                                                            .toString())
+                                                                    .toJson());
+                                                          }
+                                                        }
+                                                      });
+                                                      ScaffoldMessenger.of(
+                                                              context)
+                                                          .showSnackBar(
+                                                        SnackBar(
+                                                          content: Text(
+                                                              'Grades updated'),
+                                                          duration: Duration(
+                                                              seconds: 2),
+                                                        ),
+                                                      );
+                                                      Navigator.of(context)
+                                                          .pop();
+                                                    },
+                                                  ),
+                                                ],
+                                              );
+                                            },
+                                          );
+                                        }
+                                      }
+                                    }
+                                  },
+                                  child: Text("Upload grades"),
+                                ),
+                              ],
+                            ),
+                            studentEnrolledList(course)
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () async {
-                // Show a confirmation dialog before deletion
-                bool confirmDelete = await showDialog(
-                  context: context,
-                  builder: (BuildContext context) {
-                    return AlertDialog(
-                      title: Text('Confirm Delete'),
-                      content:
-                          Text('Are you sure you want to delete this course?'),
-                      actions: [
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(context, false); // No, do not delete
-                          },
-                          child: Text('No'),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(context, true); // Yes, delete
-                          },
-                          child: Text('Yes'),
-                        ),
-                      ],
-                    );
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
                   },
-                );
+                  child: Text('Close'),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    if (formKey.currentState!.validate()) {
+                      formKey.currentState!.save();
 
-                if (confirmDelete == true) {
-                  try {
-                    await FirebaseFirestore.instance
-                        .collection('courses')
-                        .doc(course.uid)
-                        .delete();
-                    courses.clear();
+                      try {
+                        await FirebaseFirestore.instance
+                            .collection('courses')
+                            .doc(course.uid)
+                            .update({
+                          'coursecode': course.coursecode.toUpperCase(),
+                          'coursename': course.coursename,
+                          'facultyassigned': selectedFaculty,
+                          'units': course.units,
+                          'isactive': course.isactive,
+                          'type': selectedType,
+                          'program': selectedProgram,
+                          'dayTimes': selectedDaysWithTimes.map((day, time) =>
+                              MapEntry(day, {
+                                'start': time!.split(' - ')[0],
+                                'end': time.split(' - ')[1]
+                              })),
+                          'section': course.section,
+                          'setup': course.setup,
+                          'onlineDay': selectedSetup == 'Full Online'
+                              ? 'Full Online'
+                              : selectedSetup == 'Full Onsite'
+                                  ? 'Full Onsite'
+                                  : selectedHybridDay,
+                          'roomNum': course.roomNum,
+                        });
+                        Navigator.pop(context);
 
-                    getCoursesFromFirestore()
-                        .then((value) => {foundCourse = courses});
-                    // Show a SnackBar
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Course deleted'),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
+                        getCoursesFromFirestore();
 
-                    // Close the dialog
-                    Navigator.pop(context);
-                  } catch (e) {
-                    print('Error deleting course: $e');
-                    // Handle the error
-                  }
-                }
-              },
-              child: Text('Delete', style: TextStyle(color: Colors.red)),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () async {
-                if (_formKey.currentState!.validate()) {
-                  // Save the edited data locally
-                  setState(() {
-                    course.coursecode = coursecodeController.text;
-                    course.coursename = coursenameController.text;
-                    course.facultyassigned = selectedFaculty;
-                    course.units = int.parse(unitsController.text);
-                    course.isactive = bool.parse(selectedStatus);
-                    course.type = selectedType;
-                    course.program = selectedProgram;
-                  });
-
-                  // Update the data in Firestore
-                  try {
-                    await FirebaseFirestore.instance
-                        .collection('courses')
-                        .doc(course.uid)
-                        .update({
-                      'coursecode': course.coursecode,
-                      'coursename': course.coursename,
-                      'facultyassigned': course.facultyassigned,
-                      'units': course.units,
-                      'isactive': course.isactive,
-                      'type': course.type,
-                      'program': course.program,
-                    });
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Course updated'),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-
-                    Navigator.pop(context);
-                  } catch (e) {
-                    print('Error updating course data: $e');
-                  }
-                }
-              },
-              child: Text('Save'),
-            ),
-          ],
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Course updated'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      } catch (e) {
+                        print('Error updating course: $e');
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error updating course: $e'),
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  child: Text('Save'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -1046,19 +1557,21 @@ class _MainViewState extends State<Gscscreen> {
 
   Widget _buildEditableField(
       String label, TextEditingController controller, bool hasStudents) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 8.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: TextStyle(fontWeight: FontWeight.bold)),
-          TextField(
-            controller: controller,
-            enabled: !hasStudents, // Disable TextField if hasStudents is true
-          ),
-        ],
-      ),
+    return TextFormField(
+      controller: controller,
+      decoration: InputDecoration(labelText: label),
+      enabled: !hasStudents,
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Please enter $label';
+        }
+        return null;
+      },
     );
+  }
+
+  String getFullname(Faculty faculty) {
+    return '${faculty.displayname['firstname']} ${faculty.displayname['lastname']}';
   }
 
   void runCourseFilter(String query) {
@@ -1342,64 +1855,153 @@ class _MainViewState extends State<Gscscreen> {
     }
   }
 
-  Future<void> addEnrolledStudents(
-      List<String> students, String courseCode) async {
-    print(courseCode);
- Course course = Course(
-      uid: 'blank',
-      setup: '',
-      roomNum: '',
-      coursecode: 'Select a course',
-      coursename: '',
-      isactive: false,
-      facultyassigned: '',
-      numstudents: 0,
-      units: 0,
-      type: '',
-      program: '',
-      dayTimes: [], // Initialize as an empty map for days with their times
-      section: '', // Initialize as an empty string
-      syAndTerm:
-          getNextSYandTerm(), // Assume this function provides the correct string
+  void showAddStudentsDialog(BuildContext context) {
+    Course? selectedCourse;
+    String pastedData = '';
+    TextEditingController searchController = TextEditingController();
+    List<Course> filteredCourses = courses;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text('Add Class List for Course'),
+              content: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: searchController,
+                      decoration: InputDecoration(
+                        labelText: 'Search Course',
+                        prefixIcon: Icon(Icons.search),
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          filteredCourses = courses
+                              .where((course) =>
+                                  course.coursecode
+                                      .toLowerCase()
+                                      .contains(value.toLowerCase()) ||
+                                  course.coursename
+                                      .toLowerCase()
+                                      .contains(value.toLowerCase()) ||
+                                  course.section
+                                      .toLowerCase()
+                                      .contains(value.toLowerCase()))
+                              .toList();
+                        });
+                      },
+                    ),
+                    DropdownButtonFormField<Course>(
+                      value: selectedCourse,
+                      items: filteredCourses.map((course) {
+                        return DropdownMenuItem<Course>(
+                          value: course,
+                          child: Text(
+                              '${course.coursecode}: ${course.coursename} | ${course.section}'),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedCourse = value;
+                        });
+                      },
+                      decoration: InputDecoration(labelText: 'Select Course'),
+                    ),
+                    SizedBox(height: 16.0),
+                    TextField(
+                      maxLines: 10,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'Paste Table Data Here',
+                        alignLabelWithHint: true,
+                      ),
+                      onChanged: (value) {
+                        pastedData = value;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: Text('Close'),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    if (selectedCourse == null || pastedData.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                              'Please select a course and paste the table data.'),
+                        ),
+                      );
+                      return;
+                    }
+
+                    List<String> studentIds =
+                        extractStudentIdsFromTable(pastedData);
+                    await addEnrolledStudents(selectedCourse!, studentIds);
+                    Navigator.pop(context);
+                  },
+                  child: Text('Add Students'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
+  }
 
+  List<String> extractStudentIdsFromTable(String tableData) {
+    List<String> studentIds = [];
+    RegExp regExp = RegExp(r'<TR><TD>(\d+)<\/TD>');
+    Iterable<Match> matches = regExp.allMatches(tableData);
 
-    late EnrolledCourseData enrolledCourse;
-    for (Course c in courses) {
-      if (c.coursecode == courseCode) {
-        course = c;
-      }
+    for (var match in matches) {
+      studentIds.add(match.group(1)!);
     }
 
-               enrolledCourse = EnrolledCourseData(
-                roomNum:course.roomNum,
-                setup: course.setup,
-      uid: generateUID(),
-      syAndTerm: reformatSYandTerm(getCurrentSYandTerm()),
-      dayTimes: course.dayTimes, // Add this line
-      section: course.section, // Add this line
-      coursecode: course.coursecode,
-      coursename: course.coursename,
-      isactive: course.isactive,
-      facultyassigned: course.facultyassigned,
-      numstudents: course.numstudents + 1,
-      units: course.units,
-      type: course.type,
-      program: course.program,
+    return studentIds;
+  }
+
+  Future<void> addEnrolledStudents(
+      Course selectedCourse, List<String> students) async {
+    late EnrolledCourseData enrolledCourse;
+    enrolledCourse = EnrolledCourseData(
+      roomNum: selectedCourse.roomNum,
+      setup: selectedCourse.setup,
+      uid: selectedCourse.uid,
+      syAndTerm: selectedCourse.syAndTerm,
+      dayTimes: selectedCourse.dayTimes,
+      section: selectedCourse.section,
+      coursecode: selectedCourse.coursecode,
+      coursename: selectedCourse.coursename,
+      isactive: selectedCourse.isactive,
+      facultyassigned: selectedCourse.facultyassigned,
+      numstudents: students.length,
+      units: selectedCourse.units,
+      type: selectedCourse.type,
+      program: selectedCourse.program,
+      onlineDay: selectedCourse.onlineDay,
     );
-
-
+    StudentPOS pos;
     for (Student s in studentList) {
+      pos = studentPOSList.firstWhere((pos) => pos.idnumber == s.idnumber);
       for (String studentId in students) {
         if (studentId
             .toLowerCase()
             .contains(s.idnumber.toString().toLowerCase())) {
-          print('$studentId: ${s.idnumber}');
-          // Iterate over each course in the student's enrolledCourses
-          if (!(s.enrolledCourses
-              .any((course) => course.coursecode == courseCode))) {
-            print("Adding this course to: ${s.displayname['firstname']}");
-
+          print(s.idnumber);
+          if (!s.enrolledCourses.any(
+              (course) => course.coursecode == selectedCourse.coursecode)) {
             await FirebaseFirestore.instance
                 .collection('users')
                 .doc(s.uid)
@@ -1414,47 +2016,26 @@ class _MainViewState extends State<Gscscreen> {
               'enrolledCourses':
                   FieldValue.arrayUnion([enrolledCourse.toJson()]),
             });
-
             await FirebaseFirestore.instance
                 .collection('courses')
-                .doc(enrolledCourse.uid)
-                .update({'numstudents': FieldValue.increment(1)});
-            print('incremented');
+                .doc(selectedCourse.uid)
+                .update({
+              'numstudents': FieldValue.increment(1),
+            });
+
+            setState(() {
+              s.enrolledCourses.add(enrolledCourse);
+              pos.enrolledCourses.add(enrolledCourse);
+            });
           }
         }
       }
-
-/*
-      if (students.any((student) => student.contains(s.idnumber.toString()))) {
-        print('${s.idnumber}: ${s.displayname['firstname']}');
-        if (!s.enrolledCourses.any(
-            (eCourse) => eCourse.coursecode == enrolledCourse.coursecode)) {
-          // Add the enrolled course to the student's enrolledCourses array if it's not already enrolled
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(s.uid)
-              .update({
-            'enrolledCourses': FieldValue.arrayUnion([enrolledCourse.toJson()]),
-          });
-          await FirebaseFirestore.instance
-              .collection('studentpos')
-              .doc(s.uid)
-              .update({
-            'enrolledCourses': FieldValue.arrayUnion([enrolledCourse.toJson()]),
-          });
-          await FirebaseFirestore.instance
-              .collection('courses')
-              .doc(enrolledCourse.uid)
-              .update({'numstudents': FieldValue.increment(1)});
-          print('incremented');
-        }
-      }*/
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-            'Enrolled students for $courseCode: ${enrolledCourse.coursename} updated!'),
+            'Enrolled students for ${selectedCourse.coursecode}: ${selectedCourse.coursename} updated!'),
         duration: Duration(seconds: 2),
       ),
     );
@@ -1541,9 +2122,7 @@ class _MainViewState extends State<Gscscreen> {
         final List<TextEditingController> panelMemberControllers =
             List.generate(4, (index) {
           return TextEditingController(
-            text: index < defense.panelMembers.length
-                ? defense.panelMembers[index]
-                : "",
+            text: defense.panelMembers[index],
           );
         });
 
@@ -2208,54 +2787,7 @@ class _MainViewState extends State<Gscscreen> {
                               message: 'Upload class list',
                               child: TextButton(
                                   onPressed: () async {
-                                    PdfDocument document = PdfDocument(
-                                        inputBytes: await _readDocumentData());
-                                    //Create a new instance of the PdfTextExtractor.
-                                    PdfTextExtractor extractor =
-                                        PdfTextExtractor(document);
-
-                                    //Extract all the text from the document.
-                                    String text =
-                                        extractor.extractText(layoutText: true);
-
-                                    // Split the text into lines
-                                    List<String> lines = text.split('\n');
-
-                                    // Process each line
-                                    String termLine = '';
-                                    String courseLine = '';
-                                    List<String> studentLines = [];
-                                    int lineNum = 0;
-
-                                    for (String line in lines) {
-                                      // Do something with each line
-
-                                      if (line.toLowerCase().contains('term') &&
-                                          line.toLowerCase().contains('sy.')) {
-                                        termLine = line;
-                                      } else {
-                                        for (Course course in courses) {
-                                          if (line
-                                              .contains(course.coursecode)) {
-                                            courseLine = line.substring(
-                                                0, line.indexOf(' '));
-                                            break; // Exit loop once a course code is found
-                                          }
-                                        }
-                                      }
-
-                                      if (lineNum > 4) {
-                                        studentLines.add(line);
-                                      }
-                                      lineNum++;
-                                    }
-                                    await addEnrolledStudents(
-                                        studentLines, courseLine);
-
-                                    setState(() {
-                                      getCoursesFromFirestore();
-                                      addUserFromFirestore();
-                                    });
+                                    showAddStudentsDialog(context);
                                   },
                                   style: ElevatedButton.styleFrom(
                                       padding: EdgeInsets.all(20),
@@ -2328,8 +2860,9 @@ class _MainViewState extends State<Gscscreen> {
                                         ? InkWell(
                                             onTap: () {
                                               enrolledStudent.clear();
-                                              _editCourseData(
-                                                  context, foundCourse[index]);
+
+                                              showCourseDetails(context,
+                                                  foundCourse[index], _formKey);
                                             },
                                             child: Card(
                                               key: ValueKey(foundCourse[index]),
@@ -2339,7 +2872,7 @@ class _MainViewState extends State<Gscscreen> {
                                                   vertical: 10, horizontal: 5),
                                               child: ListTile(
                                                 title: Text(
-                                                  foundCourse[index].coursecode,
+                                                  "${foundCourse[index].coursecode}: ${foundCourse[index].section}",
                                                   style: const TextStyle(
                                                     fontSize: 20.0,
                                                     fontWeight: FontWeight.bold,
@@ -2370,7 +2903,7 @@ class _MainViewState extends State<Gscscreen> {
                                                   ],
                                                 ),
                                                 trailing: Text(
-                                                  "Enrolled Students: ${foundCourse[index].numstudents.toString()}",
+                                                  "Students: ${foundCourse[index].numstudents.toString()}",
                                                 ),
                                               ),
                                             ),
@@ -3213,347 +3746,424 @@ class _MainViewState extends State<Gscscreen> {
       ),
 
       //DEFENSES SCREEN
-      Scaffold(
-        appBar: PreferredSize(
-          preferredSize: Size.fromHeight(kToolbarHeight),
-          child: Row(
-            children: [
-              Expanded(
-                child: DefenseSchedulesAppBar(
-                  currentStudentIndex: hasSchedDates.length,
-                  totalStudents: allDefenseForms.length,
+      DefaultTabController(
+        length: 2,
+        child: Scaffold(
+          appBar: AppBar(
+            bottom: TabBar(
+              tabs: [
+                Tab(
+                  text: 'Defense Monitoring',
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: DropdownButton<String>(
-                  value: selectedProgramFilter,
-                  onChanged: (newValue) {
-                    setState(() {
-                      selectedProgramFilter = newValue!;
-                      filterDefenses();
-                    });
-                  },
-                  items: ['All', 'MIT', 'MSIT']
-                      .map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
+                Tab(
+                  text: 'Defense Scheduling',
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        body: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              flex: 2,
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.start,
+          body: TabBarView(children: [
+            Scaffold(
+              appBar: PreferredSize(
+                preferredSize: Size.fromHeight(kToolbarHeight),
+                child: Row(
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Text(
-                        'To-Schedule',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
+                    Expanded(
+                      child: DefenseSchedulesAppBar(
+                        currentStudentIndex: hasSchedDates.length,
+                        totalStudents: allDefenseForms.length,
                       ),
-                    ),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          for (EN19Form defense in noScheduleDates.where(
-                              (sched) =>
-                                  selectedProgramFilter == 'All' ||
-                                  sched.program == selectedProgramFilter))
-                            MouseRegion(
-                              cursor: SystemMouseCursors.click,
-                              child: GestureDetector(
-                                onTap: () {
-                                  showDefenseDetailsDialog(context, defense);
-                                },
-                                child: DefenseCard(
-                                  defense: defense,
-                                  cardColor: Color.fromARGB(255, 53, 98, 134),
-                                ),
-                              ),
-                            ),
-                          if (noScheduleDates
-                              .where((sched) =>
-                                  (selectedProgramFilter == 'All' ||
-                                      sched.program == selectedProgramFilter))
-                              .isEmpty)
-                            Text('No new defenses to set dates'),
-                        ],
-                      ),
-                    ),
-                    SizedBox(
-                      height: 20,
                     ),
                     Padding(
                       padding: const EdgeInsets.all(8.0),
-                      child: Text(
-                        'Defenses Scheduled',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
+                      child: DropdownButton<String>(
+                        value: selectedProgramFilter,
+                        onChanged: (newValue) {
+                          setState(() {
+                            selectedProgramFilter = newValue!;
+                            filterDefenses();
+                          });
+                        },
+                        items: ['All', 'MIT', 'MSIT']
+                            .map<DropdownMenuItem<String>>((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+                        }).toList(),
                       ),
-                    ),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          for (EN19Form defense in hasSchedDates.where((sched) {
-                            if (selectedProgramFilter == 'All' ||
-                                sched.program == selectedProgramFilter) {
-                              return true;
-                            }
-                            return false;
-                          }))
-                            MouseRegion(
-                              cursor: SystemMouseCursors.click,
-                              child: GestureDetector(
-                                onTap: () {
-                                  showDefenseDetailsDialog(context, defense);
-                                },
-                                child: DefenseCard(
-                                  defense: defense,
-                                  cardColor: Color.fromARGB(255, 7, 104, 28),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(
-                      height: 20,
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Text(
-                        'Finished Defenses',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
-                      ),
-                    ),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: pastDefenses.where((defense) {
-                            if (selectedProgramFilter == 'All') {
-                              return true;
-                            } else if (selectedProgramFilter ==
-                                defense.program) {
-                              return true;
-                            }
-                            return false;
-                          }).map((defense) {
-                            return MouseRegion(
-                              cursor: SystemMouseCursors.click,
-                              child: GestureDetector(
-                                onTap: () {
-                                  showDefenseDetailsDialog(context, defense);
-                                },
-                                child: DefenseCard(
-                                  defense: defense,
-                                  cardColor:
-
-                                      // Handle parse error if needed
-                                      Color.fromARGB(255, 0, 0, 0),
-                                ),
-                              ),
-                            );
-                          }).toList()),
                     ),
                   ],
                 ),
               ),
+              //START HERE
+              //LIST OF ALL DEFENSES "allDefenseForms"
+              body: Text("DEFENSE MONITORING HERE"),
             ),
-            Expanded(
-              flex: 1, // Takes 1/3 of the screen
-              child: Column(
+            Scaffold(
+              appBar: PreferredSize(
+                preferredSize: Size.fromHeight(kToolbarHeight),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: DefenseSchedulesAppBar(
+                        currentStudentIndex: hasSchedDates.length,
+                        totalStudents: allDefenseForms.length,
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: DropdownButton<String>(
+                        value: selectedProgramFilter,
+                        onChanged: (newValue) {
+                          setState(() {
+                            selectedProgramFilter = newValue!;
+                            filterDefenses();
+                          });
+                        },
+                        items: ['All', 'MIT', 'MSIT']
+                            .map<DropdownMenuItem<String>>((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              body: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        border: Border(
-                          left: BorderSide(
-                            color: Color.fromARGB(52, 88, 88, 88),
-                            width: 1.0,
+                    flex: 2,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(
+                              'To-Schedule',
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: ListView.builder(
-                          itemCount: scheduledDates.length,
-                          itemBuilder: (context, index) {
-                            String dateString = scheduledDates[index];
-                            DateTime date = dateString == "No date set"
-                                ? DateTime.now()
-                                : DateFormat("MMMM d, yyyy").parse(dateString);
-
-                            String formattedDate = dateString == "No date set"
-                                ? dateString
-                                : DateFormat('d MMMM').format(date);
-
-                            // Filter defense forms for the current date
-                            List<EN19Form> defensesForDate = filteredDefenses
-                                .where((defense) =>
-                                    defense.defenseDate == dateString)
-                                .toList();
-
-                            defensesForDate.sort((a, b) {
-                              // Handle cases where time is not specified
-                              if (a.defenseTime == "No defense time set") {
-                                return 1;
-                              }
-                              if (b.defenseTime == "No defense time set") {
-                                return -1;
-                              }
-
-                              // Parse and compare time strings
-                              try {
-                                // Parse time strings to DateTime objects
-                                DateTime timeA =
-                                    DateFormat('hh:mm a').parse(a.defenseTime);
-                                DateTime timeB =
-                                    DateFormat('hh:mm a').parse(b.defenseTime);
-
-                                // Compare the parsed DateTime objects
-                                return timeA.compareTo(
-                                    timeB); // Compare in ascending order
-                              } catch (e) {
-                                print("Error parsing time: $e");
-                                return 0; // Default to no change in sorting order
-                              }
-                            });
-                            return Padding(
-                              padding: const EdgeInsets.all(10.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    padding: EdgeInsets.only(left: 8),
-                                    child: Text(
-                                      formattedDate,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18,
-                                        color: Colors
-                                            .grey, // Grey color for the date
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                for (EN19Form defense in noScheduleDates.where(
+                                    (sched) =>
+                                        selectedProgramFilter == 'All' ||
+                                        sched.program == selectedProgramFilter))
+                                  MouseRegion(
+                                    cursor: SystemMouseCursors.click,
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        showDefenseDetailsDialog(
+                                            context, defense);
+                                      },
+                                      child: DefenseCard(
+                                        defense: defense,
+                                        cardColor:
+                                            Color.fromARGB(255, 53, 98, 134),
                                       ),
                                     ),
                                   ),
-                                  SizedBox(height: 8),
-                                  // Sorted defenses for the current date by time
-                                  ...defensesForDate.map((defense) => InkWell(
-                                        onTap: () {
-                                          // Handle click event
-                                          showDefenseDetailsDialog(
-                                              context, defense);
-                                          print('Clicked ${defense.program}');
-                                        },
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Padding(
+                                if (noScheduleDates
+                                    .where((sched) => (selectedProgramFilter ==
+                                            'All' ||
+                                        sched.program == selectedProgramFilter))
+                                    .isEmpty)
+                                  Text('No new defenses to set dates'),
+                              ],
+                            ),
+                          ),
+                          SizedBox(
+                            height: 20,
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(
+                              'Defenses Scheduled',
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                for (EN19Form defense
+                                    in hasSchedDates.where((sched) {
+                                  if (selectedProgramFilter == 'All' ||
+                                      sched.program == selectedProgramFilter) {
+                                    return true;
+                                  }
+                                  return false;
+                                }))
+                                  MouseRegion(
+                                    cursor: SystemMouseCursors.click,
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        showDefenseDetailsDialog(
+                                            context, defense);
+                                      },
+                                      child: DefenseCard(
+                                        defense: defense,
+                                        cardColor:
+                                            Color.fromARGB(255, 7, 104, 28),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(
+                            height: 20,
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(
+                              'Finished Defenses',
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                children: pastDefenses.where((defense) {
+                                  if (selectedProgramFilter == 'All') {
+                                    return true;
+                                  } else if (selectedProgramFilter ==
+                                      defense.program) {
+                                    return true;
+                                  }
+                                  return false;
+                                }).map((defense) {
+                                  return MouseRegion(
+                                    cursor: SystemMouseCursors.click,
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        showDefenseDetailsDialog(
+                                            context, defense);
+                                      },
+                                      child: DefenseCard(
+                                        defense: defense,
+                                        cardColor:
+
+                                            // Handle parse error if needed
+                                            Color.fromARGB(255, 0, 0, 0),
+                                      ),
+                                    ),
+                                  );
+                                }).toList()),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 1, // Takes 1/3 of the screen
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              border: Border(
+                                left: BorderSide(
+                                  color: Color.fromARGB(52, 88, 88, 88),
+                                  width: 1.0,
+                                ),
+                              ),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: ListView.builder(
+                                itemCount: scheduledDates.length,
+                                itemBuilder: (context, index) {
+                                  String dateString = scheduledDates[index];
+                                  DateTime date = dateString == "No date set"
+                                      ? DateTime.now()
+                                      : DateFormat("MMMM d, yyyy")
+                                          .parse(dateString);
+
+                                  String formattedDate =
+                                      dateString == "No date set"
+                                          ? dateString
+                                          : DateFormat('d MMMM').format(date);
+
+                                  // Filter defense forms for the current date
+                                  List<EN19Form> defensesForDate =
+                                      filteredDefenses
+                                          .where((defense) =>
+                                              defense.defenseDate == dateString)
+                                          .toList();
+
+                                  defensesForDate.sort((a, b) {
+                                    // Handle cases where time is not specified
+                                    if (a.defenseTime ==
+                                        "No defense time set") {
+                                      return 1;
+                                    }
+                                    if (b.defenseTime ==
+                                        "No defense time set") {
+                                      return -1;
+                                    }
+
+                                    // Parse and compare time strings
+                                    try {
+                                      // Parse time strings to DateTime objects
+                                      DateTime timeA = DateFormat('hh:mm a')
+                                          .parse(a.defenseTime);
+                                      DateTime timeB = DateFormat('hh:mm a')
+                                          .parse(b.defenseTime);
+
+                                      // Compare the parsed DateTime objects
+                                      return timeA.compareTo(
+                                          timeB); // Compare in ascending order
+                                    } catch (e) {
+                                      print("Error parsing time: $e");
+                                      return 0; // Default to no change in sorting order
+                                    }
+                                  });
+                                  return Padding(
+                                    padding: const EdgeInsets.all(10.0),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Container(
+                                          padding: EdgeInsets.only(left: 8),
+                                          child: Text(
+                                            formattedDate,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 18,
+                                              color: Colors
+                                                  .grey, // Grey color for the date
+                                            ),
+                                          ),
+                                        ),
+                                        SizedBox(height: 8),
+                                        // Sorted defenses for the current date by time
+                                        ...defensesForDate.map((defense) =>
+                                            InkWell(
+                                              onTap: () {
+                                                // Handle click event
+                                                showDefenseDetailsDialog(
+                                                    context, defense);
+                                                print(
+                                                    'Clicked ${defense.program}');
+                                              },
+                                              child: Padding(
                                                 padding:
-                                                    const EdgeInsets.symmetric(
-                                                        vertical: 8),
-                                                child: Row(
+                                                    const EdgeInsets.all(8.0),
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
                                                   children: [
-                                                    Text(
-                                                      defense.defenseTime ??
-                                                          'No time specified',
-                                                      style: TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold,
+                                                    Padding(
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                          vertical: 8),
+                                                      child: Row(
+                                                        children: [
+                                                          Text(
+                                                            defense.defenseTime ??
+                                                                'No time specified',
+                                                            style: TextStyle(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                            ),
+                                                          ),
+                                                          SizedBox(width: 10),
+                                                          Container(
+                                                            width:
+                                                                3, // Increased width for the separator line
+                                                            height: 20,
+                                                            color: Color((Random().nextDouble() *
+                                                                            0xFFFFFF)
+                                                                        .toInt() <<
+                                                                    0)
+                                                                .withOpacity(
+                                                                    1.0),
+                                                          ),
+                                                          SizedBox(width: 10),
+                                                          Column(
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .start,
+                                                            children: [
+                                                              Text(
+                                                                defense.program,
+                                                                style:
+                                                                    TextStyle(
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                  color: Colors
+                                                                      .grey, // Grey color for the degree
+                                                                  fontSize:
+                                                                      12, // Adjusted font size
+                                                                ),
+                                                              ),
+                                                              Text(
+                                                                '${defense.firstName} ${defense.lastName}',
+                                                                style:
+                                                                    TextStyle(
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ],
                                                       ),
                                                     ),
-                                                    SizedBox(width: 10),
-                                                    Container(
-                                                      width:
-                                                          3, // Increased width for the separator line
-                                                      height: 20,
-                                                      color: Color((Random()
-                                                                          .nextDouble() *
-                                                                      0xFFFFFF)
-                                                                  .toInt() <<
-                                                              0)
-                                                          .withOpacity(1.0),
-                                                    ),
-                                                    SizedBox(width: 10),
-                                                    Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
-                                                      children: [
-                                                        Text(
-                                                          defense.program,
-                                                          style: TextStyle(
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                            color: Colors
-                                                                .grey, // Grey color for the degree
-                                                            fontSize:
-                                                                12, // Adjusted font size
-                                                          ),
-                                                        ),
-                                                        Text(
-                                                          '${defense.firstName} ${defense.lastName}',
-                                                          style: TextStyle(
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
+                                                    SizedBox(height: 8),
                                                   ],
                                                 ),
                                               ),
-                                              SizedBox(height: 8),
-                                            ],
-                                          ),
-                                        ),
-                                      )),
-                                  SizedBox(height: 20),
-                                ],
+                                            )),
+                                        SizedBox(height: 20),
+                                      ],
+                                    ),
+                                  );
+                                },
                               ),
-                            );
-                          },
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-          ],
+          ]),
         ),
       ),
 

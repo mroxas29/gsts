@@ -15,7 +15,7 @@ class Course {
   String syAndTerm; // auto-generated
   String section; // New section field
   String roomNum;
-  String? onlineDay; // New onlineDay field
+  String onlineDay; // New onlineDay field
 
   Course({
     required this.uid,
@@ -32,7 +32,7 @@ class Course {
     required this.syAndTerm,
     required this.section, // Initialize section
     required this.roomNum,
-    this.onlineDay, // Initialize onlineDay
+    required this.onlineDay, // Initialize onlineDay
   });
 
   Map<String, dynamic> toJson() {
@@ -47,19 +47,18 @@ class Course {
       "type": type,
       "program": program,
       "setup": setup,
-      "dayTimes": dayTimes,
+      "dayTimes":
+          dayTimes.map((item) => Map<String, String>.from(item)).toList(),
       "syAndTerm": syAndTerm,
-      "section": section, // Add section to JSON
+      "section": section,
       "roomNum": roomNum,
-      "onlineDay": onlineDay, // Add onlineDay to JSON
+      "onlineDay": onlineDay,
     };
   }
 
   // Add this constructor to create a Course object from a map
   Course.fromMap(Map<String, dynamic> map)
       : uid = map['uid'],
-        roomNum = map['roomNum'],
-        setup = map['setup'],
         coursecode = map['coursecode'],
         coursename = map['coursename'],
         isactive = map['isactive'],
@@ -68,10 +67,14 @@ class Course {
         units = map['units'],
         type = map['type'],
         program = map['program'],
-        dayTimes = List<Map<String, String>>.from(map['dayTimes']),
+        setup = map['setup'],
+        dayTimes = List<Map<String, String>>.from(
+            map['dayTimes']?.map((item) => Map<String, String>.from(item)) ??
+                []),
         syAndTerm = map['syAndTerm'],
-        section = map['section'], // Initialize section from map
-        onlineDay = map['onlineDay']; // Initialize onlineDay from map
+        section = map['section'],
+        roomNum = map['roomNum'],
+        onlineDay = map['onlineDay'];
 
   Map<String, dynamic> toMap() {
     return {
@@ -105,21 +108,21 @@ List<Course> examcourses = [];
 List<Course> specializedcourses = [];
 List<Course> thesiscourses = [];
 final blankCourse = Course(
-  dayTimes: [], // Initialize with empty map
-  uid: 'blank',
-  setup: '',
-  coursecode: 'Select a course',
-  coursename: '',
-  facultyassigned: '',
-  units: 0,
-  numstudents: 0,
-  isactive: false,
-  type: '',
-  program: '',
-  syAndTerm: '',
-  section: '', // Initialize section
-  roomNum: '',
-);
+    dayTimes: [], // Initialize with empty map
+    uid: 'blank',
+    setup: '',
+    coursecode: 'Select a course',
+    coursename: '',
+    facultyassigned: '',
+    units: 0,
+    numstudents: 0,
+    isactive: false,
+    type: '',
+    program: '',
+    syAndTerm: '',
+    section: '', // Initialize section
+    roomNum: '',
+    onlineDay: '');
 Future<List<Course>> getCoursesFromFirestore() async {
   courses.clear();
   activecourses.clear();
@@ -168,8 +171,6 @@ Future<List<Course>> getCoursesFromFirestore() async {
           roomNum: courseData['roomNum'],
           onlineDay: courseData['onlineDay'] // Add onlineDay field
           );
-
-      print(newCourse.uid);
 
       courses.add(newCourse);
 

@@ -114,7 +114,7 @@ class _ProfileBoxState extends State<ProfileBox> {
                     ),
                     Spacer(),
                     Text(
-                      'New Students',
+                      'New Applicants',
                       style: TextStyle(color: Colors.white, fontSize: 18),
                     ),
                     Spacer(),

@@ -16,6 +16,7 @@ class EnrolledCourseData extends Course {
     required String section,
     required String roomNum,
     required String setup,
+    required String onlineDay
   }) : super(
           uid: uid,
           coursecode: coursecode,
@@ -31,6 +32,7 @@ class EnrolledCourseData extends Course {
           section: section,
           roomNum: roomNum,
           setup: setup,
+          onlineDay: onlineDay
         );
 
   factory EnrolledCourseData.fromJson(Map<String, dynamic> json) {
@@ -53,6 +55,7 @@ class EnrolledCourseData extends Course {
       ),
       syAndTerm: json['syAndTerm'],
       section: json['section'],
+      onlineDay: json['onlineDay']
     );
   }
 

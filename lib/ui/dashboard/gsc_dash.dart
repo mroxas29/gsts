@@ -1,5 +1,9 @@
+import 'dart:html' as html;
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:excel/excel.dart' as exc;
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:sysadmindb/app/models/AcademicCalendar.dart';
 import 'package:sysadmindb/app/models/DeviatedStudents.dart';
 import 'package:sysadmindb/app/models/courses.dart';
@@ -46,6 +50,27 @@ Widget _buildEditableField(
   );
 }
 
+List<Faculty> _getFilteredFacultyList(Course course) {
+  return facultyList.where((faculty) {
+    return faculty.history.any((h) => h.coursecode == course.coursecode);
+  }).toList();
+}
+
+// Get faculty details for tooltip
+String _getFacultyDetails(Faculty faculty) {
+  return 'History Courses: ${faculty.history.join('\n')}';
+}
+// Suggest relevant faculty members if no faculty is assigned
+
+// Suggest relevant faculty members if no faculty is assigned
+String _getSuggestedFaculty(String selectedFaculty, Course course) {
+  if (selectedFaculty == 'None Assigned') {
+    return 'Suggested Faculty: ${_getFilteredFacultyList(course).map((faculty) => getFullname(faculty)).join('\n')}';
+  }
+  return 'Faculty with relevant history:\n${_getFilteredFacultyList(course).map((faculty) => getFullname(faculty)).join('\n')}';
+}
+
+final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 List<StudentPOS> getDeviatedStudents() {
   String reformattedSYTerm = reformatSYandTerm(getCurrentSYandTerm());
   List<String> sytermParts = reformattedSYTerm.split(" ");
@@ -110,9 +135,168 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
 
     Map<Course, int> occurrences = {};
 
+    Future<void> generateExcel(
+        List<MapEntry<Course, int>> uniqueCourses, int numofCourses) async {
+      var excel = exc.Excel.createExcel(); // Create a new Excel file
+      exc.Sheet sheet = excel['Sheet1']; // Create a new sheet
+      exc.CellStyle cellStyle = exc.CellStyle(
+          backgroundColorHex: exc.ExcelColor.fromHexString('#27AB46'),
+          bold: true,
+          fontColorHex: exc.ExcelColor.fromHexString('#FFFFFF'));
+
+      // Define headers
+      List<exc.TextCellValue> headers = [
+        exc.TextCellValue('Course Code'),
+        exc.TextCellValue('Course Name'),
+        exc.TextCellValue('Offered To (Program)'),
+        exc.TextCellValue('Faculty'),
+        exc.TextCellValue('Days'),
+        exc.TextCellValue('Room Number'),
+        exc.TextCellValue('Setup'),
+      ];
+
+      // Add headers to the sheet
+      sheet.appendRow(headers);
+
+      // Add rows
+      for (var course in uniqueCourses.take(numofCourses)) {
+        // Create a formatted string for days and times
+        String daysTimes = course.key.dayTimes.map((entry) {
+          String day =
+              entry['day']!; // Assuming 'day' key exists for day of the week
+          String start = entry['start'] ?? ''; // Ensure start is a String
+          String end = entry['end'] ?? ''; // Ensure end is a String
+          return '$day: $start - $end';
+        }).join(', ');
+
+        sheet.appendRow([
+          exc.TextCellValue(course.key.coursecode),
+          exc.TextCellValue(course.key.coursename),
+          exc.TextCellValue(course.key.program),
+          exc.TextCellValue(course.key.facultyassigned == 'None assigned'
+              ? ''
+              : course.key.facultyassigned),
+          exc.TextCellValue(daysTimes),
+          exc.TextCellValue(course.key.roomNum),
+          exc.TextCellValue(course.key.setup),
+        ]);
+      }
+      sheet.getColumnAutoFit(4);
+      // Save the file (handle potential permission issues)
+      try {
+        var bytes = excel.encode()!;
+        final blob = html.Blob([
+          bytes
+        ], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        final url = html.Url.createObjectUrlFromBlob(blob);
+        final anchor = html.AnchorElement(href: url)
+          ..setAttribute("download", "courses offerings.xlsx")
+          ..click();
+        html.Url.revokeObjectUrl(url);
+        print('Excel file generated and download triggered');
+      } catch (error) {
+        // Handle storage permission errors or other exceptions
+        print('Error generating Excel file: $error');
+      }
+    }
+
+    void showCourseSelectionDialog(
+        BuildContext context, List<MapEntry<Course, int>> uniqueCourses) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          int selectedOption = uniqueCourses.length;
+          int? customCount;
+
+          return StatefulBuilder(
+            builder: (BuildContext context, StateSetter setState) {
+              return AlertDialog(
+                title: Text('Select Number of Courses'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    RadioListTile<int>(
+                      title: Text('Top 3'),
+                      value: 3,
+                      groupValue: selectedOption,
+                      onChanged: (int? value) {
+                        setState(() {
+                          selectedOption = value ?? uniqueCourses.length;
+                          customCount = null; // Reset custom count
+                        });
+                      },
+                    ),
+                    RadioListTile<int>(
+                      title: Text('Top 5'),
+                      value: 5,
+                      groupValue: selectedOption,
+                      onChanged: (int? value) {
+                        setState(() {
+                          selectedOption = value ?? uniqueCourses.length;
+                          customCount = null; // Reset custom count
+                        });
+                      },
+                    ),
+                    RadioListTile<int>(
+                      title: Text('All ${uniqueCourses.length} courses'),
+                      value: uniqueCourses.length,
+                      groupValue: selectedOption,
+                      onChanged: (int? value) {
+                        setState(() {
+                          selectedOption = value ?? uniqueCourses.length;
+                          customCount = null; // Reset custom count
+                        });
+                      },
+                    ),
+                    RadioListTile<int>(
+                      title: Text('Custom'),
+                      value: -1,
+                      groupValue: selectedOption,
+                      onChanged: (int? value) {
+                        setState(() {
+                          selectedOption = value ?? uniqueCourses.length;
+                        });
+                      },
+                    ),
+                    if (selectedOption == -1)
+                      TextField(
+                        decoration: InputDecoration(
+                          labelText: 'Enter number of courses',
+                        ),
+                        keyboardType: TextInputType.number,
+                        onChanged: (value) {
+                          setState(() {
+                            customCount = int.tryParse(value);
+                          });
+                        },
+                      ),
+                  ],
+                ),
+                actions: <Widget>[
+                  TextButton(
+                    child: Text('Cancel'),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                  TextButton(
+                    child: Text('OK'),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      generateExcel(
+                          uniqueCourses, customCount ?? selectedOption);
+                    },
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+    }
+
     void editCourseData(BuildContext context, Course course,
-        List<StudentPOS> fulfillingStudentPOS) {
-      bool hasStudents = false;
+        List<Student> fulfillingStudentPOS, GlobalKey<FormState> formKey) {
       List<String> status = ['true', 'false'];
       List<String> programs = ['MIT/MSIT', 'MIT', 'MSIT'];
       List<String> type = [
@@ -125,294 +309,436 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
         'Thesis Course'
       ];
 
-      String selectedProgram = course.program;
-      String selectedStatus = course.isactive.toString();
-      String selectedType = course.type.toString();
-      String selectedFaculty = course.facultyassigned.toString();
+      // Initialize the courseData with pre-filled values
+      final Course courseData = Course(
+          dayTimes: [], // Initialize with empty map
+          uid: 'blank',
+          setup: '',
+          coursecode: 'Select a course',
+          coursename: '',
+          facultyassigned: '',
+          units: 0,
+          numstudents: 0,
+          isactive: false,
+          type: '',
+          program: '',
+          syAndTerm: '',
+          section: '', // Initialize section
+          roomNum: '',
+          onlineDay: '');
 
-      final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-      TextEditingController coursecodeController =
+      String selectedStatus = course.isactive ? 'true' : 'false';
+      String selectedProgram = course.program;
+      String selectedType = course.type;
+      String selectedFaculty = course.facultyassigned;
+
+      List<String> daysOfWeek = ['M', 'T', 'W', 'Th', 'F', 'S'];
+      List<String> setups = ['Full Online', 'Hybrid', 'Full Onsite'];
+      String selectedSetup = course.setup;
+      Map<String, String?> selectedDaysWithTimes = {};
+      String selectedHybridDay = course.onlineDay;
+      TextEditingController courseCodeController =
           TextEditingController(text: course.coursecode);
-      TextEditingController coursenameController =
-          TextEditingController(text: course.coursename);
-      TextEditingController unitsController =
-          TextEditingController(text: course.units.toString());
+
       showDialog(
         context: context,
         builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text('Course information'),
-            content: SingleChildScrollView(
-              child: Form(
-                key: _formKey,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      flex: 1,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildEditableField(
-                              'Course code', coursecodeController, hasStudents),
-                          _buildEditableField(
-                              'Course Name', coursenameController, hasStudents),
-                          DropdownButtonFormField<String>(
-                            value: selectedFaculty,
-                            items: facultyList.map((faculty) {
-                              return DropdownMenuItem<String>(
-                                value:
-                                    "${faculty.displayname['firstname']} ${faculty.displayname['lastname']}",
-                                child: Text(getFullname(faculty)),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                selectedFaculty = value!;
-                              });
-                            },
-                            decoration:
-                                InputDecoration(labelText: 'Faculty Assigned'),
-                          ),
-                          DropdownButtonFormField<String>(
-                            value: selectedProgram,
-                            items: programs.map((program) {
-                              return DropdownMenuItem<String>(
-                                value: program,
-                                child: Text(program),
-                              );
-                            }).toList(),
-                            onChanged: !hasStudents
-                                ? (value) {
-                                    setState(() {
-                                      selectedProgram = value!;
-                                    });
+          return StatefulBuilder(
+            builder: (context, setState) {
+              return AlertDialog(
+                contentPadding: EdgeInsets.symmetric(horizontal: 40.0),
+                title: Text('Edit Course'),
+                content: SingleChildScrollView(
+                  child: Form(
+                    key: formKey,
+                    autovalidateMode: AutovalidateMode.always,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          flex: 1,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Course Code
+                              TextFormField(
+                                controller: courseCodeController,
+                                decoration:
+                                    InputDecoration(labelText: 'Course code'),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Please enter the course code';
                                   }
-                                : null,
-                            decoration: InputDecoration(labelText: 'Program'),
-                          ),
-                          DropdownButtonFormField<String>(
-                            value: selectedType,
-                            items: type.map((type) {
-                              return DropdownMenuItem<String>(
-                                value: type,
-                                child: Text(type),
-                              );
-                            }).toList(),
-                            onChanged: !hasStudents
-                                ? (type) {
-                                    setState(() {
-                                      selectedType = type!;
-                                    });
+                                  return null;
+                                },
+                                onSaved: (value) {
+                                  courseData.coursecode = value ?? '';
+                                },
+                              ),
+                              // Course Name
+                              TextFormField(
+                                initialValue: course.coursename,
+                                decoration:
+                                    InputDecoration(labelText: 'Course name'),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Please enter the course name';
                                   }
-                                : null,
-                            decoration:
-                                InputDecoration(labelText: 'Course Type'),
-                          ),
-                          _buildEditableField(
-                              'Units', unitsController, hasStudents),
-                          DropdownButtonFormField<String>(
-                            value: selectedStatus,
-                            items: status.map((role) {
-                              return DropdownMenuItem<String>(
-                                value: role,
-                                child: Text(
-                                    role == 'true' ? 'offered' : 'not offered'),
-                              );
-                            }).toList(),
-                            onChanged: !hasStudents
-                                ? (value) {
-                                    setState(() {
-                                      selectedStatus = value!;
-                                    });
-                                  }
-                                : null,
-                            decoration:
-                                InputDecoration(labelText: 'Is offered?'),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(
-                      width: 20,
-                    ),
-                    Expanded(
-                      flex: 1,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Predicted Students',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          for (int i = 0; i < fulfillingStudentPOS.length; i++)
-                            GestureDetector(
-                              onTap: () async {
-                                // Handle the click event for the ListTile
-                                await retrieveStudentPOS(
-                                    fulfillingStudentPOS[i].uid);
-                                EN19Form? en19details =
-                                    await EN19Form.getFormFromFirestore(
-                                        fulfillingStudentPOS[i].uid);
-                                await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => StudentInfoPage(
-                                      student: fulfillingStudentPOS[i],
-                                      studentpos: fulfillingStudentPOS[i],
-                                      en19: en19details!,
-                                    ),
+                                  return null;
+                                },
+                                onSaved: (value) {
+                                  courseData.coursename = value ?? '';
+                                },
+                              ),
+                              // Faculty Assignment
+                              DropdownButtonFormField<String>(
+                                value: selectedFaculty.isNotEmpty
+                                    ? selectedFaculty
+                                    : 'None assigned',
+                                items: [
+                                  DropdownMenuItem<String>(
+                                    value: 'None assigned',
+                                    child: Text('None assigned'),
                                   ),
-                                );
-                              },
-                              child: ListTile(
-                                mouseCursor: SystemMouseCursors.click,
-                                title: Text(
-                                  '${fulfillingStudentPOS[i].displayname['firstname']!} ${fulfillingStudentPOS[i].displayname['lastname']!}',
-                                  style: fulfillingStudentPOS[i]
-                                          .enrolledCourses
-                                          .any(
-                                            (enrolledCourse) =>
-                                                enrolledCourse.coursecode ==
-                                                course.coursecode,
-                                          )
-                                      ? TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.red, // Set color to red
-                                        )
-                                      : TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                subtitle: Text(
-                                  fulfillingStudentPOS[i].email,
-                                  style: fulfillingStudentPOS[i]
-                                          .enrolledCourses
-                                          .any(
-                                            (enrolledCourse) =>
-                                                enrolledCourse.coursecode ==
-                                                course.coursecode,
-                                          )
-                                      ? TextStyle(
-                                          color: Colors.red) // Set color to red
-                                      : TextStyle(), // Or use default color
+                                  ..._getFilteredFacultyList(course)
+                                      .map((faculty) {
+                                    return DropdownMenuItem<String>(
+                                      value: getFullname(faculty),
+                                      child: Tooltip(
+                                        message: _getFacultyDetails(faculty),
+                                        child: Text(
+                                            '${faculty.displayname['firstname']} ${faculty.displayname['lastname']}'),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ],
+                                onChanged: (value) {
+                                  setState(() {
+                                    selectedFaculty = value!;
+                                  });
+                                },
+                                onSaved: (value) {
+                                  course.facultyassigned =
+                                      (value == 'None assigned') ? '' : value!;
+                                },
+                                decoration: InputDecoration(
+                                  labelText: 'Assign to',
+                                  suffixIcon: Tooltip(
+                                    message: _getSuggestedFaculty(
+                                        selectedFaculty, course),
+                                    child: Icon(Icons.info),
+                                  ),
                                 ),
                               ),
-                            ),
-                        ],
-                      ),
+                              // Units
+                              TextFormField(
+                                initialValue: course.units.toString(),
+                                decoration: InputDecoration(labelText: 'Units'),
+                                keyboardType: TextInputType.number,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Please enter the number of units';
+                                  }
+                                  return null;
+                                },
+                                onSaved: (value) {
+                                  courseData.units =
+                                      int.tryParse(value ?? '') ?? 0;
+                                },
+                              ),
+                              // Program
+                              DropdownButtonFormField<String>(
+                                value: selectedProgram,
+                                items: programs.map((program) {
+                                  return DropdownMenuItem<String>(
+                                    value: program,
+                                    child: Text(program),
+                                  );
+                                }).toList(),
+                                onChanged: (value) {
+                                  setState(() {
+                                    selectedProgram = value!;
+                                  });
+                                },
+                                onSaved: (value) {
+                                  courseData.program = value ?? '';
+                                },
+                                decoration:
+                                    InputDecoration(labelText: 'Program'),
+                              ),
+                              // Status
+                              DropdownButtonFormField<String>(
+                                value: selectedStatus,
+                                items: status.map((status) {
+                                  return DropdownMenuItem<String>(
+                                    value: status,
+                                    child: Text(status),
+                                  );
+                                }).toList(),
+                                onChanged: (value) {
+                                  setState(() {
+                                    selectedStatus = value!;
+                                  });
+                                },
+                                onSaved: (value) {
+                                  courseData.isactive = value == 'true';
+                                },
+                                decoration:
+                                    InputDecoration(labelText: 'Is Active'),
+                              ),
+                              // Course Type
+                              DropdownButtonFormField<String>(
+                                value: selectedType,
+                                items: type.map((type) {
+                                  return DropdownMenuItem<String>(
+                                    value: type,
+                                    child: Text(type),
+                                  );
+                                }).toList(),
+                                onChanged: (value) {
+                                  setState(() {
+                                    selectedType = value!;
+                                  });
+                                },
+                                onSaved: (value) {
+                                  courseData.type = value ?? '';
+                                },
+                                decoration:
+                                    InputDecoration(labelText: 'Course Type'),
+                              ),
+                              // Section
+                              TextFormField(
+                                decoration:
+                                    InputDecoration(labelText: 'Section'),
+                                validator: ((value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Please enter the section';
+                                  }
+                                  if (courses.any((course) =>
+                                      course.section.toString().toUpperCase() ==
+                                      value.toUpperCase())) {
+                                    return "Course with course code ${courseCodeController.text} with section $value already exists";
+                                  }
+                                }),
+                                onSaved: (value) {
+                                  courseData.section = value ?? '';
+                                },
+                              ),
+                              // Room Number
+                              TextFormField(
+                                decoration:
+                                    InputDecoration(labelText: 'Room Number'),
+                                onSaved: (value) {
+                                  courseData.roomNum = value ?? '';
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(width: 16.0),
+                        Expanded(
+                          flex: 1,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Days of the Week
+                              SizedBox(height: 16.0),
+                              Text('Select Days:',
+                                  style:
+                                      TextStyle(fontWeight: FontWeight.bold)),
+                              Wrap(
+                                spacing: 8.0,
+                                runSpacing: 16.0, // Adding spacing between rows
+                                children: daysOfWeek.map((day) {
+                                  return GestureDetector(
+                                    onTap: () async {
+                                      if (selectedDaysWithTimes
+                                          .containsKey(day)) {
+                                        setState(() {
+                                          selectedDaysWithTimes.remove(day);
+                                        });
+                                      } else {
+                                        TimeOfDay? startTime =
+                                            await showTimePicker(
+                                          context: context,
+                                          initialTime: TimeOfDay.now(),
+                                        );
+                                        if (startTime != null) {
+                                          TimeOfDay? endTime =
+                                              await showTimePicker(
+                                            context: context,
+                                            initialTime: startTime.replacing(
+                                              hour: (startTime.hour + 1) %
+                                                  24, // Handle hour overflow
+                                              minute: (startTime.minute + 90) %
+                                                  60, // Add 90 minutes
+                                            ),
+                                          );
+                                          if (endTime != null) {
+                                            setState(() {
+                                              selectedDaysWithTimes[day] =
+                                                  '${startTime.format(context)} - ${endTime.format(context)}';
+                                            });
+                                          }
+                                        }
+                                      }
+                                    },
+                                    child: Column(
+                                      children: [
+                                        Container(
+                                          padding: EdgeInsets.symmetric(
+                                              vertical: 8.0, horizontal: 12.0),
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            border:
+                                                selectedDaysWithTimes[day] !=
+                                                        null
+                                                    ? Border.all(
+                                                        color: Colors.blue,
+                                                        width: 2.0)
+                                                    : null,
+                                          ),
+                                          child: Text(day),
+                                        ),
+                                        if (selectedDaysWithTimes
+                                            .containsKey(day))
+                                          Padding(
+                                            padding:
+                                                const EdgeInsets.only(top: 8.0),
+                                            child: Text(
+                                              selectedDaysWithTimes[day]! +
+                                                  (selectedSetup == 'Hybrid' &&
+                                                          selectedHybridDay ==
+                                                              day
+                                                      ? ' (Online day)'
+                                                      : ''),
+                                              style: TextStyle(fontSize: 12),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                              // Setup
+                              DropdownButtonFormField<String>(
+                                value: selectedSetup,
+                                items: setups.map((setup) {
+                                  return DropdownMenuItem<String>(
+                                    value: setup,
+                                    child: Text(setup),
+                                  );
+                                }).toList(),
+                                onChanged: (value) {
+                                  setState(() {
+                                    selectedSetup = value!;
+                                  });
+                                },
+                                onSaved: (value) {
+                                  courseData.setup = value ?? '';
+                                },
+                                decoration: InputDecoration(labelText: 'Setup'),
+                              ),
+                              // Hybrid Day Selection
+                              if (selectedSetup == 'Hybrid')
+                                DropdownButtonFormField<String>(
+                                  value: selectedHybridDay,
+                                  items: selectedDaysWithTimes.entries
+                                      .map((entry) {
+                                    return DropdownMenuItem<String>(
+                                      value: entry.key,
+                                      child:
+                                          Text('${entry.key}: ${entry.value}'),
+                                    );
+                                  }).toList(),
+                                  onChanged: (value) {
+                                    setState(() {
+                                      selectedHybridDay = value!;
+                                    });
+                                  },
+                                  decoration: InputDecoration(
+                                      labelText: 'Select online day'),
+                                  validator: (value) {
+                                    if (selectedSetup == 'Hybrid' &&
+                                        value == null) {
+                                      return 'Please select an online day';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () async {
-                  // Show a confirmation dialog before deletion
-                  bool confirmDelete = await showDialog(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return AlertDialog(
-                        title: Text('Confirm Delete'),
-                        content: Text(
-                            'Are you sure you want to delete this course?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () {
-                              Navigator.pop(
-                                  context, false); // No, do not delete
-                            },
-                            child: Text('No'),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.pop(context, true); // Yes, delete
-                            },
-                            child: Text('Yes'),
-                          ),
-                        ],
-                      );
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
                     },
-                  );
+                    child: Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      if (formKey.currentState!.validate()) {
+                        formKey.currentState!.save();
 
-                  if (confirmDelete == true) {
-                    try {
-                      await FirebaseFirestore.instance
-                          .collection('courses')
-                          .doc(course.uid)
-                          .delete();
-                      courses.clear();
+                        try {
+                          await FirebaseFirestore.instance
+                              .collection('courses')
+                              .doc(
+                                  generateUID()) // Use existing course UID for updating
+                              .set({
+                            'coursecode': courseData.coursecode.toUpperCase(),
+                            'coursename': courseData.coursename,
+                            'facultyassigned': selectedFaculty,
+                            'units': courseData.units,
+                            'isactive': courseData.isactive,
+                            'numstudents': 0,
+                            'type': selectedType,
+                            'program': selectedProgram,
+                            'dayTimes': selectedDaysWithTimes.map((day, time) =>
+                                MapEntry(day, {
+                                  'start': time!.split(' - ')[0],
+                                  'end': time.split(' - ')[1]
+                                })),
+                            'section': courseData.section,
+                            'setup': courseData.setup,
+                            'onlineDay': selectedSetup == 'Full Online'
+                                ? 'Full Online'
+                                : selectedSetup == 'Full Onsite'
+                                    ? 'Full Onsite'
+                                    : selectedHybridDay,
+                            'roomNum': courseData.roomNum,
+                            'syAndTerm': courseData.syAndTerm
+                          });
+                          Navigator.pop(context);
 
-                      getCoursesFromFirestore()
-                          .then((value) => {foundCourse = courses});
-                      // Show a SnackBar
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Course deleted'),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
+                          getCoursesFromFirestore();
 
-                      // Close the dialog
-                      Navigator.pop(context);
-                    } catch (e) {
-                      print('Error deleting course: $e');
-                      // Handle the error
-                    }
-                  }
-                },
-                child: Text('Delete', style: TextStyle(color: Colors.red)),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () async {
-                  if (_formKey.currentState!.validate()) {
-                    // Save the edited data locally
-                    setState(() {
-                      course.coursecode = coursecodeController.text;
-                      course.coursename = coursenameController.text;
-                      course.facultyassigned = selectedFaculty;
-                      course.units = int.parse(unitsController.text);
-                      course.isactive = bool.parse(selectedStatus);
-                      course.type = selectedType;
-                      course.program = selectedProgram;
-                    });
-
-                    // Update the data in Firestore
-                    try {
-                      await FirebaseFirestore.instance
-                          .collection('courses')
-                          .doc(course.uid)
-                          .update({
-                        'coursecode': course.coursecode,
-                        'coursename': course.coursename,
-                        'facultyassigned': course.facultyassigned,
-                        'units': course.units,
-                        'isactive': course.isactive,
-                        'type': course.type,
-                        'program': course.program,
-                      });
-
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Course updated'),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-
-                      Navigator.pop(context);
-                    } catch (e) {
-                      print('Error updating course data: $e');
-                    }
-                  }
-                },
-                child: Text('Save'),
-              ),
-            ],
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Course updated'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        } catch (e) {
+                          print('Error updating course: $e');
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Error updating course: $e'),
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    child: Text('Update'),
+                  ),
+                ],
+              );
+            },
           );
         },
       );
@@ -470,12 +796,22 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Course demand for ${getNextSYandTerm()}',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.black,
-            ),
+          Row(
+            children: [
+              Text(
+                'Course demand for ${getNextSYandTerm()}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.black,
+                ),
+              ),
+              Spacer(),
+              TextButton(
+                  onPressed: () {
+                    showCourseSelectionDialog(context, uniqueCourses);
+                  },
+                  child: Text('Download course demand')),
+            ],
           ),
           SizedBox(
             height: 5,
@@ -585,7 +921,8 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                     editCourseData(
                                         context,
                                         uniqueCourses[i].key,
-                                        fulfillingStudentPOS);
+                                        fulfillingStudentPOS,
+                                        _formKey);
                                   },
                                 ),
                               ],
@@ -663,32 +1000,32 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
   @override
   void initState() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (newStudentList.isNotEmpty) {
+      if (applicantList.isNotEmpty) {
         showDialog(
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
-              title: Text('New Students'),
+              title: Text('New Applicants'),
               content: SingleChildScrollView(
                 child: ListBody(
                   children: [
                     Text(
-                        'There are new students for the upcoming term ${getNextSYandTerm()}\n'),
+                        'There are new applicants for the upcoming term ${getNextSYandTerm()}\n'),
                     Padding(
                       padding: const EdgeInsets.all(8.0),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.start,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          for (Student newStud in newStudentList)
+                          for (Student newStud in applicantList)
                             Text(
-                              '${newStud.idnumber} - ${newStud.displayname['firstname']} ${newStud.displayname['lastname']}',
+                              '${newStud.displayname['firstname']} ${newStud.displayname['lastname']}',
                             )
                         ],
                       ),
                     ),
                     Text(
-                      'Click the "New Students" tile on the dashboard to show more info about each student.',
+                      'Click the "New Applicants" tile on the dashboard to show more info about each student.',
                       style: TextStyle(
                           fontStyle: FontStyle.italic, color: Colors.grey),
                     ),
@@ -930,7 +1267,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                       cursor: SystemMouseCursors.click,
                                       child: ProfileBox(
                                         totalStudents: totalStudents,
-                                        newStudents: newStudentList.length,
+                                        newStudents: applicantList.length,
                                         deviatedStudents: deviatedStudents,
                                         ineligibleStudents:
                                             ineligibleStudentList.length,
@@ -955,7 +1292,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                     totalStudentsClicked
                         ? "Total Students (${getCurrentSYandTerm()})"
                         : newStudentsClicked
-                            ? "New Students for (${getNextSYandTerm()})"
+                            ? "New Applicants for (${getNextSYandTerm()})"
                             : deviatedStudentsClicked
                                 ? "Deviated Students (${getCurrentSYandTerm()})"
                                 : graduatingStudentsClicked
@@ -1025,22 +1362,22 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                             })),
                   if (newStudentsClicked)
                     Expanded(
-                        child: newStudentList.isNotEmpty
+                        child: applicantList.isNotEmpty
                             ? ListView.builder(
-                                itemCount: newStudentList.length,
+                                itemCount: applicantList.length,
                                 itemBuilder: (context, index) {
                                   return GestureDetector(
                                     onTap: () async {
                                       await retrieveStudentPOS(
-                                          newStudentList[index].uid);
+                                          applicantList[index].uid);
                                       EN19Form? en19details =
                                           await EN19Form.getFormFromFirestore(
-                                              newStudentList[index].uid);
+                                              applicantList[index].uid);
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
                                           builder: (context) => StudentInfoPage(
-                                            student: newStudentList[index],
+                                            student: applicantList[index],
                                             studentpos: studentPOS,
                                             en19: en19details!,
                                           ),
@@ -1050,7 +1387,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                     child: MouseRegion(
                                       cursor: SystemMouseCursors.click,
                                       child: StudentList(
-                                        student: newStudentList[index],
+                                        student: applicantList[index],
                                       ),
                                     ),
                                   );
@@ -1067,7 +1404,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                     width: 20,
                                   ),
                                   Text(
-                                    'No new Students',
+                                    'No new applicants',
                                     style: TextStyle(
                                         color: Colors.grey,
                                         fontSize: 16,

@@ -157,7 +157,7 @@ class NotificationButtonState extends State<NotificationButton> {
                                               CrossAxisAlignment.start,
                                           children: [
                                             for (Student newStud
-                                                in newStudentList)
+                                                in applicantList)
                                               Text(
                                                 '${newStud.idnumber} - ${newStud.displayname['firstname']} ${newStud.displayname['lastname']}',
                                               )

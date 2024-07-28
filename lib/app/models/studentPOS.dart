@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:http/http.dart';
 import 'package:sysadmindb/app/models/AcademicCalendar.dart';
 import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/enrolledcourses.dart';
@@ -13,6 +12,7 @@ import 'dart:core';
 class StudentPOS extends Student {
   List<SchoolYear> schoolYears;
   String acceptanceTerm;
+
   StudentPOS({
     required this.schoolYears,
     required String uid,
@@ -26,51 +26,56 @@ class StudentPOS extends Student {
     required List<PastCourse> pastCourses,
     required this.acceptanceTerm,
   }) : super(
-            uid: uid,
-            displayname: displayname,
-            role: role,
-            email: email,
-            idnumber: idnumber,
-            enrolledCourses: enrolledCourses,
-            pastCourses: pastCourses,
-            degree: degree,
-            status: status);
+          uid: uid,
+          displayname: displayname,
+          role: role,
+          email: email,
+          idnumber: idnumber,
+          enrolledCourses: enrolledCourses,
+          pastCourses: pastCourses,
+          degree: degree,
+          status: status,
+        );
 
   factory StudentPOS.fromJson(Map<String, dynamic> json) {
-    final List<dynamic> schoolYearsJson = json['schoolYears'] ?? [];
-    final List<SchoolYear> schoolYears = schoolYearsJson
+    final schoolYearsJson = json['schoolYears'] as List<dynamic>? ?? [];
+    final schoolYears = schoolYearsJson
         .map(
             (yearJson) => SchoolYear.fromJson(yearJson as Map<String, dynamic>))
         .toList();
 
+    final enrolledCoursesJson = json['enrolledCourses'] as List<dynamic>? ?? [];
+    final enrolledCourses = enrolledCoursesJson
+        .map((courseJson) =>
+            EnrolledCourseData.fromJson(courseJson as Map<String, dynamic>))
+        .toList();
+
+    final pastCoursesJson = json['pastCourses'] as List<dynamic>? ?? [];
+    final pastCourses = pastCoursesJson
+        .map((courseJson) =>
+            PastCourse.fromJson(courseJson as Map<String, dynamic>))
+        .toList();
+
     return StudentPOS(
-        schoolYears: schoolYears,
-        acceptanceTerm: json['acceptanceTerm'],
-        uid: json['uid'],
-        displayname: Map<String, String>.from(
-            json['displayname'] as Map<String, dynamic>),
-        role: json['role'],
-        email: json['email'],
-        idnumber: json['idnumber'],
-        enrolledCourses: (json['enrolledCourses'] as List<dynamic>)
-            .map<EnrolledCourseData>((courseJson) {
-          return EnrolledCourseData.fromJson(
-              courseJson as Map<String, dynamic>);
-        }).toList(),
-        pastCourses: (json['pastCourses'] as List<dynamic>)
-            .map<PastCourse>((courseJson) {
-          return PastCourse.fromJson(courseJson as Map<String, dynamic>);
-        }).toList(),
-        degree: json['degree'],
-        status: json['status']);
+      schoolYears: schoolYears,
+      acceptanceTerm: json['acceptanceTerm'] ?? '',
+      uid: json['uid'],
+      displayname: Map<String, String>.from(json['displayname']),
+      role: json['role'],
+      email: json['email'],
+      idnumber: json['idnumber'],
+      enrolledCourses: enrolledCourses,
+      pastCourses: pastCourses,
+      degree: json['degree'],
+      status: json['status'],
+    );
   }
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = <String, dynamic>{
       'schoolYears': schoolYears.map((year) => year.toJson()).toList(),
-      'acceptanceTerm': getCurrentSYandTerm()
+      'acceptanceTerm': acceptanceTerm,
     };
-
     data.addAll(super.toJson());
     return data;
   }
@@ -132,7 +137,7 @@ Future<StudentPOS> retrieveStudentPOS(String uid) async {
       studentPOSDefault();
     }
   } catch (e) {
-    print('Error retrieving document for Student POS: $e');
+    print('Error retrieving document for Student POS DITO BA YON: $e');
   }
 
   return studentPOS;
@@ -243,10 +248,10 @@ StudentPOS generatePOSforMIT(
     status: student.status,
   );
 
-  // Add CIS411M and OEX
+  // Add CIS411M and OCE
   Course cis411m =
       courses.firstWhere((course) => course.coursecode == "CIS411M");
-  Course oex = courses.firstWhere((course) => course.coursecode == "OEX");
+  Course OCE = courses.firstWhere((course) => course.coursecode == "OCE");
 
   // Add CAPROP and CAPFIND
   Course caprop = courses.firstWhere((course) => course.coursecode == "CAPROP");
@@ -324,23 +329,23 @@ StudentPOS generatePOSforMIT(
     capstoneTerms.add(termForCis);
   }
 
-  // Ensure OEX is the only course in its term
-  Term? termForOex;
+  // Ensure OCE is the only course in its term
+  Term? termForOCE;
   for (var year in newStudentPOS.schoolYears) {
     for (var term in year.terms) {
       if (term.termcourses.isEmpty) {
-        termForOex = term;
+        termForOCE = term;
         break;
       }
     }
-    if (termForOex != null) break;
+    if (termForOCE != null) break;
   }
-  if (termForOex != null) {
-    termForOex.termcourses.add(oex);
-    capstoneTerms.add(termForOex);
+  if (termForOCE != null) {
+    termForOCE.termcourses.add(OCE);
+    capstoneTerms.add(termForOCE);
   }
 
-  // Find the term for CAPROP and CAPFIND after CIS411M and OEX
+  // Find the term for CAPROP and CAPFIND after CIS411M and OCE
   Term? termForCapstone;
   for (var year in newStudentPOS.schoolYears) {
     for (var term in year.terms) {
@@ -418,7 +423,7 @@ StudentPOS generatePOSforMSIT(
   // Add THPROD and THWR1
   Course thprod = courses.firstWhere((course) => course.coursecode == "THPROD");
   Course thwr1 = courses.firstWhere((course) => course.coursecode == "THWR1");
-  Course oex = courses.firstWhere((course) => course.coursecode == "OEX");
+  Course OCE = courses.firstWhere((course) => course.coursecode == "OCE");
 
   // Add THFIND and THWR2
   Course thfind = courses.firstWhere((course) => course.coursecode == "THFIND");
@@ -430,10 +435,10 @@ StudentPOS generatePOSforMSIT(
     int maxCount = -1;
     for (var year in newStudentPOS.schoolYears) {
       for (var term in year.terms) {
-        bool hasOEX = term.termcourses.any((c) => c.coursecode == 'OEX');
+        bool hasOCE = term.termcourses.any((c) => c.coursecode == 'OCE');
         if (!excludeTerms.contains(term) &&
             term.termcourses.length < 2 &&
-            !hasOEX &&
+            !hasOCE &&
             term.termcourses.fold<int>(0, (acc, course) => acc + course.units) +
                     course.units <=
                 maxUnitsPerTerm) {
@@ -510,14 +515,14 @@ StudentPOS generatePOSforMSIT(
     }
   }
 
-  // Find the term for OEX after THPROD and THWR1
-  Term? termForOex = findBestTermForCourse(oex, thesisTerms);
-  if (termForOex != null) {
-    termForOex.termcourses.add(oex);
-    thesisTerms.add(termForOex);
+  // Find the term for OCE after THPROD and THWR1
+  Term? termForOCE = findBestTermForCourse(OCE, thesisTerms);
+  if (termForOCE != null) {
+    termForOCE.termcourses.add(OCE);
+    thesisTerms.add(termForOCE);
   }
 
-  // Find the term for THWR2 and THFIND after OEX
+  // Find the term for THWR2 and THFIND after OCE
   Term? termForThwr2Thfind = findBestTermForCourse(thwr2, thesisTerms);
   if (termForThwr2Thfind != null) {
     termForThwr2Thfind.termcourses.add(thwr2);
@@ -534,7 +539,7 @@ StudentPOS generatePOSforMSIT(
         for (var term in year.terms) {
           if (!thesisTerms.contains(term) &&
               term.termcourses.length < 2 &&
-              !term.termcourses.any((c) => c.coursecode == 'OEX') &&
+              !term.termcourses.any((c) => c.coursecode == 'OCE') &&
               term.termcourses
                           .fold<int>(0, (acc, course) => acc + course.units) +
                       course.units <=

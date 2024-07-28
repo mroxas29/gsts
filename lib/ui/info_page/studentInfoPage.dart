@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:sysadmindb/api/email/invoice_service.dart';
@@ -32,6 +33,7 @@ class StudentInfoPage extends StatefulWidget {
 
 late Future<ListResult> documentations;
 late Future<ListResult> defenseForms;
+final PdfInvoiceService service = PdfInvoiceService();
 
 class StudentInfoPageState extends State<StudentInfoPage>
     with SingleTickerProviderStateMixin {
@@ -251,15 +253,9 @@ class StudentInfoPageState extends State<StudentInfoPage>
                   onPressed: () {
                     setState(() async {
                       confirmSign = true;
-                      if (confirmSign) {
-                        FilePickerResult? result =
-                            await FilePicker.platform.pickFiles();
-                        if (result != null) {
-                          PlatformFile file = result.files.first;
-                          String fileName =
-                              '${widget.student!.idnumber}/Defense Forms/EN-19Form_${widget.student!.idnumber}.pdf';
-                          Uint8List fileBytes = file.bytes!;
-
+                     
+                  
+      
                           // Create EN19Form object
                           EN19Form form = EN19Form(
                             proposedTitle: widget.en19!.proposedTitle,
@@ -287,21 +283,23 @@ class StudentInfoPageState extends State<StudentInfoPage>
                             verdict: widget.en19!.verdict,
                           );
 
-                          form.saveFormToFirestore(form, widget.student!.uid);
-                          final ref =
-                              FirebaseStorage.instance.ref().child(fileName);
+                          
+                          form.saveFormToFirestore(form, widget.student.uid);
 
-                          await ref.putData(fileBytes);
+                          Uint8List pdfData = await service.createEN19(
+                              form,  currentStudent!.role);
+                          await uploadGeneratedPdf(pdfData, 'EN-19Form');
+                          service.savePdfFile(
+                              'EN-19Form_${currentUser.idnumber}.pdf',
+                              pdfData);
                           setState(() {
                             retrieveEN19Form();
                           });
 
                           print('File uploaded successfully');
                           Navigator.pop(context, true);
-                        } else {
-                          print('No file selected');
-                        }
-                      }
+                      
+                      
                     });
 
                     Navigator.pop(context, true); // Yes, delete
@@ -617,7 +615,7 @@ class StudentInfoPageState extends State<StudentInfoPage>
         .listAll();
     _tabController = TabController(length: 3, vsync: this);
     if (_tabController.index == 2 &&
-        newStudentList.any((newStudent) =>
+        applicantList.any((newStudent) =>
             newStudent.idnumber == widget.student.idnumber &&
             shownRecoGuide == false)) {
       showDialog(
@@ -684,6 +682,245 @@ class StudentInfoPageState extends State<StudentInfoPage>
     setState(() {
       widget.en19 = form;
     });
+  }
+
+  Future<void> downloadFile(String uid) async {
+    try {
+      // Get the file URL from Firebase Storage
+      Reference ref =
+          FirebaseStorage.instance.ref().child('$uid/entrance_exam_result.pdf');
+      String url = await ref.getDownloadURL();
+
+      // Trigger the download
+      final anchor = html.AnchorElement(href: url)
+        ..setAttribute("download", "entrance_exam_result.pdf")
+        ..click();
+
+      print('File download triggered');
+    } catch (e) {
+      print('Error downloading file: $e');
+    }
+  }
+
+  void showAcceptanceDialog({
+    required BuildContext context,
+    required Function(bool isAccepted) onConfirm,
+  }) {
+    bool isAccepted = false;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Student Acceptance'),
+          content: StatefulBuilder(
+            builder: (BuildContext context, StateSetter setState) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  CheckboxListTile(
+                    title: Text('Is the student accepted?'),
+                    value: isAccepted,
+                    onChanged: (bool? value) {
+                      setState(() {
+                        isAccepted = value ?? false;
+                      });
+                    },
+                  ),
+                ],
+              );
+            },
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                onConfirm(isAccepted);
+              },
+              child: Text('Confirm'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> uploadGeneratedPdf(Uint8List data, String form) async {
+    String fileName =
+        '${widget.student.idnumber}/Defense Forms/${form}_${widget.student.idnumber}.pdf';
+    final ref = FirebaseStorage.instance.ref().child(fileName);
+    await ref.putData(data);
+    print('Generated PDF uploaded successfully');
+  }
+
+  Future<void> modifyDefenseForm() async {
+    // First dialog to confirm review
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Review Document'),
+          content: Text('Have you reviewed the document?'),
+          actions: [
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('Proceed'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                // Show second dialog for checkboxes
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    final TextEditingController leadPanelController =
+                        TextEditingController();
+                    final TextEditingController panelMember1Controller =
+                        TextEditingController();
+                    final TextEditingController panelMember2Controller =
+                        TextEditingController();
+                    final TextEditingController panelMember3Controller =
+                        TextEditingController();
+                    final TextEditingController panelMember4Controller =
+                        TextEditingController();
+
+                    return StatefulBuilder(
+                      builder: (BuildContext context, StateSetter setState) {
+                        return AlertDialog(
+                          title: Text('Assign panelists'),
+                          content: SingleChildScrollView(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(height: 10),
+                                Text(
+                                  'Lead Panel: ',
+                                  style: TextStyle(fontSize: 15),
+                                ),
+                                TextField(
+                                  controller: leadPanelController,
+                                  decoration: InputDecoration(
+                                      hintText: 'Enter lead panel name'),
+                                ),
+                                SizedBox(height: 10),
+                                Text(
+                                  'Panel Members',
+                                  style: TextStyle(fontSize: 15),
+                                ),
+                                TextField(
+                                  controller: panelMember1Controller,
+                                  decoration: InputDecoration(
+                                      hintText: 'Enter panel member 1 name'),
+                                ),
+                                TextField(
+                                  controller: panelMember2Controller,
+                                  decoration: InputDecoration(
+                                      hintText: 'Enter panel member 2 name'),
+                                ),
+                                TextField(
+                                  controller: panelMember3Controller,
+                                  decoration: InputDecoration(
+                                      hintText: 'Enter panel member 3 name'),
+                                ),
+                                TextField(
+                                  controller: panelMember4Controller,
+                                  decoration: InputDecoration(
+                                      hintText: 'Enter panel member 4 name'),
+                                ),
+                              ],
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              child: Text('Cancel'),
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                              },
+                            ),
+                            TextButton(
+                              child: Text('Submit'),
+                              onPressed: () async {
+                                // Handle the submission of the evaluation here
+                                EN19Form form = EN19Form(
+                                  proposedTitle: widget.en19!.proposedTitle,
+                                  lastName: _capitalize(
+                                      widget.student.displayname['lastname']!),
+                                  firstName: _capitalize(
+                                      widget.student.displayname['firstname']!),
+                                  middleName: '',
+                                  idNumber: widget.student.idnumber.toString(),
+                                  college: 'Computer Studies',
+                                  program: widget.student.degree,
+                                  passedComprehensiveExams:
+                                      widget.en19!.passedComprehensiveExams,
+                                  submittedCertificate:
+                                      widget.en19!.submittedCertificate,
+                                  adviserName: widget.en19!.adviserName,
+                                  enrollmentStage: widget.en19!.enrollmentStage,
+                                  date: DateTime.now(),
+                                  leadPanel: leadPanelController.text.isEmpty
+                                      ? 'No lead panel assigned'
+                                      : leadPanelController.text,
+                                  panelMembers: [
+                                    panelMember1Controller.text.isEmpty
+                                        ? ' '
+                                        : panelMember1Controller.text,
+                                    panelMember2Controller.text.isEmpty
+                                        ? ' '
+                                        : panelMember2Controller.text,
+                                    panelMember3Controller.text.isEmpty
+                                        ? ' '
+                                        : panelMember3Controller.text,
+                                    panelMember4Controller.text.isEmpty
+                                        ? ' '
+                                        : panelMember4Controller.text,
+                                  ],
+                                  defenseDate: 'No date set',
+                                  signedByGSC: widget.en19!.signedByGSC,
+                                  signedByAdviser: widget.en19!.signedByAdviser,
+                                  defenseTime: 'No time set',
+                                  mainTitle: widget.en19!.mainTitle,
+                                  defenseType: widget.en19!.defenseType,
+                                  verdict: widget.en19!.verdict,
+                                );
+
+                                form.saveFormToFirestore(
+                                    form, widget.student.uid);
+
+                                Uint8List pdfData =
+                                    await service.createDefenseForm(form,
+                                        form.defenseType, currentStudent!);
+                                await uploadGeneratedPdf(
+                                    pdfData, 'EN-18DefenseForm');
+                                service.savePdfFile(
+                                    'EN18Defense Form_${currentUser.idnumber}.pdf',
+                                    pdfData);
+
+                                Navigator.of(context).pop();
+                                // You can add further actions after submission here
+                              },
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -927,62 +1164,123 @@ class StudentInfoPageState extends State<StudentInfoPage>
                         ),
                         ElevatedButton(
                           onPressed: () async {
-                            // Inside your widget where you want to show the dialog
-
-                            showCourseDialog(
+                            showAcceptanceDialog(
                               context: context,
-                              recommendedPriorityCourses:
-                                  recommendedPriorityCourses,
-                              recommendedRemedialCourses:
-                                  recommendedRemedialCourses,
-                              onCheckboxChanged: (bool? value) {
-                                setState(() {
-                                  isEng501MChecked = value ?? false;
-                                });
-                              },
-                              onDownloadPressed: () async {
-                                final data =
-                                    await service.createRecommendationForm(
-                                  widget.studentpos,
-                                  recommendedRemedialCourses,
-                                  recommendedPriorityCourses,
-                                  isEng501MChecked,
-                                );
-                                await service.savePdfFile(
-                                  "DeRF_${widget.studentpos.idnumber}.pdf",
-                                  data,
-                                );
+                              onConfirm: (bool isAccepted) async {
+                                if (isAccepted) {
+                                  showCourseDialog(
+                                    context: context,
+                                    recommendedPriorityCourses:
+                                        recommendedPriorityCourses,
+                                    recommendedRemedialCourses:
+                                        recommendedRemedialCourses,
+                                    onCheckboxChanged: (bool? value) {
+                                      setState(() {
+                                        isEng501MChecked = value ?? false;
+                                      });
+                                    },
+                                    onDownloadPressed: () async {
+                                      final data = await service
+                                          .createRecommendationForm(
+                                        widget.studentpos,
+                                        recommendedRemedialCourses,
+                                        recommendedPriorityCourses,
+                                        isEng501MChecked,
+                                        isAccepted,
+                                      );
+                                      await service.savePdfFile(
+                                        "DeRF_${widget.studentpos.idnumber}.pdf",
+                                        data,
+                                      );
 
-                                if (widget.student.degree
-                                    .toLowerCase()
-                                    .contains('mit')) {
-                                  setState(() {
-                                    widget.studentpos = generatePOSforMIT(
-                                      widget.student,
-                                      widget.studentpos,
-                                      studentPOSList,
-                                      courses,
+                                      // Update the state
+                                      setState(() {
+                                        widget.student.role =
+                                            'Graduate Student'; // Assuming `role` is the field for the student's role
+                                        widget.studentpos.role =
+                                            'Graduate Student'; // Assuming `role` is the field for the student's role
+                                      });
+
+                                      // Update Firestore
+                                      await FirebaseFirestore.instance
+                                          .collection('users')
+                                          .doc(widget.student.uid)
+                                          .update({'role': 'Graduate Student'});
+
+                                      if (widget.student.degree
+                                          .toLowerCase()
+                                          .contains('mit')) {
+                                        setState(() {
+                                          widget.studentpos = generatePOSforMIT(
+                                            widget.student,
+                                            widget.studentpos,
+                                            studentPOSList,
+                                            courses,
+                                          );
+                                        });
+                                      } else if (widget.student.degree
+                                          .toLowerCase()
+                                          .contains('msit')) {
+                                        setState(() {
+                                          widget.studentpos =
+                                              generatePOSforMSIT(
+                                            widget.student,
+                                            widget.studentpos,
+                                            studentPOSList,
+                                            courses,
+                                          );
+                                          shownRecoGuide = true;
+                                        });
+                                      }
+                                      posEdited = true;
+                                    },
+                                  );
+                                } else {
+                                  // Logic for creating and saving the recommendation form when not accepted
+                                  final data = await service
+                                      .createRejectedDerf(isAccepted);
+                                  await service.savePdfFile(
+                                    "DeRF_${widget.studentpos.idnumber}.pdf",
+                                    data,
+                                  );
+                                  try {
+                                    await FirebaseFirestore.instance
+                                        .collection('users')
+                                        .doc(widget.student.uid)
+                                        .delete();
+
+                                    // Delete the user from Firebase Authentication
+                                    FirebaseAuth.instance.currentUser!.uid;
+
+                                    // Show a SnackBar
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('User deleted'),
+                                        duration: Duration(seconds: 2),
+                                      ),
                                     );
-                                  });
-                                } else if (widget.student.degree
-                                    .toLowerCase()
-                                    .contains('msit')) {
-                                  setState(() {
-                                    widget.studentpos = generatePOSforMSIT(
-                                      widget.student,
-                                      widget.studentpos,
-                                      studentPOSList,
-                                      courses,
-                                    );
-                                    shownRecoGuide = true;
-                                  });
+
+                                    // Close the dialog
+                                    Navigator.pop(context);
+                                  } catch (e) {
+                                    print('Error deleting user: $e');
+                                    // Handle the error
+                                  }
                                 }
-                                posEdited = true;
-                                Navigator.pop(context, true);
                               },
                             );
                           }, // Disable the button when no course is added
                           child: Text("Download Recommendation Form"),
+                        ),
+                        SizedBox(
+                          width: 20,
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            downloadFile(widget.student
+                                .uid); // Pass the applicant's uid to download the file
+                          },
+                          child: Text("Download Exam Result"),
                         ),
                         Spacer(),
                         ElevatedButton(
@@ -1635,41 +1933,15 @@ class StudentInfoPageState extends State<StudentInfoPage>
                                   },
                                   tooltip: 'Download EN-18 Defense Form',
                                 ),
-                                TextButton(
-                                  onPressed: () async {
-                                    String fileName =
-                                        'templates/EN-18-201904 Defense Form.pdf';
-                                    try {
-                                      final imageUrl = await FirebaseStorage
-                                          .instance
-                                          .ref()
-                                          .child(fileName)
-                                          .getDownloadURL();
-                                      if (await canLaunch(
-                                          imageUrl.toString())) {
-                                        await launch(imageUrl.toString());
-                                      } else {
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          SnackBar(
-                                            content:
-                                                Text('Failed to download file'),
-                                          ),
-                                        );
-                                      }
-                                    } catch (e) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        SnackBar(
-                                          content: Text('File does not exist'),
-                                        ),
-                                      );
-                                    }
-                                  },
-                                  child: Text(
-                                    'Download EN-18 Template',
-                                    style: TextStyle(fontSize: 10),
-                                  ),
+                                Column(
+                                  children: [
+                                    IconButton(
+                                      icon: Icon(Icons.attach_file),
+                                      onPressed: modifyDefenseForm,
+                                      tooltip:
+                                          'Upload EN-18 Form, make sure that the uploaded EN-18 form is signed',
+                                    ),
+                                  ],
                                 ),
                               ],
                             )),

@@ -125,6 +125,7 @@ Faculty faculty = Faculty(
       section: historyCourse.section,
       roomNum: historyCourse.roomNum,
       setup: historyCourse.setup,
+      onlineDay: historyCourse.onlineDay
     );
   }).toList(),
 );

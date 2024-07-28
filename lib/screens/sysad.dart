@@ -76,7 +76,12 @@ class _MainViewState extends State<Sysad> {
   }
 
   void _editUserData(BuildContext context, user user) {
-    List<String> roles = ['Coordinator', 'Graduate Student', 'Admin'];
+    List<String> roles = [
+      'Coordinator',
+      'Graduate Student',
+      'Admin',
+      'Applicant'
+    ];
     String selectedRole = user.role;
     List<String> status = ['Full Time', 'Part Time', 'LOA'];
     String selectedStatus = user.status;
@@ -110,17 +115,8 @@ class _MainViewState extends State<Sysad> {
                         TextStyle(color: const Color.fromARGB(255, 78, 78, 78)),
                   ),
                 ]),
-                Row(children: [
-                  Text(
-                    "ID Number: ",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    idNumberController.text,
-                    style:
-                        TextStyle(color: const Color.fromARGB(255, 78, 78, 78)),
-                  ),
-                ]),
+                _buildEditableField('ID Number', idNumberController,
+                    false), // Make ID Number editable
                 DropdownButtonFormField<String>(
                   value: selectedRole,
                   items: roles.map((role) {
@@ -229,7 +225,6 @@ class _MainViewState extends State<Sysad> {
                   user.email = emailController.text;
                   user.role = selectedRole;
                   user.status = selectedStatus;
-
                   user.idnumber = int.parse(idNumberController.text);
                 });
 
@@ -237,6 +232,20 @@ class _MainViewState extends State<Sysad> {
                 try {
                   await FirebaseFirestore.instance
                       .collection('users')
+                      .doc(user
+                          .uid) // Assuming you have a 'uid' field in your User class
+                      .update({
+                    'displayname': {
+                      'firstname': firstNameController.text,
+                      'lastname': lastNameController.text,
+                    },
+                    'email': emailController.text,
+                    'role': selectedRole,
+                    'status': selectedStatus,
+                    'idnumber': int.parse(idNumberController.text),
+                  });
+                  await FirebaseFirestore.instance
+                      .collection('studentpos')
                       .doc(user
                           .uid) // Assuming you have a 'uid' field in your User class
                       .update({
@@ -428,7 +437,7 @@ class _MainViewState extends State<Sysad> {
                               // Handle the click event for the ListTile
                               currentStudent = enrolledStudent[i];
                               studentPOS = StudentPOS(
-                                acceptanceTerm: getCurrentSYandTerm(),
+                                  acceptanceTerm: getCurrentSYandTerm(),
                                   schoolYears: defaultschoolyears,
                                   uid: enrolledStudent[i].uid,
                                   displayname: enrolledStudent[i].displayname,
