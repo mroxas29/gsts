@@ -2516,8 +2516,10 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
       String selectedType = 'Thesis';
       int selectedNumber = 1;
       String adviserPrefix = 'Mr';
-      TextEditingController adviserNameController = TextEditingController();
-      TextEditingController mainTitleController = TextEditingController();
+      TextEditingController adviserNameController =
+          TextEditingController(text: _retrievedForm!.adviserName);
+      TextEditingController mainTitleController =
+          TextEditingController(text: _retrievedForm!.mainTitle);
       bool isAdviserNameEmpty = false;
       bool isMainTitleEmpty = false;
       bool signedByAdviser = false;
@@ -2698,8 +2700,8 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                         'adviserName': adviserName,
                         'enrollmentStage': enrollmentStage,
                         'date': formattedDate,
-                        'leadPanel': 'No lead panel assigned',
-                        'panelMembers': ['', '', '', ''],
+                        'leadPanel': _retrievedForm!.leadPanel,
+                        'panelMembers': _retrievedForm!.panelMembers,
                         'defenseDate': 'No date set',
                         'signedByGSC': signedByGSC,
                         'signedByAdviser': signedByAdviser,
@@ -3120,7 +3122,10 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                           form, form.defenseType, currentStudent!);
                       await uploadGeneratedPdf(pdfData, 'EN-18DefenseForm');
                       service.savePdfFile(
-                          'EN18Defense Form_${currentUser.idnumber}.pdf', pdfData);
+                          'EN18Defense Form_${currentUser.idnumber}.pdf',
+                          pdfData);
+                      form.saveFormToFirestore(form, currentStudent!.uid);
+
                       Navigator.of(context).pop();
                       showDialog(
                         context: context,
@@ -3350,7 +3355,6 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                           },
                           tooltip: 'Upload EN-18 Defense Form',
                         ),
-
                       ],
                     )),
                   ]),

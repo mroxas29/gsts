@@ -253,53 +253,47 @@ class StudentInfoPageState extends State<StudentInfoPage>
                   onPressed: () {
                     setState(() async {
                       confirmSign = true;
-                     
-                  
-      
-                          // Create EN19Form object
-                          EN19Form form = EN19Form(
-                            proposedTitle: widget.en19!.proposedTitle,
-                            lastName: _capitalize(
-                                widget.student!.displayname['lastname']!),
-                            firstName: _capitalize(
-                                widget.student!.displayname['firstname']!),
-                            middleName: '',
-                            idNumber: widget.student!.idnumber.toString(),
-                            college: 'Computer Studies',
-                            program: widget.student!.degree,
-                            passedComprehensiveExams: passedExaminations,
-                            submittedCertificate: submittedCertificate,
-                            adviserName: widget.en19!.adviserName,
-                            enrollmentStage: widget.en19!.enrollmentStage,
-                            date: DateTime.now(),
-                            leadPanel: widget.en19!.leadPanel,
-                            panelMembers: [],
-                            defenseDate: widget.en19!.defenseDate,
-                            signedByGSC: signedByGSC,
-                            signedByAdviser: signedByAdviser,
-                            defenseTime: widget.en19!.defenseTime,
-                            mainTitle: widget.en19!.mainTitle,
-                            defenseType: widget.en19!.defenseType,
-                            verdict: widget.en19!.verdict,
-                          );
 
-                          
-                          form.saveFormToFirestore(form, widget.student.uid);
+                      // Create EN19Form object
+                      EN19Form form = EN19Form(
+                        proposedTitle: widget.en19!.proposedTitle,
+                        lastName: _capitalize(
+                            widget.student!.displayname['lastname']!),
+                        firstName: _capitalize(
+                            widget.student!.displayname['firstname']!),
+                        middleName: '',
+                        idNumber: widget.student!.idnumber.toString(),
+                        college: 'Computer Studies',
+                        program: widget.student!.degree,
+                        passedComprehensiveExams: passedExaminations,
+                        submittedCertificate: submittedCertificate,
+                        adviserName: widget.en19!.adviserName,
+                        enrollmentStage: widget.en19!.enrollmentStage,
+                        date: DateTime.now(),
+                        leadPanel: widget.en19!.leadPanel,
+                        panelMembers: widget.en19!.panelMembers,
+                        defenseDate: widget.en19!.defenseDate,
+                        signedByGSC: signedByGSC,
+                        signedByAdviser: signedByAdviser,
+                        defenseTime: widget.en19!.defenseTime,
+                        mainTitle: widget.en19!.mainTitle,
+                        defenseType: widget.en19!.defenseType,
+                        verdict: widget.en19!.verdict,
+                      );
 
-                          Uint8List pdfData = await service.createEN19(
-                              form,  currentStudent!.role);
-                          await uploadGeneratedPdf(pdfData, 'EN-19Form');
-                          service.savePdfFile(
-                              'EN-19Form_${currentUser.idnumber}.pdf',
-                              pdfData);
-                          setState(() {
-                            retrieveEN19Form();
-                          });
+                      form.saveFormToFirestore(form, widget.student.uid);
 
-                          print('File uploaded successfully');
-                          Navigator.pop(context, true);
-                      
-                      
+                      Uint8List pdfData =
+                          await service.createEN19(form, currentStudent!.role);
+                      await uploadGeneratedPdf(pdfData, 'EN-19Form');
+                      service.savePdfFile(
+                          'EN-19Form_${currentUser.idnumber}.pdf', pdfData);
+                      setState(() {
+                        retrieveEN19Form();
+                      });
+
+                      print('File uploaded successfully');
+                      Navigator.pop(context, true);
                     });
 
                     Navigator.pop(context, true); // Yes, delete
@@ -783,15 +777,19 @@ class StudentInfoPageState extends State<StudentInfoPage>
                   context: context,
                   builder: (BuildContext context) {
                     final TextEditingController leadPanelController =
-                        TextEditingController();
+                        TextEditingController(text: widget.en19!.leadPanel);
                     final TextEditingController panelMember1Controller =
-                        TextEditingController();
+                        TextEditingController(
+                            text: widget.en19!.panelMembers[0]);
                     final TextEditingController panelMember2Controller =
-                        TextEditingController();
+                        TextEditingController(
+                            text: widget.en19!.panelMembers[1]);
                     final TextEditingController panelMember3Controller =
-                        TextEditingController();
+                        TextEditingController(
+                            text: widget.en19!.panelMembers[2]);
                     final TextEditingController panelMember4Controller =
-                        TextEditingController();
+                        TextEditingController(
+                            text: widget.en19!.panelMembers[3]);
 
                     return StatefulBuilder(
                       builder: (BuildContext context, StateSetter setState) {
@@ -808,8 +806,6 @@ class StudentInfoPageState extends State<StudentInfoPage>
                                 ),
                                 TextField(
                                   controller: leadPanelController,
-                                  decoration: InputDecoration(
-                                      hintText: 'Enter lead panel name'),
                                 ),
                                 SizedBox(height: 10),
                                 Text(
@@ -818,23 +814,15 @@ class StudentInfoPageState extends State<StudentInfoPage>
                                 ),
                                 TextField(
                                   controller: panelMember1Controller,
-                                  decoration: InputDecoration(
-                                      hintText: 'Enter panel member 1 name'),
                                 ),
                                 TextField(
                                   controller: panelMember2Controller,
-                                  decoration: InputDecoration(
-                                      hintText: 'Enter panel member 2 name'),
                                 ),
                                 TextField(
                                   controller: panelMember3Controller,
-                                  decoration: InputDecoration(
-                                      hintText: 'Enter panel member 3 name'),
                                 ),
                                 TextField(
                                   controller: panelMember4Controller,
-                                  decoration: InputDecoration(
-                                      hintText: 'Enter panel member 4 name'),
                                 ),
                               ],
                             ),

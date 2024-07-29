@@ -307,6 +307,9 @@ class PdfInvoiceService {
 
   Future<Uint8List> createDefenseForm(
       EN19Form en19, String defenseType, Student student) async {
+    if (en19.panelMembers.isEmpty) {
+      en19.panelMembers = ['', '', '', ''];
+    }
     final pdf = pw.Document();
     bool hasProposal = student.pastCourses.any((course) =>
         course.coursename.toLowerCase().toLowerCase().contains('proposal') &&
