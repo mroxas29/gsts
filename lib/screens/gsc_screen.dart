@@ -4173,6 +4173,8 @@ class _MainViewState extends State<Gscscreen> {
         ),
       ),
 
+      //DEADLINES SCREEN
+      
       // CALENDAR PAGE || Following guide: https://www.youtube.com/watch?v=6Gxa-v7Zh7I&ab_channel=AIwithFlutter
       CalendarSF(),
 
@@ -4513,6 +4515,7 @@ class _MainViewState extends State<Gscscreen> {
                   label: 'Program Management',
                 ),
                 SideNavigationBarItem(icon: Icons.schedule, label: 'Defenses'),
+                SideNavigationBarItem(icon: Icons.timer_sharp, label: 'Deadlines'),
                 SideNavigationBarItem(
                   icon: Icons.calendar_month_outlined,
                   label: 'Calendar',
