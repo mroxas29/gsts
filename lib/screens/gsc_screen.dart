@@ -2603,8 +2603,8 @@ class _MainViewState extends State<Gscscreen> {
                           .map((controller) =>
                               controller.text.isEmpty ? " " : controller.text)
                           .toList();
-                      if (defense.verdict == 'Redefense') ;
-                      {
+
+                      if (defense.verdict == 'Redefense') {
                         defense.defenseDate = "No date set";
 
                         defense.defenseTime = "No time set";
