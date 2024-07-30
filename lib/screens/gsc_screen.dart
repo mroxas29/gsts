@@ -98,6 +98,7 @@ class _MainViewState extends State<Gscscreen> {
   /// The currently selected index of the bar
   int selectedIndex = 0;
   String selectedProgramFilter = 'All';
+  String selectedVerdict = 'All';
   List<EN19Form> filteredDefenses = [];
 
   @override
@@ -813,6 +814,269 @@ class _MainViewState extends State<Gscscreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildFilteredVerdictTable() {
+    List<EN19Form> filteredForms = selectedVerdict == 'All'
+        ? allDefenseForms
+        : allDefenseForms.where((form) {
+            if (selectedVerdict == 'No Verdict') {
+              return form.verdict == 'No verdict'; // Match the Firestore value
+            }
+            return form.verdict == selectedVerdict;
+          }).toList();
+
+    filteredForms.sort((a, b) => _sortComparison(a, b));
+
+    return filteredForms.isEmpty
+        ? SizedBox.shrink()
+        : Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  selectedVerdict,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+                SizedBox(height: 8),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: DataTable(
+                    columns: [
+                      DataColumn(
+                        label: Text(
+                          'Verdict',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      DataColumn(
+                        label: Text(
+                          'Defense Schedule',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      DataColumn(
+                        label: Text(
+                          'College',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      DataColumn(
+                        label: Text(
+                          'ID Number',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      DataColumn(
+                        label: Text(
+                          'Student',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      DataColumn(
+                        label: Text(
+                          'Enrollment Stage',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      DataColumn(
+                        label: Text(
+                          'Title',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      DataColumn(
+                        label: Text(
+                          'Lead Panelist',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      DataColumn(
+                        label: Text(
+                          'Actions',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                    rows: filteredForms.map((form) {
+                      bool isConcluded = _isDefenseConcluded(
+                          form.defenseDate, form.defenseTime);
+                      String verdictText = form.verdict == 'No verdict'
+                          ? (isConcluded
+                              ? "${form.verdict} (Defense Concluded)"
+                              : "${form.verdict} (Not Concluded)")
+                          : form.verdict;
+
+                      return DataRow(
+                        cells: [
+                          DataCell(
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8.0, vertical: 4.0),
+                              decoration: BoxDecoration(
+                                color: _getVerdictBackgroundColor(
+                                    form.verdict,
+                                    form.verdict == 'No verdict'
+                                        ? isConcluded
+                                        : false),
+                                borderRadius: BorderRadius.circular(8.0),
+                              ),
+                              child: Text(
+                                verdictText,
+                                style: TextStyle(
+                                  color: _getVerdictTextColor(
+                                      form.verdict,
+                                      form.verdict == 'No verdict'
+                                          ? isConcluded
+                                          : false),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                          DataCell(Text(
+                              "${form.defenseDate} (${form.defenseTime})")),
+                          DataCell(Text(form.program)),
+                          DataCell(Text(form.idNumber)),
+                          DataCell(Text("${form.firstName} ${form.lastName}")),
+                          DataCell(Text(form.enrollmentStage)),
+                          DataCell(Text(form.mainTitle)),
+                          DataCell(Text(form.leadPanel)),
+                          DataCell(
+                            TextButton(
+                              onPressed: () {
+                                showDefenseDetailsDialog(context, form);
+                              },
+                              child: Text(
+                                'View Details',
+                                style: TextStyle(color: Colors.blue),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    }).toList(),
+                  ),
+                ),
+                SizedBox(height: 20),
+              ],
+            ),
+          );
+  }
+
+  int _verdictOrder(String verdict, bool concluded) {
+    switch (verdict) {
+      case 'Redefense':
+        return 1;
+      case 'Failed':
+        return 2;
+      case 'Passed':
+        return 3;
+      case 'No verdict':
+        return concluded ? 5 : 4;
+      default:
+        return 6;
+    }
+  }
+
+  bool _isDefenseConcluded(String defenseDate, String defenseTime) {
+    try {
+      DateTime now = DateTime.now();
+
+      List<String> dateParts = defenseDate.split(' ');
+      String monthString = dateParts[0];
+      int day = int.parse(dateParts[1].replaceAll(',', ''));
+      int year = int.parse(dateParts[2]);
+
+      Map<String, int> months = {
+        'January': 1,
+        'February': 2,
+        'March': 3,
+        'April': 4,
+        'May': 5,
+        'June': 6,
+        'July': 7,
+        'August': 8,
+        'September': 9,
+        'October': 10,
+        'November': 11,
+        'December': 12,
+      };
+
+      int month = months[monthString] ?? 1;
+
+      List<String> timeParts = defenseTime.split(' ');
+      List<String> hourMinParts = timeParts[0].split(':');
+      int hour = int.parse(hourMinParts[0]);
+      int minute = int.parse(hourMinParts[1]);
+
+      if (timeParts[1] == 'PM' && hour != 12) {
+        hour += 12;
+      } else if (timeParts[1] == 'AM' && hour == 12) {
+        hour = 0;
+      }
+
+      DateTime defenseDateTime = DateTime(year, month, day, hour, minute);
+
+      return defenseDateTime.isBefore(now);
+    } catch (e) {
+      print("Error parsing date or time: $e");
+      return false;
+    }
+  }
+
+  Color _getVerdictTextColor(String verdict, bool isConcluded) {
+    if (verdict == 'No verdict') {
+      return isConcluded ? Colors.blueGrey : Colors.black;
+    }
+
+    switch (verdict) {
+      case 'Passed':
+        return Colors.green;
+      case 'Failed':
+        return Colors.red;
+      case 'Redefense':
+        return Colors.orange;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Color _getVerdictBackgroundColor(String verdict, bool isConcluded) {
+    if (verdict == 'No verdict') {
+      return isConcluded
+          ? Colors.grey.withOpacity(0.3)
+          : Colors.black.withOpacity(0.1);
+    }
+
+    switch (verdict) {
+      case 'Passed':
+        return Colors.green.withOpacity(0.1);
+      case 'Failed':
+        return Colors.red.withOpacity(0.1);
+      case 'Redefense':
+        return Colors.orange.withOpacity(0.3);
+      default:
+        return Colors.grey.withOpacity(0.1);
+    }
+  }
+
+  int _sortComparison(EN19Form a, EN19Form b) {
+    bool aConcluded = _isDefenseConcluded(a.defenseDate, a.defenseTime);
+    bool bConcluded = _isDefenseConcluded(b.defenseDate, b.defenseTime);
+
+    int verdictOrderA = _verdictOrder(a.verdict, aConcluded);
+    int verdictOrderB = _verdictOrder(b.verdict, bConcluded);
+
+    if (verdictOrderA != verdictOrderB) {
+      return verdictOrderA.compareTo(verdictOrderB);
+    }
+
+    return 0; // Additional sorting logic if needed
   }
 
   void showCourseDetails(
@@ -3769,41 +4033,64 @@ class _MainViewState extends State<Gscscreen> {
           ),
           body: TabBarView(children: [
             Scaffold(
-              appBar: PreferredSize(
-                preferredSize: Size.fromHeight(kToolbarHeight),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: DefenseSchedulesAppBar(
-                        currentStudentIndex: hasSchedDates.length,
-                        totalStudents: allDefenseForms.length,
-                      ),
+              appBar: AppBar(
+                title: Text('Defense Monitoring Table Sheet'),
+                actions: [
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Filter',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                        SizedBox(width: 8),
+                        DropdownButton<String>(
+                          value: selectedVerdict,
+                          onChanged: (newValue) {
+                            setState(() {
+                              selectedVerdict = newValue!;
+                            });
+                          },
+                          items: [
+                            'All',
+                            'No Verdict',
+                            'Redefense',
+                            'Passed',
+                            'Failed'
+                          ].map<DropdownMenuItem<String>>((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(value),
+                            );
+                          }).toList(),
+                        ),
+                      ],
                     ),
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: DropdownButton<String>(
-                        value: selectedProgramFilter,
-                        onChanged: (newValue) {
-                          setState(() {
-                            selectedProgramFilter = newValue!;
-                            filterDefenses();
-                          });
-                        },
-                        items: ['All', 'MIT', 'MSIT']
-                            .map<DropdownMenuItem<String>>((String value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              //START HERE
-              //LIST OF ALL DEFENSES "allDefenseForms"
-              body: Text("DEFENSE MONITORING HERE"),
+              body: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 16.0), // Add padding from the top
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: MediaQuery.of(context).size.width * 0.9,
+                        ),
+                        child:
+                            _buildFilteredVerdictTable(), // Use filtered table
+                      ),
+                    ),
+                  ),
+                  // You can add more widgets here if needed, such as additional filters or information.
+                ],
+              ),
             ),
             Scaffold(
               appBar: PreferredSize(
@@ -4174,7 +4461,7 @@ class _MainViewState extends State<Gscscreen> {
       ),
 
       //DEADLINES SCREEN
-      
+
       // CALENDAR PAGE || Following guide: https://www.youtube.com/watch?v=6Gxa-v7Zh7I&ab_channel=AIwithFlutter
       CalendarSF(),
 
@@ -4515,7 +4802,8 @@ class _MainViewState extends State<Gscscreen> {
                   label: 'Program Management',
                 ),
                 SideNavigationBarItem(icon: Icons.schedule, label: 'Defenses'),
-                SideNavigationBarItem(icon: Icons.timer_sharp, label: 'Deadlines'),
+                SideNavigationBarItem(
+                    icon: Icons.timer_sharp, label: 'Deadlines'),
                 SideNavigationBarItem(
                   icon: Icons.calendar_month_outlined,
                   label: 'Calendar',
