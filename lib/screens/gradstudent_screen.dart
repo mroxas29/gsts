@@ -2250,6 +2250,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                     )
                     .toList(),
               ),
+              /*
               Center(
                 child: InkWell(
                   onTap: () async {
@@ -2271,7 +2272,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                             color: Colors.grey)),
                   ),
                 ),
-              ),
+              ),*/
               SizedBox(
                 height: 8,
               ),
@@ -2346,6 +2347,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                   SizedBox(
                     height: 8,
                   ),
+                  /*
                   Center(
                     child: InkWell(
                       onTap: () {
@@ -2366,7 +2368,7 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                                 color: Colors.grey)),
                       ),
                     ),
-                  )
+                  )*/
                 ],
               ),
             ],
