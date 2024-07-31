@@ -282,7 +282,7 @@ class _ProfileBoxState extends State<ProfileBox> {
                     ),
                     Spacer(),
                     Text(
-                      'Students w/o enrolled courses',
+                      'Possible LOA',
                       style: TextStyle(color: Colors.white, fontSize: 18),
                     ),
                     Spacer(),

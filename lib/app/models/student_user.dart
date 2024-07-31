@@ -253,7 +253,17 @@ Future<void> getNoEnrolledCourseStudents() async {
 
   for (Student stud in studentList) {
     if (stud.enrolledCourses.isEmpty && stud.status != 'LOA') {
-      noEnrolledStudents.add(stud);
+      if (!noEnrolledStudents.contains(stud)) {
+        noEnrolledStudents.add(stud);
+      }
+    }
+
+    if (stud.pastCourses
+        .any((past) => past.grade == 6.5 || past.grade == 9.9)) {
+      if (!noEnrolledStudents.contains(stud)) {
+        print(stud.toJson());
+        noEnrolledStudents.add(stud);
+      }
     }
   }
 }
