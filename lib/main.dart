@@ -20,6 +20,7 @@ import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sysadmindb/ui/reusable_widgets.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:sysadmindb/app/models/deadline.dart';
 
 // ignore: implementation_imports
 import 'package:flutter/src/widgets/container.dart' as contain;
@@ -468,7 +469,7 @@ class _LoginPageState extends State<LoginPage> {
               "Current student uid: ${currentStudent!.uid}\nCurrent User uid: ${currentUser.uid}");
 
           await retrieveStudentPOS(currentStudent!.uid);
-
+    
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
@@ -521,6 +522,7 @@ class _LoginPageState extends State<LoginPage> {
       await getNewStudents();
       await getLOAStudents();
       await getNoEnrolledCourseStudents();
+      await retrieveDeadlinesFromFirestore();
       allDefenseForms = await getAllFormsFromFirestore();
       route();
     } on FirebaseAuthException catch (e) {

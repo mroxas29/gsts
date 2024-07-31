@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/enrolledcourses.dart';
 import 'package:sysadmindb/app/models/pastcourses.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
@@ -282,7 +283,7 @@ Future<List<Student>> convertToStudentList(List<user> users) async {
       );
       studentList.add(studentToAdd);
 
-      if (!isGraduatingWithinTimeFrame(degree, user.idnumber.toString())) {
+      if (isIneligibleToEnroll(studentToAdd)) {
         ineligibleStudentList.add(Student(
           uid: user.uid,
           displayname: user.displayname,
@@ -322,11 +323,35 @@ bool isGraduatingWithinTimeFrame(String degree, String idNumber) {
     maxGraduationYear = idYear + 8;
   } else {
     // For other degrees, return true (no specific time frame)
-    maxGraduationYear = idYear + 4;
+    maxGraduationYear = idYear + 8;
   }
 
   // Check if the current year is within the time frame
   return currentYear <= maxGraduationYear;
+}
+
+bool hasTooManyLowGrades(List<PastCourse> pastCourses) {
+  int lowGradeCourses = 0;
+  int lowGradeUnits = 0;
+
+  for (PastCourse course in pastCourses) {
+    if (course.grade < 2.0) {
+      lowGradeCourses++;
+      lowGradeUnits += course.units;
+    }
+  }
+
+  // Check if more than 2 courses or more than 6 units have a grade below 2.0
+  return lowGradeCourses >= 2 || lowGradeUnits >= 6;
+}
+
+bool isIneligibleToEnroll(Student student) {
+  bool withinTimeFrame =
+      isGraduatingWithinTimeFrame(student.degree, student.idnumber.toString());
+  bool tooManyLowGrades = hasTooManyLowGrades(student.pastCourses);
+
+  // A student is ineligible if they are not within the timeframe or have too many low grades
+  return !withinTimeFrame || tooManyLowGrades;
 }
 
 Future<String> getStudentStatus(String studentUid) async {

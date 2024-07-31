@@ -7,6 +7,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' as date;
+import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:confetti/confetti.dart';
 import 'package:side_navigation/side_navigation.dart';
@@ -14,6 +15,7 @@ import 'package:sysadmindb/api/email/invoice_service.dart';
 import 'package:sysadmindb/app/models/AcademicCalendar.dart';
 import 'package:sysadmindb/app/models/coursedemand.dart';
 import 'package:sysadmindb/app/models/courses.dart';
+import 'package:sysadmindb/app/models/deadline.dart';
 import 'package:sysadmindb/app/models/en-19.dart';
 import 'package:sysadmindb/app/models/enrolledcourses.dart';
 import 'package:sysadmindb/app/models/pastcourses.dart';
@@ -78,6 +80,22 @@ String _capitalize(String input) {
 
 ConfettiController _confettiController =
     ConfettiController(duration: const Duration(seconds: 5));
+String _formatDate(DateTime? date) {
+  if (date == null) {
+    return 'Not set';
+  }
+  return DateFormat('MMMM d, yyyy h:mm a').format(date);
+}
+
+final enabledDeadlines =
+    deadlines.where((deadline) => deadline.isEnabled).toList();
+
+final deadlineText = enabledDeadlines.isNotEmpty
+    ? enabledDeadlines
+        .map((deadline) =>
+            '${deadline.name}: ${_formatDate(deadline.deadlineDate)}')
+        .join('\n')
+    : 'No enabled deadlines';
 
 class _StudentProfileScreenState extends State<StudentProfileScreen> {
   bool isEditing = false;
@@ -3490,6 +3508,80 @@ class _MainViewState extends State<GradStudentscreen>
     defenseForms = FirebaseStorage.instance
         .ref('/${currentStudent!.idnumber}/Defense Forms')
         .listAll();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await showDialog<String>(
+        context: context,
+        builder: (BuildContext context) {
+          // Group deadlines by category
+          final Map<String, List<Deadline>> categorizedDeadlines = {};
+          for (var deadline in deadlines) {
+            if (deadline.isEnabled) {
+              categorizedDeadlines
+                  .putIfAbsent(deadline.category, () => [])
+                  .add(deadline);
+            }
+          }
+
+          // Format the deadlines with categories
+          final String deadlineText = categorizedDeadlines.keys.isNotEmpty
+              ? categorizedDeadlines.entries.map((entry) {
+                  final category = entry.key;
+                  final deadlines = entry.value;
+                  final formattedDeadlines = deadlines
+                      .map((d) => '${d.name} - ${_formatDate(d.deadlineDate)}')
+                      .join('\n');
+                  return '**$category:**\n$formattedDeadlines';
+                }).join('\n\n')
+              : 'No enabled deadlines';
+
+          return AlertDialog(
+            title: Text('Deadlines for ${getCurrentSYandTerm()}'),
+            content: SingleChildScrollView(
+              child: ListBody(
+                children: [
+                  Text('Take note of the following deadlines'),
+                  const SizedBox(height: 8),
+                  Text(
+                    deadlineText,
+                    style: TextStyle(
+                      height: 1.5,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Please note that upload will not be available after these dates.',
+                    style: TextStyle(
+                        color: Colors.grey, fontStyle: FontStyle.italic),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'For more information, email the Graduate School Coordinator.',
+                    style: TextStyle(
+                        color: Colors.grey, fontStyle: FontStyle.italic),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'If you have already submitted or does not apply to you, disregard this notice.',
+                    style: TextStyle(
+                        color: Colors.grey, fontStyle: FontStyle.italic),
+                  ),
+                ],
+              ),
+            ),
+            actions: <Widget>[
+              TextButton(
+                child: const Text('OK'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        },
+      );
+    });
   }
 
   Color getColorForCourseType(Course course) {
@@ -3537,7 +3629,6 @@ class _MainViewState extends State<GradStudentscreen>
                   children: [
                     Text(
                       'Program of Study (Current term: ${getCurrentSYandTerm()})',
-                      textDirection: TextDirection.ltr,
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 24,
@@ -3738,7 +3829,6 @@ class _MainViewState extends State<GradStudentscreen>
       Center(
         child: Text(
           'Inbox',
-          textDirection: TextDirection.ltr,
           style: TextStyle(fontFamily: 'Inter', fontSize: 100),
         ),
       ),

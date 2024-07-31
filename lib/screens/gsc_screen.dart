@@ -27,6 +27,7 @@ import 'package:sysadmindb/main.dart';
 import 'package:sysadmindb/app/models/user.dart';
 import 'package:sysadmindb/ui/dashboard_utils/studentList.dart';
 import 'package:sysadmindb/ui/deRF_dialog.dart';
+import 'package:sysadmindb/ui/deadlines_page.dart';
 import 'package:sysadmindb/ui/defense_card.dart';
 import 'package:sysadmindb/ui/defense_sched.dart';
 import 'package:sysadmindb/ui/forms/addcourse.dart';
@@ -987,7 +988,15 @@ class _MainViewState extends State<Gscscreen> {
     try {
       DateTime now = DateTime.now();
 
+      if (defenseDate == "No date set" || defenseTime == "No time set") {
+        return false; // Consider defenses without a set date/time as not concluded
+      }
+
       List<String> dateParts = defenseDate.split(' ');
+      if (dateParts.length != 3) {
+        throw FormatException("Invalid date format");
+      }
+
       String monthString = dateParts[0];
       int day = int.parse(dateParts[1].replaceAll(',', ''));
       int year = int.parse(dateParts[2]);
@@ -1010,7 +1019,15 @@ class _MainViewState extends State<Gscscreen> {
       int month = months[monthString] ?? 1;
 
       List<String> timeParts = defenseTime.split(' ');
+      if (timeParts.length != 2) {
+        throw FormatException("Invalid time format");
+      }
+
       List<String> hourMinParts = timeParts[0].split(':');
+      if (hourMinParts.length != 2) {
+        throw FormatException("Invalid time format");
+      }
+
       int hour = int.parse(hourMinParts[0]);
       int minute = int.parse(hourMinParts[1]);
 
@@ -1988,7 +2005,7 @@ class _MainViewState extends State<Gscscreen> {
   }
 
   void changeScreen(int index) async {
-    if (index == 3) {
+    if (index == 4) {
       String url = 'https://calendar.google.com/a/dlsu.edu.ph';
       if (await canLaunch(url)) {
         launch(url, forceSafariVC: false, forceWebView: false);
@@ -1997,7 +2014,7 @@ class _MainViewState extends State<Gscscreen> {
       }
     }
 
-    if (index == 4) {
+    if (index == 5) {
       String url = 'https://mail.google.com/a/dlsu.edu.ph';
       if (await canLaunch(url)) {
         launch(url, forceSafariVC: false, forceWebView: false);
@@ -2554,8 +2571,13 @@ class _MainViewState extends State<Gscscreen> {
                               defense.verdict = newValue!;
                             });
                           },
-                          items: ['No verdict', 'Passed', 'Failed', 'Redefense']
-                              .map<DropdownMenuItem<String>>((String value) {
+                          items: [
+                            'No verdict',
+                            'Passed',
+                            'Passed with revisions',
+                            'Failed',
+                            'Redefense'
+                          ].map<DropdownMenuItem<String>>((String value) {
                             return DropdownMenuItem<String>(
                               value: value,
                               child: Text(value),
@@ -4058,6 +4080,7 @@ class _MainViewState extends State<Gscscreen> {
                             'No Verdict',
                             'Redefense',
                             'Passed',
+                            'Passed with revisions',
                             'Failed'
                           ].map<DropdownMenuItem<String>>((String value) {
                             return DropdownMenuItem<String>(
@@ -4461,7 +4484,7 @@ class _MainViewState extends State<Gscscreen> {
       ),
 
       //DEADLINES SCREEN
-
+      Deadlines(),
       // CALENDAR PAGE || Following guide: https://www.youtube.com/watch?v=6Gxa-v7Zh7I&ab_channel=AIwithFlutter
       CalendarSF(),
 

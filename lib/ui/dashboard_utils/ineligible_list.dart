@@ -19,7 +19,7 @@ class IneligibleList extends StatelessWidget {
       maxGraduationYear = idYear + 8;
     } else {
       // For other degrees, return true (no specific time frame)
-      return idYear + 4;
+      return idYear + 8;
     }
 
     // Check if the current year is within the time frame
@@ -52,7 +52,11 @@ class IneligibleList extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "ID Number: ${student.idnumber} (Student should have graduated on or before ${graduatingYear(student.degree, student.idnumber.toString())})",
+                      graduatingYear(
+                                  student.degree, student.idnumber.toString()) <
+                              DateTime.now().year
+                          ? "ID Number: ${student.idnumber} (Student should have graduated on or before ${graduatingYear(student.degree, student.idnumber.toString())})"
+                          : "Student has reached maximum units of failures",
                       style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
