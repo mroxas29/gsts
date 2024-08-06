@@ -23,6 +23,7 @@ import 'package:sysadmindb/app/models/faculty.dart';
 import 'package:sysadmindb/app/models/pastcourses.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
+import 'package:sysadmindb/app/models/timeline.dart';
 import 'package:sysadmindb/main.dart';
 import 'package:sysadmindb/app/models/user.dart';
 import 'package:sysadmindb/ui/dashboard_utils/studentList.dart';
@@ -773,7 +774,7 @@ class _MainViewState extends State<Gscscreen> {
 
                           // Fetch student POS details
                           await retrieveStudentPOS(student.uid);
-
+                          await fetchStudentTimelines(student.uid);
                           // Use setState to update the widget state
                           setState(() {});
 
@@ -1731,6 +1732,28 @@ class _MainViewState extends State<Gscscreen> {
                                                                         idNumber
                                                                             .toString())
                                                                     .toJson());
+                                                   
+                                                          String studentUid = studentList
+                                                                    .firstWhere((student) =>
+                                                                        student
+                                                                            .idnumber
+                                                                            .toString() ==
+                                                                        idNumber
+                                                                            .toString())
+                                                                    .uid;
+                                                                 Timeline
+                                                                newTimeline =
+                                                                Timeline(
+                                                              date: DateTime
+                                                                  .now(),
+                                                              title:
+                                                                  "Grade submitted",
+                                                              type:
+                                                                  "Enrollment",
+                                                              description:
+                                                                  "Submitted grades for course ${course.coursecode}",
+                                                            );
+                                                            addTimelineEvent(studentUid, newTimeline);
                                                           }
                                                         }
                                                       });
@@ -2253,6 +2276,53 @@ class _MainViewState extends State<Gscscreen> {
     return studentIds;
   }
 
+  Future<void> addTimelineEvent(String studentUid, Timeline newTimeline) async {
+    try {
+      // Prepare the timeline data
+      Map<String, dynamic> timelineData = {
+        'date': newTimeline.date
+            .toIso8601String(), // Convert DateTime to ISO string
+        'title': newTimeline.title,
+        'type': newTimeline.type,
+        'description': newTimeline.description,
+      };
+
+      // Reference to the Firestore document
+      DocumentReference docRef = FirebaseFirestore.instance
+          .collection('timelines') // Collection name
+          .doc(studentUid); // Document ID for the specific student
+
+      // Fetch the current document
+      DocumentSnapshot snapshot = await docRef.get();
+
+      if (snapshot.exists) {
+        // Retrieve the current list of timelines
+        List<dynamic> currentTimelineList = snapshot.get('timeline') ?? [];
+
+        // Append the new timeline event to the list
+        currentTimelineList.add(timelineData);
+
+        // Update the document with the new list
+        await docRef.update({'timeline': currentTimelineList}).then((value) {
+          print("Timeline event added successfully");
+        }).catchError((error) {
+          print("Failed to add timeline event: $error");
+        });
+      } else {
+        // If the document does not exist, create it with the new timeline
+        await docRef.set({
+          'timeline': [timelineData]
+        }).then((value) {
+          print("Timeline document created and event added successfully");
+        }).catchError((error) {
+          print("Failed to create timeline document: $error");
+        });
+      }
+    } catch (e) {
+      print("Error adding timeline event: $e");
+    }
+  }
+
   Future<void> addEnrolledStudents(
       Course selectedCourse, List<String> students) async {
     late EnrolledCourseData enrolledCourse;
@@ -2303,6 +2373,13 @@ class _MainViewState extends State<Gscscreen> {
                 .update({
               'numstudents': FieldValue.increment(1),
             });
+            Timeline newTimeline = Timeline(
+              date: DateTime.now(),
+              title: "Enrollment to course",
+              type: "Enrollment",
+              description: "Enrollment to course ${selectedCourse.coursecode}",
+            );
+            addTimelineEvent(s.uid, newTimeline);
 
             setState(() {
               s.enrolledCourses.add(enrolledCourse);
@@ -2436,8 +2513,10 @@ class _MainViewState extends State<Gscscreen> {
                         Navigator.of(context).pop();
                         Student? student = studentList.firstWhere((student) =>
                             student.idnumber.toString() == defense.idNumber);
+                        retrieveStudentPOS(student.uid);
                         late DeviatedStudent devStudent;
                         bool isStudentDeviated = false;
+                        fetchStudentTimelines(student.uid);
                         for (DeviatedStudent devstudent
                             in deviatedStudentList) {
                           if (devstudent.studentPOS.idnumber ==
@@ -2907,6 +2986,15 @@ class _MainViewState extends State<Gscscreen> {
                           .set(defense
                               .toMap()); // Assuming `defense.toMap()` correctly converts the object to a map for Firestore
                       print('Form saved successfully');
+
+                      Timeline newTimeline = Timeline(
+                        date: DateTime.now(),
+                        title: "Defense details updated",
+                        type: "Defense",
+                        description:
+                            "Updated defense details",
+                      );
+                      addTimelineEvent(uid, newTimeline);
                     } catch (e) {
                       print('Error saving form: $e');
                     }

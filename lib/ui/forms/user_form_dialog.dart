@@ -12,6 +12,7 @@ import 'package:sysadmindb/app/models/AcademicCalendar.dart';
 import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
+import 'package:sysadmindb/app/models/timeline.dart';
 import 'package:sysadmindb/app/models/user.dart';
 import 'package:sysadmindb/main.dart';
 
@@ -218,7 +219,13 @@ void showAddApplicantForm(BuildContext context, GlobalKey<FormState> formKey) {
 
                       String userID = user!.uid;
                       uid = userID;
-
+Timeline newTimeline = Timeline(
+                        date: DateTime.now(),
+                        title: "Account Creation",
+                        type: "Application",
+                        description: "Account has been added by admin",
+                      );
+                      addTimelineEvent(userID, newTimeline);
                       await FirebaseFirestore.instance
                           .collection('users')
                           .doc(userID)
@@ -264,6 +271,8 @@ void showAddApplicantForm(BuildContext context, GlobalKey<FormState> formKey) {
                     } catch (e) {
                       print('Error creating applicant: $e');
                     }
+
+                      
                   }
                 },
                 child: Text('Add'),

@@ -13,6 +13,7 @@ import 'package:sysadmindb/app/models/en-19.dart';
 import 'package:sysadmindb/app/models/faculty.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
+import 'package:sysadmindb/app/models/timeline.dart';
 import 'package:sysadmindb/main.dart';
 import 'package:sysadmindb/app/models/user.dart';
 import 'package:sysadmindb/screens/gradstudent_screen.dart';
@@ -720,6 +721,15 @@ class _MainViewState extends State<DITSec> {
                         student.idnumber.toString());
                     service.savePdfFile(
                         'EN18Defense Form_${student.idnumber}.pdf', pdfData);
+
+                         Timeline newTimeline = Timeline(
+                      date: DateTime.now(),
+                      title: "Defense modifed",
+                      type: "Defense",
+                      description:
+                          "Successfully modified defense details for student: ${student.idnumber}",
+                    );
+                    addTimelineEvent(student.uid, newTimeline);
                     Navigator.of(context).pop();
                   },
                 ),

@@ -13,6 +13,7 @@ import 'package:sysadmindb/app/models/faculty.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/app/models/term.dart';
+import 'package:sysadmindb/app/models/timeline.dart';
 import 'package:sysadmindb/app/models/user.dart';
 import 'package:sysadmindb/ui/dashboard_utils/Notifications/notification_button.dart';
 import 'package:sysadmindb/ui/info_page/deviatedInfoPage.dart';
@@ -1315,7 +1316,9 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                 onTap: () async {
                                   await retrieveStudentPOS(
                                       studentList[index].uid);
-
+                                
+                                    await fetchStudentTimelines(studentList[index].uid);
+                             
                                   late DeviatedStudent devStudent;
                                   await retrieveEN19Form(
                                       studentList[index].uid);
@@ -1368,6 +1371,8 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                 itemBuilder: (context, index) {
                                   return GestureDetector(
                                     onTap: () async {
+                                        await fetchStudentTimelines(
+                                          applicantList[index].uid);
                                       await retrieveStudentPOS(
                                           applicantList[index].uid);
                                       EN19Form? en19details =
@@ -1420,6 +1425,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                 itemBuilder: (context, index) {
                                   return GestureDetector(
                                     onTap: () async {
+                                      await fetchStudentTimelines( noEnrolledStudents[index].uid);
                                       StudentPOS? clickedStudentPOS =
                                           await retrieveStudentPOS(
                                               noEnrolledStudents[index].uid);
@@ -1473,6 +1479,9 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                 itemBuilder: (context, index) {
                                   return GestureDetector(
                                     onTap: () async {
+                                      fetchStudentTimelines(    deviatedStudentList[index]
+                                              .studentPOS
+                                              .uid);
                                       await retrieveStudentPOS(
                                           deviatedStudentList[index]
                                               .studentPOS
@@ -1539,6 +1548,8 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                 itemBuilder: (context, index) {
                                   return GestureDetector(
                                     onTap: () async {
+                                        await fetchStudentTimelines(
+                                       ineligibleStudentList[index].uid);
                                       await retrieveStudentPOS(
                                           ineligibleStudentList[index].uid);
                                       EN19Form? en19details =
@@ -1592,6 +1603,8 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                 itemBuilder: (context, index) {
                                   return GestureDetector(
                                     onTap: () async {
+                                      await fetchStudentTimelines(
+                                             graduatingStudentsList[index].uid);
                                       await retrieveStudentPOS(
                                           graduatingStudentsList[index].uid);
                                       EN19Form? en19details =

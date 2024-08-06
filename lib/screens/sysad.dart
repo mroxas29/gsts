@@ -7,6 +7,7 @@ import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/faculty.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
+import 'package:sysadmindb/app/models/timeline.dart';
 import 'package:sysadmindb/main.dart';
 import 'package:sysadmindb/app/models/user.dart';
 import 'package:sysadmindb/ui/forms/form.dart';
@@ -521,6 +522,15 @@ class _MainViewState extends State<Sysad> {
                     print('Error deleting course: $e');
                     // Handle the error
                   }
+
+                     Timeline newTimeline = Timeline(
+                    date: DateTime.now(),
+                    title: "Account Deletion",
+                    type: "Application",
+                    description:
+                        "Account has been deleted by admin",
+                  );
+                  addTimelineEvent(currentStudent!.uid, newTimeline);
                 }
               },
               child: Text('Delete', style: TextStyle(color: Colors.red)),

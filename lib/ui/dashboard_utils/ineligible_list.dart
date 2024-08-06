@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sysadmindb/api/email/sendemail.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
+import 'package:sysadmindb/app/models/timeline.dart';
 
 class IneligibleList extends StatelessWidget {
   final Student student;
@@ -86,6 +87,13 @@ class IneligibleList extends StatelessWidget {
                             content: Text("Email sent"),
                           ),
                         );
+                        Timeline newTimeline = Timeline(
+                          date: DateTime.now(),
+                          title: "Sent email",
+                          type: "Enrollment",
+                          description: "Sent email regarding ineligibility",
+                        );
+                        addTimelineEvent(student.uid, newTimeline);
                       },
                       child: Text(
                         'Send email to ${student.email}',

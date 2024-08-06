@@ -23,6 +23,7 @@ import 'package:sysadmindb/app/models/SchoolYear.dart';
 import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/app/models/term.dart';
+import 'package:sysadmindb/app/models/timeline.dart';
 import 'package:sysadmindb/main.dart';
 import 'package:sysadmindb/ui/forms/form.dart';
 import 'package:sysadmindb/api/calendar/test_calendar.dart';
@@ -391,11 +392,12 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                                                 ),
                                                 TextButton(
                                                   onPressed: () {
+                                                     String oldStatus =
+                                                        currentUser.status;
+                                                    currentUser.status =
+                                                        newValue;
                                                     setState(() {
-                                                      String oldStatus =
-                                                          currentUser.status;
-                                                      currentUser.status =
-                                                          newValue;
+                                                     
 
                                                       if (oldStatus == 'LOA' &&
                                                           newValue != 'LOA') {
@@ -419,6 +421,19 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                                                             currentUser.status,
                                                       });
                                                     });
+                                                    
+                                                    Timeline newTimeline =
+                                                        Timeline(
+                                                      date: DateTime.now(),
+                                                      title:
+                                                          "Enrollment Status",
+                                                      type: "Enrollment",
+                                                      description:
+                                                          "Student changed enrollment status from $oldStatus to $newValue",
+                                                    );
+                                                    addTimelineEvent(
+                                                        currentStudent!.uid,
+                                                        newTimeline);
                                                     Navigator.of(context)
                                                         .pop(); // Close the dialog
                                                   },
@@ -2484,7 +2499,14 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
         Uint8List fileBytes = file.bytes!;
         final ref = FirebaseStorage.instance.ref().child(fileName);
         await ref.putData(fileBytes);
-
+        Timeline newTimeline = Timeline(
+          date: DateTime.now(),
+          title: "Uploaded Receipt",
+          type: "Defense",
+          description:
+              "Successfully uploaded defense receipt",
+        );
+        addTimelineEvent(currentStudent!.uid, newTimeline);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Official Receipt successfully uploaded'),
@@ -2522,6 +2544,14 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
           ),
         );
       }
+
+          Timeline newTimeline = Timeline(
+        date: DateTime.now(),
+        title: "Submitted Document",
+        type: "Thesis/Capstone",
+        description: "Successfully uploaded document for $coursecode",
+      );
+      addTimelineEvent(currentStudent!.uid, newTimeline);
     }
 
     Future<void> uploadGeneratedPdf(Uint8List data, String form) async {
@@ -2740,6 +2770,15 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
 
                       service.savePdfFile(
                           'EN-19Form_${currentUser.idnumber}.pdf', pdfData);
+
+                          
+                      Timeline newTimeline = Timeline(
+                        date: DateTime.now(),
+                        title: "Submitted EN-19 From",
+                        type: "Enrollment",
+                        description: "Successfully submitted enrollment form for $enrollmentStage",
+                      );
+                      addTimelineEvent(currentStudent!.uid, newTimeline);
                     },
                     child: Text('Submit'),
                   ),
@@ -3167,6 +3206,14 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                           );
                         },
                       );
+
+                        Timeline newTimeline = Timeline(
+                        date: DateTime.now(),
+                        title: "Submitted Defense Form",
+                        type: "Defense",
+                        description: "Successfully uploaded Defense form",
+                      );
+                      addTimelineEvent(currentStudent!.uid, newTimeline);
                     },
                     child: Text('Submit'),
                   ),
