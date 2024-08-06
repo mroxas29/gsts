@@ -79,7 +79,7 @@ class _DeadlinesState extends State<Deadlines> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8.0),
                       ),
-                      backgroundColor: Color.fromARGB(255, 12, 80, 4),
+                      backgroundColor:  Color.fromARGB(255, 12, 80, 4),
                     ),
                     child: Text(
                       'Deadline: ${_formatDate(deadline.deadlineDate)}',

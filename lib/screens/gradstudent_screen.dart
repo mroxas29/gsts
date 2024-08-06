@@ -2265,9 +2265,11 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                     )
                     .toList(),
               ),
-              /*
+              
               Center(
-                child: InkWell(
+                child:  
+                SizedBox(),
+                /*InkWell(
                   onTap: () async {
                     await getCoursesFromFirestore();
                     showAddEnrolledCoursePopup(context, _formKey, activecourses,
@@ -2286,8 +2288,8 @@ class _CurriculumAuditScreenState extends State<CurriculumAuditScreen> {
                             decoration: TextDecoration.underline,
                             color: Colors.grey)),
                   ),
-                ),
-              ),*/
+                ),*/
+              ),
               SizedBox(
                 height: 8,
               ),
@@ -2790,10 +2792,77 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
       );
     }
 
+bool isPastDeadline(Course course) {
+  // List of relevant course codes and names for deadlines
+  List<String> relevantCourseCodes = [
+    'CIS801M', 'THWR1', 'THPROD', 'THFIND', 'CIS411M', 'CAPROP'
+  ];
+  List<String> relevantCourseNames = [
+    'thesis writing'
+  ];
+
+  // Check if the course is relevant
+  bool isRelevantCourse = relevantCourseCodes.contains(course.coursecode) ||
+      relevantCourseNames.any((name) => course.coursename.toLowerCase().contains(name));
+
+  if (isRelevantCourse) {
+    try {
+      // Find the relevant deadline
+      Deadline deadline = deadlines.firstWhere(
+        (deadline) => (course.coursecode.isNotEmpty &&
+                       deadline.name.toLowerCase().contains(course.coursecode.toLowerCase()) ||
+                       (course.coursename.toLowerCase().contains('thesis writing') &&
+                        deadline.name.toLowerCase().contains('enrollment'))
+                      ) && deadline.isEnabled,
+        orElse: () => throw Exception("No relevant deadline found")
+      );
+
+      // Parse the deadline date string into a DateTime object
+      DateTime deadlineDate = DateTime.parse(deadline.deadlineDate.toString());
+
+      // Get the current date and time
+      DateTime now = DateTime.now();
+
+      // Check if the deadline date is in the past
+      return deadlineDate.isBefore(now);
+    } catch (e) {
+      // Handle case where deadline is not found or date parsing fails
+      print("Error: ${e.toString()}");
+    }
+  }
+
+  return false; // Default return value if no condition is met
+}
+
+bool isPastDefenseDeadline(String category) {
+  try {
+    // Find the relevant deadline
+    Deadline deadline = deadlines.firstWhere(
+      (dead) => dead.category.toLowerCase() == category.toLowerCase() && dead.isEnabled,
+    
+    );
+
+
+    // Parse the deadline date string into a DateTime object
+    DateTime deadlineDate = DateTime.parse(deadline.deadlineDate.toString());
+
+    // Get the current date and time
+    DateTime now = DateTime.now();
+
+    // Check if the deadline date is in the past
+    return deadlineDate.isBefore(now);
+  } catch (e) {
+    // Handle any unexpected errors, such as date parsing issues
+    print("Error: ${e.toString()}");
+    return false;  // Return false if there is an error
+  }
+}
+
     DataCell buildDocDataCell(
       Course course,
       BuildContext context,
       String reference,
+      
     ) {
       // Get the download URL of the file from Firebase Storage
 
@@ -2864,11 +2933,10 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                     ),
                     trailing: IconButton(
                       icon: Icon(Icons.attach_file),
-                      onPressed: () async {
-                        // Prompt the user to select a file
-
+                      onPressed: isPastDeadline(course) ? null :() async {
                         await uploadDocFile(course.coursecode);
                       },
+                      tooltip: isPastDeadline(course)? 'Already past deadline, contact coordinator' : 'Upload file'
                     ),
                   );
                 }
@@ -3331,10 +3399,11 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                         ),
                         IconButton(
                           icon: Icon(Icons.attach_file),
-                          onPressed: () async {
+                          onPressed: isPastDefenseDeadline('Thesis writing enrollment')? null: () async {
                             // Show the first dialog and wait until it is closed
                             await showEN19FormDialog(context);
                           },
+                          tooltip: isPastDefenseDeadline('Thesis writing enrollment')? 'Already past deadline, contact coordinator' : 'Upload enrollment form',
                         ),
                       ],
                     )),
@@ -3417,10 +3486,14 @@ class _CapstoneProjectScreenState extends State<CapstoneProjectScreen> {
                         ),
                         IconButton(
                           icon: Icon(Icons.attach_file),
-                          onPressed: () async {
+                          onPressed: isPastDefenseDeadline('Defense Requirements') 
+                       
+                          ? null: () async {
                             modifyDefenseForm(context, _retrievedForm!);
                           },
-                          tooltip: 'Upload EN-18 Defense Form',
+                          tooltip:  isPastDefenseDeadline('Defense Requirements')
+                          ? 'Already past deadline, contact coordinator' :
+                       'Upload EN-18 Defense Form',
                         ),
                       ],
                     )),
