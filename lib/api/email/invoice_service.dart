@@ -2950,7 +2950,7 @@ class PdfInvoiceService {
   }
 
   Future<Uint8List> createRecommendationForm(
-      StudentPOS studentPOS,
+      Student studentPOS,
       List<Course>? recommendedRemedialCourses,
       List<Course>? recommendedPriorityCourses,
       bool isEng501MChecked,

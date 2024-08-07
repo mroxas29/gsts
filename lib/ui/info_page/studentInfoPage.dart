@@ -44,11 +44,11 @@ class StudentInfoPageState extends State<StudentInfoPage>
   bool studentDeviated = false;
   late TabController _tabController;
   DataRow isCoursePassed(Course course, BuildContext context) {
-    final bool isPassed = widget.studentpos.pastCourses.any((pastCourse) =>
+    final bool isPassed = widget.student.pastCourses.any((pastCourse) =>
         pastCourse.coursecode == course.coursecode && pastCourse.grade >= 2.0);
-    final bool isNotPassed = widget.studentpos.pastCourses.any((pastCourse) =>
+    final bool isNotPassed = widget.student.pastCourses.any((pastCourse) =>
         pastCourse.coursecode == course.coursecode && pastCourse.grade < 2.0);
-    final bool isInProgress = widget.studentpos.enrolledCourses.any(
+    final bool isInProgress = widget.student.enrolledCourses.any(
         (enrolledCourse) => enrolledCourse.coursecode == course.coursecode);
     final bool isNotEnrolled = !isPassed && !isNotPassed && !isInProgress;
 
@@ -1419,7 +1419,7 @@ class StudentInfoPageState extends State<StudentInfoPage>
                                     onDownloadPressed: () async {
                                       final data = await service
                                           .createRecommendationForm(
-                                        widget.studentpos,
+                                        widget.student,
                                         recommendedRemedialCourses,
                                         recommendedPriorityCourses,
                                         isEng501MChecked,
