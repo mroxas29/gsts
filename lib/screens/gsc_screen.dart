@@ -2268,7 +2268,7 @@ class _MainViewState extends State<Gscscreen> {
 
   List<String> extractStudentIdsFromTable(String tableData) {
     List<String> studentIds = [];
-    RegExp regExp = RegExp(r'<TR><TD>(\d+)<\/TD>');
+    RegExp regExp = RegExp(r'<TR[^>]*>\s*<TD>(\d+)<\/TD>');
     Iterable<Match> matches = regExp.allMatches(tableData);
 
     for (var match in matches) {
@@ -2327,32 +2327,33 @@ class _MainViewState extends State<Gscscreen> {
 
   Future<void> addEnrolledStudents(
       Course selectedCourse, List<String> students) async {
-    late EnrolledCourseData enrolledCourse;
-    enrolledCourse = EnrolledCourseData(
-      roomNum: selectedCourse.roomNum,
-      setup: selectedCourse.setup,
-      uid: selectedCourse.uid,
-      syAndTerm: selectedCourse.syAndTerm,
-      dayTimes: selectedCourse.dayTimes,
-      section: selectedCourse.section,
-      coursecode: selectedCourse.coursecode,
-      coursename: selectedCourse.coursename,
-      isactive: selectedCourse.isactive,
-      facultyassigned: selectedCourse.facultyassigned,
-      numstudents: students.length,
-      units: selectedCourse.units,
-      type: selectedCourse.type,
-      program: selectedCourse.program,
-      onlineDay: selectedCourse.onlineDay,
-    );
-    StudentPOS pos;
-    for (Student s in studentList) {
-      pos = studentPOSList.firstWhere((pos) => pos.idnumber == s.idnumber);
+    try {
+      late EnrolledCourseData enrolledCourse;
+      enrolledCourse = EnrolledCourseData(
+        roomNum: selectedCourse.roomNum,
+        setup: selectedCourse.setup,
+        uid: selectedCourse.uid,
+        syAndTerm: selectedCourse.syAndTerm,
+        dayTimes: selectedCourse.dayTimes,
+        section: selectedCourse.section,
+        coursecode: selectedCourse.coursecode,
+        coursename: selectedCourse.coursename,
+        isactive: selectedCourse.isactive,
+        facultyassigned: selectedCourse.facultyassigned,
+        numstudents: students.length,
+        units: selectedCourse.units,
+        type: selectedCourse.type,
+        program: selectedCourse.program,
+        onlineDay: selectedCourse.onlineDay,
+      );
+
       for (String studentId in students) {
-        if (studentId
-            .toLowerCase()
-            .contains(s.idnumber.toString().toLowerCase())) {
-          print(s.idnumber);
+        try {
+          Student s = studentList
+              .firstWhere((stud) => studentId == stud.idnumber.toString());
+          StudentPOS pos =
+              studentPOSList.firstWhere((pos) => pos.idnumber == s.idnumber);
+          print("STUDENT ID NUMBER ${s.idnumber}-${pos.idnumber}");
           if (!s.enrolledCourses.any(
               (course) => course.coursecode == selectedCourse.coursecode)) {
             await FirebaseFirestore.instance
@@ -2375,6 +2376,7 @@ class _MainViewState extends State<Gscscreen> {
                 .update({
               'numstudents': FieldValue.increment(1),
             });
+
             Timeline newTimeline = Timeline(
               date: DateTime.now(),
               title: "Enrollment to course",
@@ -2388,17 +2390,33 @@ class _MainViewState extends State<Gscscreen> {
               pos.enrolledCourses.add(enrolledCourse);
             });
           }
+        } catch (e) {
+          print('Error enrolling student with ID: $studentId - $e');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error enrolling student with ID: $studentId'),
+              duration: Duration(seconds: 2),
+            ),
+          );
         }
       }
-    }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-            'Enrolled students for ${selectedCourse.coursecode}: ${selectedCourse.coursename} updated!'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              'Enrolled students for ${selectedCourse.coursecode}: ${selectedCourse.coursename} updated!'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      print('Error during enrollment process: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('An error occurred during the enrollment process.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   List<Course> recommendedRemedialCourses = [];
