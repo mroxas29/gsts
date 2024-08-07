@@ -451,7 +451,7 @@ class _MainViewState extends State<Sysad> {
                                   degree: enrolledStudent[i].degree,
                                   status: enrolledStudent[i].status);
 
-                              retrieveStudentPOS(enrolledStudent[i].uid);
+                              retrieveStudentPOS(enrolledStudent[i]);
                               _showStudentInfo(context, enrolledStudent[i]);
                             },
                             child: ListTile(

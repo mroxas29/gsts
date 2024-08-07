@@ -81,19 +81,19 @@ class StudentPOS extends Student {
   }
 }
 
-void studentPOSDefault() {
+void studentPOSDefault(Student student) {
   studentPOS = StudentPOS(
       acceptanceTerm: getCurrentSYandTerm(),
       schoolYears: defaultschoolyears,
-      uid: currentStudent!.uid,
-      displayname: currentStudent!.displayname,
-      role: currentStudent!.role,
-      email: currentStudent!.email,
-      idnumber: currentStudent!.idnumber,
-      enrolledCourses: currentStudent!.enrolledCourses,
-      pastCourses: currentStudent!.pastCourses,
-      degree: currentStudent!.degree,
-      status: currentStudent!.status);
+      uid: student.uid,
+      displayname: student.displayname,
+      role: student.role,
+      email: student.email,
+      idnumber: student.idnumber,
+      enrolledCourses: student.enrolledCourses,
+      pastCourses: student.pastCourses,
+      degree: student.degree,
+      status: student.status);
 }
 
 List<SchoolYear> defaultschoolyears = List.generate(3, (index) {
@@ -108,10 +108,10 @@ List<Term> defaultTerm = List<Term>.generate(3, (termIndex) {
   return Term('Term ${termIndex + 1}', []);
 });
 
-Future<StudentPOS> retrieveStudentPOS(String uid) async {
+Future<StudentPOS> retrieveStudentPOS(Student student) async {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final DocumentReference documentReference =
-      firestore.collection('studentpos').doc(uid); // Use provided UID
+      firestore.collection('studentpos').doc(student.uid); // Use provided UID
 
   try {
     DocumentSnapshot documentSnapshot = await documentReference.get();
@@ -131,10 +131,10 @@ Future<StudentPOS> retrieveStudentPOS(String uid) async {
         print('Document data is null');
       }
     } else {
-      print('Document does not exist for $uid');
+      print('Document does not exist for ${student.uid}');
 
       initializeSchoolYears();
-      studentPOSDefault();
+      studentPOSDefault(student);
     }
   } catch (e) {
     print('Error retrieving document for Student POS DITO BA YON: $e');

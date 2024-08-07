@@ -1315,7 +1315,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                               return GestureDetector(
                                 onTap: () async {
                                   await retrieveStudentPOS(
-                                      studentList[index].uid);
+                                      studentList[index]);
                                 
                                     await fetchStudentTimelines(studentList[index].uid);
                              
@@ -1374,7 +1374,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                         await fetchStudentTimelines(
                                           applicantList[index].uid);
                                       await retrieveStudentPOS(
-                                          applicantList[index].uid);
+                                          applicantList[index]);
                                       EN19Form? en19details =
                                           await EN19Form.getFormFromFirestore(
                                               applicantList[index].uid);
@@ -1428,7 +1428,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                       await fetchStudentTimelines( noEnrolledStudents[index].uid);
                                       StudentPOS? clickedStudentPOS =
                                           await retrieveStudentPOS(
-                                              noEnrolledStudents[index].uid);
+                                              noEnrolledStudents[index]);
                                       EN19Form? en19details =
                                           await EN19Form.getFormFromFirestore(
                                               noEnrolledStudents[index].uid);
@@ -1485,7 +1485,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                       await retrieveStudentPOS(
                                           deviatedStudentList[index]
                                               .studentPOS
-                                              .uid);
+                                              );
                                       EN19Form? en19details =
                                           await EN19Form.getFormFromFirestore(
                                               deviatedStudentList[index]
@@ -1551,7 +1551,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                         await fetchStudentTimelines(
                                        ineligibleStudentList[index].uid);
                                       await retrieveStudentPOS(
-                                          ineligibleStudentList[index].uid);
+                                          ineligibleStudentList[index]);
                                       EN19Form? en19details =
                                           await EN19Form.getFormFromFirestore(
                                               ineligibleStudentList[index].uid);
@@ -1606,7 +1606,7 @@ class _DesktopScaffoldState extends State<DesktopScaffold> {
                                       await fetchStudentTimelines(
                                              graduatingStudentsList[index].uid);
                                       await retrieveStudentPOS(
-                                          graduatingStudentsList[index].uid);
+                                          graduatingStudentsList[index]);
                                       EN19Form? en19details =
                                           await EN19Form.getFormFromFirestore(
                                               graduatingStudentsList[index]

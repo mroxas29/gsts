@@ -4002,7 +4002,7 @@ class _MainViewState extends State<GradStudentscreen>
                       currentStudent!.enrolledCourses.clear();
                       currentStudent!.pastCourses.clear();
                       setState(() {
-                        studentPOSDefault();
+                        studentPOSDefault(currentStudent!);
                       });
                       wrongCreds = false;
                       // studentPOS = null;

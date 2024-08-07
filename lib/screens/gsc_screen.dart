@@ -773,7 +773,7 @@ class _MainViewState extends State<Gscscreen> {
                           }
 
                           // Fetch student POS details
-                          await retrieveStudentPOS(student.uid);
+                          await retrieveStudentPOS(student);
                           await fetchStudentTimelines(student.uid);
                           // Use setState to update the widget state
                           setState(() {});
@@ -1732,16 +1732,16 @@ class _MainViewState extends State<Gscscreen> {
                                                                         idNumber
                                                                             .toString())
                                                                     .toJson());
-                                                   
-                                                          String studentUid = studentList
-                                                                    .firstWhere((student) =>
-                                                                        student
-                                                                            .idnumber
-                                                                            .toString() ==
-                                                                        idNumber
-                                                                            .toString())
-                                                                    .uid;
-                                                                 Timeline
+
+                                                            String studentUid = studentList
+                                                                .firstWhere((student) =>
+                                                                    student
+                                                                        .idnumber
+                                                                        .toString() ==
+                                                                    idNumber
+                                                                        .toString())
+                                                                .uid;
+                                                            Timeline
                                                                 newTimeline =
                                                                 Timeline(
                                                               date: DateTime
@@ -1753,7 +1753,9 @@ class _MainViewState extends State<Gscscreen> {
                                                               description:
                                                                   "Submitted grades for course ${course.coursecode}",
                                                             );
-                                                            addTimelineEvent(studentUid, newTimeline);
+                                                            addTimelineEvent(
+                                                                studentUid,
+                                                                newTimeline);
                                                           }
                                                         }
                                                       });
@@ -2513,7 +2515,7 @@ class _MainViewState extends State<Gscscreen> {
                         Navigator.of(context).pop();
                         Student? student = studentList.firstWhere((student) =>
                             student.idnumber.toString() == defense.idNumber);
-                        retrieveStudentPOS(student.uid);
+                        retrieveStudentPOS(student);
                         late DeviatedStudent devStudent;
                         bool isStudentDeviated = false;
                         fetchStudentTimelines(student.uid);
@@ -2991,8 +2993,7 @@ class _MainViewState extends State<Gscscreen> {
                         date: DateTime.now(),
                         title: "Defense details updated",
                         type: "Defense",
-                        description:
-                            "Updated defense details",
+                        description: "Updated defense details",
                       );
                       addTimelineEvent(uid, newTimeline);
                     } catch (e) {
@@ -3545,7 +3546,7 @@ class _MainViewState extends State<Gscscreen> {
                               }
                             }
 
-                            await retrieveStudentPOS(selectedStudent!.uid);
+                            await retrieveStudentPOS(selectedStudent!);
                             EN19Form? en19details =
                                 await EN19Form.getFormFromFirestore(
                                     selectedStudent.uid);
@@ -4888,7 +4889,7 @@ class _MainViewState extends State<Gscscreen> {
                       currentStudent!.enrolledCourses.clear();
                       currentStudent!.pastCourses.clear();
                       setState(() {
-                        studentPOSDefault();
+                        studentPOSDefault(currentStudent!);
                       });
                       wrongCreds = false;
                       // studentPOS = null;

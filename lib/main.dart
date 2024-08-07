@@ -468,8 +468,8 @@ class _LoginPageState extends State<LoginPage> {
           print(
               "Current student uid: ${currentStudent!.uid}\nCurrent User uid: ${currentUser.uid}");
 
-          await retrieveStudentPOS(currentStudent!.uid);
-    
+          await retrieveStudentPOS(currentStudent!);
+
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
