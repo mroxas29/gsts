@@ -18,6 +18,7 @@ import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/app/models/term.dart';
 import 'package:sysadmindb/app/models/timeline.dart';
 import 'package:sysadmindb/main.dart';
+import 'package:sysadmindb/ui/StudentCourseGrid.dart';
 import 'package:sysadmindb/ui/deRF_dialog.dart';
 import 'package:sysadmindb/ui/forms/addcourse.dart';
 import 'package:sysadmindb/ui/dashboard/gsc_dash.dart';
@@ -311,9 +312,9 @@ class StudentInfoPageState extends State<StudentInfoPage>
       },
     );
     Timeline newTimeline = Timeline(
-      date: DateTime.now(),
+      syAndterm: reformatSYandTerm(getCurrentSYandTerm()),
       title: "Uploaded updated EN-19",
-      type: "Enrollment",
+      type: "Thesis/Defense",
       description: "Successfully updated EN-19 Form",
     );
     addTimelineEvent(widget.studentpos.uid, newTimeline);
@@ -904,9 +905,10 @@ class StudentInfoPageState extends State<StudentInfoPage>
                                     'EN18Defense Form_${currentUser.idnumber}.pdf',
                                     pdfData);
                                 Timeline newTimeline = Timeline(
-                                  date: DateTime.now(),
+                                  syAndterm:
+                                      reformatSYandTerm(getCurrentSYandTerm()),
                                   title: "Uploaded updated defense form",
-                                  type: "Defense",
+                                  type: "Thesis/Defense",
                                   description:
                                       "Successfully updated defense form",
                                 );
@@ -934,135 +936,6 @@ class StudentInfoPageState extends State<StudentInfoPage>
   final _descriptionController = TextEditingController();
   String _type = 'Application'; // Default type
   bool _isAddingNew = false; // State to show/hide the form
-
-  void _addNewTimeline() async {
-    // Create a new Timeline entry
-    final newTimeline = Timeline(
-      date: DateTime.now(),
-      title: _titleController.text,
-      type: _type,
-      description: _descriptionController.text,
-    );
-
-    // Add the new timeline entry to the local list
-    setState(() {
-      timelines.add(newTimeline);
-      // Clear the form fields after submission
-      _titleController.clear();
-      _descriptionController.clear();
-      _type = 'Application'; // Reset dropdown to default
-      _isAddingNew = false; // Hide the form
-    });
-
-    // Convert the updated list of Timeline entries to a format suitable for Firestore
-    List<Map<String, dynamic>> timelineData = timelines
-        .map((entry) => {
-              'date':
-                  entry.date.toIso8601String(), // Convert DateTime to string
-              'title': entry.title,
-              'type': entry.type,
-              'description': entry.description,
-            })
-        .toList();
-
-    // Save the updated list of timeline entries to Firestore
-    await FirebaseFirestore.instance
-        .collection(
-            'timelines') // Collection where student documents are stored
-        .doc(widget.student.uid) // Document for the specific student
-        .set({
-      'timeline': timelineData, // Set the 'timeline' field with the entire list
-    }, SetOptions(merge: true)) // Use merge to update only the 'timeline' field
-        .then((value) {
-      print("Timelines saved successfully");
-    }).catchError((error) {
-      print("Failed to save timelines: $error");
-    });
-  }
-
-  Widget buildTimelineEntries(List<Timeline> entries) {
-    // Helper function to normalize DateTime to only the date part
-    DateTime _normalizeDate(DateTime date) {
-      return DateTime(date.year, date.month, date.day);
-    }
-
-    // Group entries by normalized date
-    Map<DateTime, List<Timeline>> groupedEntries = {};
-    for (var entry in entries) {
-      DateTime normalizedDate = _normalizeDate(entry.date);
-      if (groupedEntries[normalizedDate] == null) {
-        groupedEntries[normalizedDate] = [];
-      }
-      groupedEntries[normalizedDate]!.add(entry);
-    }
-
-    // Create a list of widgets for each date and its activities
-    List<Widget> timelineWidgets = [];
-    Set<DateTime> processedDates =
-        {}; // Track dates for which headers have been added
-
-    groupedEntries.forEach((date, activities) {
-      if (!processedDates.contains(date)) {
-        // Add date header if not already processed
-        timelineWidgets.add(
-          Container(
-            color: Colors.grey[200], // Background color for date headers
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  DateFormat.yMMMMd().format(date),
-                  style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87),
-                ),
-                Divider(color: Colors.black87, thickness: 1),
-              ],
-            ),
-          ),
-        );
-        processedDates.add(date); // Mark this date as processed
-      }
-
-      // Add the activities for the current date
-      timelineWidgets.addAll(
-        activities.map((entry) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 5.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    entry.title,
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                  ),
-                  SizedBox(height: 2),
-                  Text(
-                    entry.type,
-                    style: TextStyle(
-                        fontSize: 12,
-                        fontStyle: FontStyle.italic,
-                        color: Colors.blue),
-                  ),
-                  SizedBox(height: 2),
-                  Text(
-                    entry.description,
-                    style: TextStyle(fontSize: 12),
-                  ),
-                ],
-              ),
-            )),
-      );
-      timelineWidgets
-          .add(SizedBox(height: 10)); // Add space between date sections
-    });
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: timelineWidgets,
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -1139,6 +1012,39 @@ class StudentInfoPageState extends State<StudentInfoPage>
                                       Text(studentInfo.email),
                                       Text(
                                           'Enrollment Status: ${studentInfo.status}'),
+                                      TextButton(
+                                        onPressed: () {
+                                          showDialog(
+                                            context: context,
+                                            builder: (BuildContext context) {
+                                              return Dialog(
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          8.0),
+                                                ),
+                                                child: Container(
+                                                  width: MediaQuery.of(context)
+                                                          .size
+                                                          .width *
+                                                      0.9, // Adjust width
+                                                  height: MediaQuery.of(context)
+                                                          .size
+                                                          .height *
+                                                      0.8, // Adjust height
+                                                  padding: EdgeInsets.all(16.0),
+                                                  child: StudentCourseDisplay(
+                                                    studentpos:
+                                                        widget.studentpos,
+                                                    timelines: timelines,
+                                                  ), // Display the StudentCourseDisplay
+                                                ),
+                                              );
+                                            },
+                                          );
+                                        },
+                                        child: Text('Show student timeline'),
+                                      )
                                     ],
                                   ),
                                 ),
@@ -1236,94 +1142,6 @@ class StudentInfoPageState extends State<StudentInfoPage>
                     )
                   ],
                 ),
-                Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: MediaQuery.sizeOf(context).width / 3,
-                          child: SingleChildScrollView(
-                            child: Card(
-                              color: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8.0)),
-                              elevation: 4.0,
-                              child: Padding(
-                                  padding:
-                                      const EdgeInsets.fromLTRB(10, 10, 10, 10),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        "Student timeline",
-                                        style: TextStyle(
-                                            fontSize: 12, color: Colors.grey),
-                                      ),
-                                      SizedBox(height: 10),
-                                      buildTimelineEntries(timelines),
-                                      SizedBox(height: 20),
-                                      ElevatedButton(
-                                        onPressed: () {
-                                          setState(() {
-                                            _isAddingNew =
-                                                !_isAddingNew; // Toggle form visibility
-                                          });
-                                        },
-                                        child: Text(_isAddingNew
-                                            ? 'Cancel'
-                                            : '+ Add Event'),
-                                      ),
-                                      if (_isAddingNew) ...[
-                                        SizedBox(height: 20),
-                                        TextField(
-                                          controller: _titleController,
-                                          decoration: InputDecoration(
-                                              labelText: 'Title'),
-                                        ),
-                                        TextField(
-                                          controller: _descriptionController,
-                                          decoration: InputDecoration(
-                                              labelText: 'Description'),
-                                        ),
-                                        DropdownButtonFormField<String>(
-                                          value: _type,
-                                          decoration: InputDecoration(
-                                              labelText: 'Type'),
-                                          items: [
-                                            'Application',
-                                            'Enrollment',
-                                            'Thesis/Capstone',
-                                            'Defense'
-                                          ]
-                                              .map((type) => DropdownMenuItem(
-                                                    value: type,
-                                                    child: Text(type),
-                                                  ))
-                                              .toList(),
-                                          onChanged: (value) {
-                                            setState(() {
-                                              _type = value!;
-                                            });
-                                          },
-                                        ),
-                                        SizedBox(height: 20),
-                                        ElevatedButton(
-                                          onPressed: _addNewTimeline,
-                                          child: Text('Add Entry'),
-                                        ),
-                                      ]
-                                    ],
-                                  )),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                )
               ],
             )),
         SingleChildScrollView(
@@ -1352,15 +1170,6 @@ class StudentInfoPageState extends State<StudentInfoPage>
                               ? () {
                                   // Implement logic to save studentPOS
                                   updateProgramOfStudy();
-                                  Timeline newTimeline = Timeline(
-                                    date: DateTime.now(),
-                                    title: "Updated Program of Study",
-                                    type: "Application",
-                                    description:
-                                        "Successfully modified student's program of study",
-                                  );
-                                  addTimelineEvent(
-                                      widget.student.uid, newTimeline);
                                 }
                               : null, // Disable the button when no course is added
                           child: Text("Save changes"),
@@ -1474,7 +1283,8 @@ class StudentInfoPageState extends State<StudentInfoPage>
                                   );
 
                                   Timeline newTimeline = Timeline(
-                                    date: DateTime.now(),
+                                    syAndterm: reformatSYandTerm(
+                                        getCurrentSYandTerm()),
                                     title: "Student Accepted",
                                     type: "Application",
                                     description:
@@ -1848,23 +1658,42 @@ class StudentInfoPageState extends State<StudentInfoPage>
                                                           'Bridging/Remedial Courses') {
                                                         recommendedRemedialCourses
                                                             .add(course);
+                                                        Timeline newTimeline =
+                                                            Timeline(
+                                                          syAndterm:
+                                                              reformatSYandTerm(
+                                                                  getCurrentSYandTerm()),
+                                                          title:
+                                                              "Added a remedial course",
+                                                          type: "Enrollment",
+                                                          description:
+                                                              "${course.coursecode}: ${year.name}: ${term.name}",
+                                                        );
+                                                        addTimelineEvent(
+                                                            widget
+                                                                .studentpos.uid,
+                                                            newTimeline);
                                                       } else {
                                                         recommendedPriorityCourses
                                                             .add(course);
+                                                        Timeline newTimeline =
+                                                            Timeline(
+                                                          syAndterm:
+                                                              reformatSYandTerm(
+                                                                  getCurrentSYandTerm()),
+                                                          title:
+                                                              "Added a foundation course",
+                                                          type: "Enrollment",
+                                                          description:
+                                                              "Added foundation course ${course.coursecode} to student's POS on ${year.name}: ${term.name}",
+                                                        );
+                                                        addTimelineEvent(
+                                                            widget
+                                                                .studentpos.uid,
+                                                            newTimeline);
                                                       }
                                                       getDeviatedStudents();
                                                     });
-                                                    Timeline newTimeline =
-                                                        Timeline(
-                                                      date: DateTime.now(),
-                                                      title: "Added a course",
-                                                      type: "Enrollment",
-                                                      description:
-                                                          "Successfully added course ${course.coursecode} to student's POS",
-                                                    );
-                                                    addTimelineEvent(
-                                                        widget.studentpos.uid,
-                                                        newTimeline);
                                                   },
                                                   allCourses: courses,
                                                   selectedStudentPOS:

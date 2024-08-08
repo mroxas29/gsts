@@ -1,13 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Timeline {
-  DateTime date;
+  String syAndterm;
   String title;
   String type;
   String description;
 
   Timeline({
-    required this.date,
+    required this.syAndterm,
     required this.title,
     required this.type,
     required this.description,
@@ -16,7 +16,6 @@ class Timeline {
   // Convert a Timeline object to a map for Firestore
   Map<String, dynamic> toMap() {
     return {
-      'date': date.toIso8601String(),
       'title': title,
       'type': type,
       'description': description,
@@ -26,7 +25,7 @@ class Timeline {
   // Create a Timeline object from a map
   factory Timeline.fromMap(Map<String, dynamic> map) {
     return Timeline(
-      date: DateTime.parse(map['date']),
+      syAndterm: map['syAndTerm'],
       title: map['title'] ?? '',
       type: map['type'] ?? '',
       description: map['description'] ?? '',
@@ -51,7 +50,7 @@ Future<void> fetchStudentTimelines(String studentUid) async {
       // Parse the data into List<Timeline>
       List<Timeline> studentTimelines = timelineData.map((item) {
         return Timeline(
-          date: DateTime.parse(item['date']), // Convert the string to DateTime
+          syAndterm: item['syAndTerm'], // Convert the string to DateTime
           title: item['title'],
           type: item['type'],
           description: item['description'],
@@ -74,8 +73,7 @@ Future<void> addTimelineEvent(String studentUid, Timeline newTimeline) async {
   try {
     // Prepare the timeline data
     Map<String, dynamic> timelineData = {
-      'date':
-          newTimeline.date.toIso8601String(), // Convert DateTime to ISO string
+      'syAndTerm': newTimeline.syAndterm, // Convert DateTime to ISO string
       'title': newTimeline.title,
       'type': newTimeline.type,
       'description': newTimeline.description,

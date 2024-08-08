@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sysadmindb/api/email/sendemail.dart';
+import 'package:sysadmindb/app/models/AcademicCalendar.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/app/models/timeline.dart';
 
@@ -88,7 +89,7 @@ class IneligibleList extends StatelessWidget {
                           ),
                         );
                         Timeline newTimeline = Timeline(
-                          date: DateTime.now(),
+                          syAndterm: reformatSYandTerm(getCurrentSYandTerm()),
                           title: "Sent email",
                           type: "Enrollment",
                           description: "Sent email regarding ineligibility",

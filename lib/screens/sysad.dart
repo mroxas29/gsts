@@ -524,7 +524,7 @@ class _MainViewState extends State<Sysad> {
                   }
 
                      Timeline newTimeline = Timeline(
-                    date: DateTime.now(),
+                    syAndterm: reformatSYandTerm(getCurrentSYandTerm()),
                     title: "Account Deletion",
                     type: "Application",
                     description:

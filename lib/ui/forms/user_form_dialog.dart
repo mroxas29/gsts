@@ -219,13 +219,7 @@ void showAddApplicantForm(BuildContext context, GlobalKey<FormState> formKey) {
 
                       String userID = user!.uid;
                       uid = userID;
-Timeline newTimeline = Timeline(
-                        date: DateTime.now(),
-                        title: "Account Creation",
-                        type: "Application",
-                        description: "Account has been added by admin",
-                      );
-                      addTimelineEvent(userID, newTimeline);
+
                       await FirebaseFirestore.instance
                           .collection('users')
                           .doc(userID)

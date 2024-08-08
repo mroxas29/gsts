@@ -10,8 +10,6 @@ import 'package:side_navigation/side_navigation.dart';
 import 'package:sysadmindb/app/models/AcademicCalendar.dart';
 import 'package:sysadmindb/app/models/courses.dart';
 import 'package:sysadmindb/app/models/en-19.dart';
-import 'package:sysadmindb/app/models/faculty.dart';
-import 'package:sysadmindb/app/models/studentPOS.dart';
 import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/app/models/timeline.dart';
 import 'package:sysadmindb/main.dart';
@@ -19,9 +17,6 @@ import 'package:sysadmindb/app/models/user.dart';
 import 'package:sysadmindb/screens/gradstudent_screen.dart';
 import 'package:sysadmindb/ui/defense_card.dart';
 import 'package:sysadmindb/ui/defense_sched.dart';
-import 'package:sysadmindb/ui/forms/form.dart';
-import 'package:sysadmindb/ui/reusable_widgets.dart';
-import 'package:sysadmindb/ui/forms/user_form_dialog.dart';
 import 'dart:math';
 
 import 'package:url_launcher/url_launcher.dart';
@@ -722,12 +717,12 @@ class _MainViewState extends State<DITSec> {
                     service.savePdfFile(
                         'EN18Defense Form_${student.idnumber}.pdf', pdfData);
 
-                         Timeline newTimeline = Timeline(
-                      date: DateTime.now(),
-                      title: "Defense modifed",
+                    Timeline newTimeline = Timeline(
+                      syAndterm: reformatSYandTerm(getCurrentSYandTerm()),
+                      title: "Defense set",
                       type: "Defense",
                       description:
-                          "Successfully modified defense details for student: ${student.idnumber}",
+                          "$formattedDate $formattedTime",
                     );
                     addTimelineEvent(student.uid, newTimeline);
                     Navigator.of(context).pop();

@@ -7,13 +7,11 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
-import 'package:googleapis/admob/v1.dart';
 import 'package:intl/intl.dart';
 import 'package:excel/excel.dart' as exc;
 import 'package:side_navigation/side_navigation.dart';
 import 'package:sysadmindb/api/email/invoice_service.dart';
 import 'package:sysadmindb/api/calendar/test_calendar.dart';
-import 'package:sysadmindb/api/email/test_gmail.dart';
 import 'package:sysadmindb/app/models/AcademicCalendar.dart';
 import 'package:sysadmindb/app/models/DeviatedStudents.dart';
 import 'package:sysadmindb/app/models/courses.dart';
@@ -26,8 +24,6 @@ import 'package:sysadmindb/app/models/student_user.dart';
 import 'package:sysadmindb/app/models/timeline.dart';
 import 'package:sysadmindb/main.dart';
 import 'package:sysadmindb/app/models/user.dart';
-import 'package:sysadmindb/ui/dashboard_utils/studentList.dart';
-import 'package:sysadmindb/ui/deRF_dialog.dart';
 import 'package:sysadmindb/ui/deadlines_page.dart';
 import 'package:sysadmindb/ui/defense_card.dart';
 import 'package:sysadmindb/ui/defense_sched.dart';
@@ -36,11 +32,9 @@ import 'package:sysadmindb/ui/forms/form.dart';
 import 'package:sysadmindb/ui/dashboard/gsc_dash.dart';
 import 'package:sysadmindb/ui/info_page/deviatedInfoPage.dart';
 import 'package:sysadmindb/ui/info_page/studentInfoPage.dart';
-import 'package:url_launcher/link.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:html' as html;
 import 'package:flutter/services.dart';
-import 'package:syncfusion_flutter_pdf/pdf.dart';
 
 void main() {
   runApp(
@@ -100,7 +94,7 @@ class _MainViewState extends State<Gscscreen> {
   /// The currently selected index of the bar
   int selectedIndex = 0;
   String selectedProgramFilter = 'All';
-  String selectedVerdict = 'All';
+  String selectedVerdictFilter = 'All';
   List<EN19Form> filteredDefenses = [];
 
   @override
@@ -819,13 +813,13 @@ class _MainViewState extends State<Gscscreen> {
   }
 
   Widget _buildFilteredVerdictTable() {
-    List<EN19Form> filteredForms = selectedVerdict == 'All'
+    List<EN19Form> filteredForms = selectedVerdictFilter == 'All'
         ? allDefenseForms
         : allDefenseForms.where((form) {
-            if (selectedVerdict == 'No Verdict') {
+            if (selectedVerdictFilter == 'No Verdict') {
               return form.verdict == 'No verdict'; // Match the Firestore value
             }
-            return form.verdict == selectedVerdict;
+            return form.verdict == selectedVerdictFilter;
           }).toList();
 
     filteredForms.sort((a, b) => _sortComparison(a, b));
@@ -838,7 +832,7 @@ class _MainViewState extends State<Gscscreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  selectedVerdict,
+                  selectedVerdictFilter,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 18,
@@ -1744,14 +1738,15 @@ class _MainViewState extends State<Gscscreen> {
                                                             Timeline
                                                                 newTimeline =
                                                                 Timeline(
-                                                              date: DateTime
-                                                                  .now(),
+                                                              syAndterm:
+                                                                  reformatSYandTerm(
+                                                                      getCurrentSYandTerm()),
                                                               title:
                                                                   "Grade submitted",
                                                               type:
                                                                   "Enrollment",
                                                               description:
-                                                                  "Submitted grades for course ${course.coursecode}",
+                                                                  "Grade for course ${course.coursecode}: ${data['grade']?.toString()}",
                                                             );
                                                             addTimelineEvent(
                                                                 studentUid,
@@ -2278,53 +2273,6 @@ class _MainViewState extends State<Gscscreen> {
     return studentIds;
   }
 
-  Future<void> addTimelineEvent(String studentUid, Timeline newTimeline) async {
-    try {
-      // Prepare the timeline data
-      Map<String, dynamic> timelineData = {
-        'date': newTimeline.date
-            .toIso8601String(), // Convert DateTime to ISO string
-        'title': newTimeline.title,
-        'type': newTimeline.type,
-        'description': newTimeline.description,
-      };
-
-      // Reference to the Firestore document
-      DocumentReference docRef = FirebaseFirestore.instance
-          .collection('timelines') // Collection name
-          .doc(studentUid); // Document ID for the specific student
-
-      // Fetch the current document
-      DocumentSnapshot snapshot = await docRef.get();
-
-      if (snapshot.exists) {
-        // Retrieve the current list of timelines
-        List<dynamic> currentTimelineList = snapshot.get('timeline') ?? [];
-
-        // Append the new timeline event to the list
-        currentTimelineList.add(timelineData);
-
-        // Update the document with the new list
-        await docRef.update({'timeline': currentTimelineList}).then((value) {
-          print("Timeline event added successfully");
-        }).catchError((error) {
-          print("Failed to add timeline event: $error");
-        });
-      } else {
-        // If the document does not exist, create it with the new timeline
-        await docRef.set({
-          'timeline': [timelineData]
-        }).then((value) {
-          print("Timeline document created and event added successfully");
-        }).catchError((error) {
-          print("Failed to create timeline document: $error");
-        });
-      }
-    } catch (e) {
-      print("Error adding timeline event: $e");
-    }
-  }
-
   Future<void> addEnrolledStudents(
       Course selectedCourse, List<String> students) async {
     try {
@@ -2378,7 +2326,7 @@ class _MainViewState extends State<Gscscreen> {
             });
 
             Timeline newTimeline = Timeline(
-              date: DateTime.now(),
+              syAndterm: reformatSYandTerm(getCurrentSYandTerm()),
               title: "Enrollment to course",
               type: "Enrollment",
               description: "Enrollment to course ${selectedCourse.coursecode}",
@@ -3008,10 +2956,10 @@ class _MainViewState extends State<Gscscreen> {
                       print('Form saved successfully');
 
                       Timeline newTimeline = Timeline(
-                        date: DateTime.now(),
-                        title: "Defense details updated",
+                        syAndterm: reformatSYandTerm(getCurrentSYandTerm()),
+                        title: "Defense concluded",
                         type: "Defense",
-                        description: "Updated defense details",
+                        description: "Verdict: ${defense.verdict}",
                       );
                       addTimelineEvent(uid, newTimeline);
                     } catch (e) {
@@ -4176,10 +4124,10 @@ class _MainViewState extends State<Gscscreen> {
                         ),
                         SizedBox(width: 8),
                         DropdownButton<String>(
-                          value: selectedVerdict,
+                          value: selectedVerdictFilter,
                           onChanged: (newValue) {
                             setState(() {
-                              selectedVerdict = newValue!;
+                              selectedVerdictFilter = newValue!;
                             });
                           },
                           items: [
